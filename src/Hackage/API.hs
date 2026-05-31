@@ -45,67 +45,56 @@ type UserId = Int
 
 data AnyFormat
 
--- instance HasLink (f AsApi) where
---   type MkLink (f AsApi) a = f AsApi
-
-{- | `/admin`              | GET    | html    | admin-frontend
-| `/admin/account/:uid` | GET    | html    | admin-frontend
-| `/admin/accounts`     | GET    | html    | admin-frontend
-| `/admin/deauth`       | GET    | *       | core
-| `/admin/log.:format`  | GET    | html    | admin-actions-log
-| `/admin/resets`       | GET    | html    | admin-frontend
-| `/admin/signups`      | GET    | html    | admin-frontend
--}
+-- `/admin`              | GET    | html    | admin-frontend
+-- `/admin/account/:uid` | GET    | html    | admin-frontend
+-- `/admin/accounts`     | GET    | html    | admin-frontend
+-- `/admin/deauth`       | GET    | *       | core
+-- `/admin/log.:format`  | GET    | html    | admin-actions-log
+-- `/admin/resets`       | GET    | html    | admin-frontend
+-- `/admin/signups`      | GET    | html    | admin-frontend
 data AdminAPI mode = AdminApi
     { adminPage :: mode :- Get '[HTML] ()
-    , adminUser :: mode :- "account" :> Capture "uid" UserId :> Get '[HTML] ()
-    , adminAccounts :: mode :- "accounts" :> Get '[HTML] ()
-    , adminDeauth :: mode :- "deauth" :> Get '[HTML, JSON] ()
-    , adminLog :: mode :- "log.html" :> Get '[HTML] ()
-    , adminResets :: mode :- "resets" :> Get '[HTML] ()
-    , adminSignups :: mode :- "signups" :> Get '[HTML] ()
+    , adminUser :: mode :- "admin" :> "account" :> Capture "uid" UserId :> Get '[HTML] ()
+    , adminAccounts :: mode :- "admin" :> "accounts" :> Get '[HTML] ()
+    , adminDeauth :: mode :- "admin" :> "deauth" :> Get '[HTML, JSON] ()
+    , adminLog :: mode :- "admin" :> "log.html" :> Get '[HTML] ()
+    , adminResets :: mode :- "admin" :> "resets" :> Get '[HTML] ()
+    , adminSignups :: mode :- "admin" :> "signups" :> Get '[HTML] ()
     }
     deriving stock (Generic)
 
-{- | `/distro/:distro`                                      | PUT    | *       | distro
-| `/distro/:distro`                                      | DELETE | *       | distro
-| `/distro/:distro/package/:package.:format`             | GET    | txt     | distro
-| `/distro/:distro/package/:package.:format`             | PUT    | *       | distro
-| `/distro/:distro/package/:package.:format`             | DELETE | *       | distro
-| `/distro/:distro/packages.:format`                     | GET    | csv     | distro
-| `/distro/:distro/packages.:format`                     | GET    | txt     | distro
-| `/distro/:distro/packages.:format`                     | PUT    | csv     | distro
-| `/distro/:package/maintainers/.:format`                | GET    | json    | distro
-| `/distro/:package/maintainers/user/:username.:format`  | PUT    | *       | distro
-| `/distro/:package/maintainers/user/:username.:format`  | DELETE | *       | distro
--}
+-- `/distro/:distro`                                      | PUT    | *       | distro
+-- `/distro/:distro`                                      | DELETE | *       | distro
+-- `/distro/:distro/package/:package.:format`             | GET    | txt     | distro
+-- `/distro/:distro/package/:package.:format`             | PUT    | *       | distro
+-- `/distro/:distro/package/:package.:format`             | DELETE | *       | distro
+-- `/distro/:distro/packages.:format`                     | GET    | csv     | distro
+-- `/distro/:distro/packages.:format`                     | GET    | txt     | distro
+-- `/distro/:distro/packages.:format`                     | PUT    | csv     | distro
+-- `/distro/:package/maintainers/.:format`                | GET    | json    | distro
+-- `/distro/:package/maintainers/user/:username.:format`  | PUT    | *       | distro
+-- `/distro/:package/maintainers/user/:username.:format`  | DELETE | *       | distro
+-- `/distros/.:format` | GET    | txt     | distro
+-- `/distros/.:format` | POST   | *       | distro
 data DistroAPI mode = DistroAPI
-    { distroPut :: mode :- IsAdmin :> Capture "distro" DistroName :> Put '[TODO] ()
-    , distroDel :: mode :- IsAdmin :> Capture "distro" DistroName :> Delete '[TODO] ()
-    , distroPkgGet :: mode :- Capture "distro" DistroName :> "package" :> Capture "package" (WithFormat PackageName "txt") :> Get '[TXT] ()
-    , distroPkgPut :: mode :- Capture "distro" DistroName :> "package" :> Capture "package" (WithFormat PackageName "txt") :> Put '[TXT] ()
-    , distroPkgDel :: mode :- Capture "distro" DistroName :> "package" :> Capture "package" (WithFormat PackageName "txt") :> Delete '[TXT] ()
-    , distroPkgsGetCsv :: mode :- Capture "distro" DistroName :> "packages.csv" :> Get '[CSV] ()
-    , distroPkgsPutCsv :: mode :- Capture "distro" DistroName :> "packages.csv" :> Put '[CSV] ()
-    , distroPkgsGetTxt :: mode :- Capture "distro" DistroName :> "packages.txt" :> Get '[TXT] ()
-    , distroPkgMaintainersGet :: mode :- Capture "package" PackageName :> "maintainers" :> "user" :> Get '[JSON] ()
-    , distroPkgMaintainersPut :: mode :- Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithAnyFormat Username) :> Put '[] ()
-    , distroPkgMaintainersDel :: mode :- Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithAnyFormat Username) :> Delete '[] ()
-    }
-    deriving stock (Generic)
-
-{- | `/distros/.:format` | GET    | txt     | distro
-| `/distros/.:format` | POST   | *       | distro
--}
-data DistrosAPI mode = DistrosAPI
-    { distrosGet :: mode :- IsAdmin :> Get '[TXT] ()
-    , distrosPost :: mode :- IsAdmin :> Post '[] ()
-    , distrosRedir :: mode :- Redirect
+    { distroPut :: mode :- "distro" :> IsAdmin :> Capture "distro" DistroName :> Put '[TODO] ()
+    , distroDel :: mode :- "distro" :> IsAdmin :> Capture "distro" DistroName :> Delete '[TODO] ()
+    , distroPkgGet :: mode :- "distro" :> Capture "distro" DistroName :> "package" :> Capture "package" (WithFormat PackageName "txt") :> Get '[TXT] ()
+    , distroPkgPut :: mode :- "distro" :> Capture "distro" DistroName :> "package" :> Capture "package" (WithFormat PackageName "txt") :> Put '[TXT] ()
+    , distroPkgDel :: mode :- "distro" :> Capture "distro" DistroName :> "package" :> Capture "package" (WithFormat PackageName "txt") :> Delete '[TXT] ()
+    , distroPkgsGetCsv :: mode :- "distro" :> Capture "distro" DistroName :> "packages.csv" :> Get '[CSV] ()
+    , distroPkgsPutCsv :: mode :- "distro" :> Capture "distro" DistroName :> "packages.csv" :> Put '[CSV] ()
+    , distroPkgsGetTxt :: mode :- "distro" :> Capture "distro" DistroName :> "packages.txt" :> Get '[TXT] ()
+    , distroPkgMaintainersGet :: mode :- "distro" :> Capture "package" PackageName :> "maintainers" :> "user" :> Get '[JSON] ()
+    , distroPkgMaintainersPut :: mode :- "distro" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithAnyFormat Username) :> Put '[] ()
+    , distroPkgMaintainersDel :: mode :- "distro" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithAnyFormat Username) :> Delete '[] ()
+    , distrosGet :: mode :- "distros" :> IsAdmin :> Get '[TXT] ()
+    , distrosPost :: mode :- "distros" :> IsAdmin :> Post '[] ()
     }
     deriving stock (Generic)
 
 data AllAPI mode = AllAPI
-    { adminApi :: mode :- "admin" :> NamedRoutes AdminAPI
+    { adminApi :: mode :- NamedRoutes AdminAPI
     }
     deriving stock (Generic)
 
@@ -128,15 +117,14 @@ data Redirect
 
 data IsAdmin
 
-{- | `/package/:package/candidate/:cabal.cabal`             | GET    | cabal   | candidates               |
-| `/package/:package/candidate/:tarball.tar.gz`          | GET    | tarball | candidates               |
-| `/package/:package/candidate/changelog.:format`        | GET    | html    | candidates               |
-| `/package/:package/candidate/changelog.:format`        | GET    | txt     | candidates               |
-| `/package/:package/candidate/src/...`                  | GET    | *       | candidates               |
-| `/package/:package/candidates/.:format`                | GET    | json    | candidates               |
-| `/packages/candidates/.:format`                        | GET    | json    | candidates               |
-| `/packages/candidates/.:format`                        | POST   | txt     | candidates               |
--}
+-- `/package/:package/candidate/:cabal.cabal`             | GET    | cabal   | candidates               |
+-- `/package/:package/candidate/:tarball.tar.gz`          | GET    | tarball | candidates               |
+-- `/package/:package/candidate/changelog.:format`        | GET    | html    | candidates               |
+-- `/package/:package/candidate/changelog.:format`        | GET    | txt     | candidates               |
+-- `/package/:package/candidate/src/...`                  | GET    | *       | candidates               |
+-- `/package/:package/candidates/.:format`                | GET    | json    | candidates               |
+-- `/packages/candidates/.:format`                        | GET    | json    | candidates               |
+-- `/packages/candidates/.:format`                        | POST   | txt     | candidates               |
 data CandidatesAPI mode = CandidatesAPI
     { candidateCabalGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> Capture "cabal" (WithFormat PackageName "cabal") :> Get '[Cabal] ()
     , candidateTarballGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> Capture "tarball" (WithFormat PackageName "tar.gz") :> Get '[Tarball] ()
@@ -149,16 +137,15 @@ data CandidatesAPI mode = CandidatesAPI
     }
     deriving stock (Generic)
 
-{- | `/package/`                                            | GET    | *       | core                     |
-| `/package/:package/:cabal.cabal`                       | GET    | cabal   | core                     |
-| `/package/:package/:tarball.tar.gz`                    | GET    | tarball | core                     |
-| `/package/:package/revision/:revision.:format`         | GET    | cabal   | core                     |
-| `/package/:package/revisions/.:format`                 | GET    | json    | core                     |
-| `/packages/.:format`                                   | GET    | json    | core                     |
-| `/packages/deauth`                                     | GET    | *       | core                     |
-| `/packages/index.tar.gz`                               | GET    | tarball | core                     |
-| `/user/:user/deauth`                                   | GET    | *       | core                     |
--}
+-- `/package/`                                            | GET    | *       | core                     |
+-- `/package/:package/:cabal.cabal`                       | GET    | cabal   | core                     |
+-- `/package/:package/:tarball.tar.gz`                    | GET    | tarball | core                     |
+-- `/package/:package/revision/:revision.:format`         | GET    | cabal   | core                     |
+-- `/package/:package/revisions/.:format`                 | GET    | json    | core                     |
+-- `/packages/.:format`                                   | GET    | json    | core                     |
+-- `/packages/deauth`                                     | GET    | *       | core                     |
+-- `/packages/index.tar.gz`                               | GET    | tarball | core                     |
+-- `/user/:user/deauth`                                   | GET    | *       | core                     |
 data CoreAPI mode = CoreAPI
     { packageIndex :: mode :- "package" :> Get '[TODO] ()
     , packageCabalGet :: mode :- "package" :> Capture "package" PackageName :> Capture "cabal" (WithFormat PackageName "cabal") :> Get '[Cabal] ()
@@ -172,12 +159,11 @@ data CoreAPI mode = CoreAPI
     }
     deriving stock (Generic)
 
-{- | `/package/:package/candidate/docs.:format`             | GET    | tar     | documentation-candidates |
-| `/package/:package/candidate/docs.:format`             | PUT    | tar     | documentation-candidates |
-| `/package/:package/candidate/docs.:format`             | DELETE | *       | documentation-candidates |
-| `/package/:package/candidate/docs/...`                 | GET    | *       | documentation-candidates |
-| `/packages/candidates/docs.:format`                    | GET    | json    | documentation-candidates |
--}
+-- `/package/:package/candidate/docs.:format`             | GET    | tar     | documentation-candidates |
+-- `/package/:package/candidate/docs.:format`             | PUT    | tar     | documentation-candidates |
+-- `/package/:package/candidate/docs.:format`             | DELETE | *       | documentation-candidates |
+-- `/package/:package/candidate/docs/...`                 | GET    | *       | documentation-candidates |
+-- `/packages/candidates/docs.:format`                    | GET    | json    | documentation-candidates |
 data DocumentationCandidatesAPI mode = DocumentationCandidatesAPI
     { candidateDocsGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "docs.tar" :> Get '[TAR] ()
     , candidateDocsPut :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "docs.tar" :> Put '[TAR] ()
@@ -187,12 +173,11 @@ data DocumentationCandidatesAPI mode = DocumentationCandidatesAPI
     }
     deriving stock (Generic)
 
-{- | `/package/:package/docs.:format`                       | GET    | tar     | documentation-core       |
-| `/package/:package/docs.:format`                       | PUT    | tar     | documentation-core       |
-| `/package/:package/docs.:format`                       | DELETE | *       | documentation-core       |
-| `/package/:package/docs/...`                           | GET    | *       | documentation-core       |
-| `/packages/docs.:format`                               | GET    | json    | documentation-core       |
--}
+-- `/package/:package/docs.:format`                       | GET    | tar     | documentation-core       |
+-- `/package/:package/docs.:format`                       | PUT    | tar     | documentation-core       |
+-- `/package/:package/docs.:format`                       | DELETE | *       | documentation-core       |
+-- `/package/:package/docs/...`                           | GET    | *       | documentation-core       |
+-- `/packages/docs.:format`                               | GET    | json    | documentation-core       |
 data DocumentationCoreAPI mode = DocumentationCoreAPI
     { packageDocsGet :: mode :- "package" :> Capture "package" PackageName :> "docs.tar" :> Get '[TAR] ()
     , packageDocsPut :: mode :- "package" :> Capture "package" PackageName :> "docs.tar" :> Put '[TAR] ()
@@ -202,10 +187,9 @@ data DocumentationCoreAPI mode = DocumentationCoreAPI
     }
     deriving stock (Generic)
 
-{- | `/packages/downloads.:format`                          | GET    | csv     | download                 |
-| `/packages/downloads.:format`                          | PUT    | csv     | download                 |
-| `/packages/top.:format`                                | GET    | json    | download                 |
--}
+-- `/packages/downloads.:format`                          | GET    | csv     | download                 |
+-- `/packages/downloads.:format`                          | PUT    | csv     | download                 |
+-- `/packages/top.:format`                                | GET    | json    | download                 |
 data DownloadAPI mode = DownloadAPI
     { packagesDownloadsGet :: mode :- "packages" :> "downloads.csv" :> Get '[CSV] ()
     , packagesDownloadsPut :: mode :- "packages" :> "downloads.csv" :> Put '[CSV] ()
@@ -213,18 +197,16 @@ data DownloadAPI mode = DownloadAPI
     }
     deriving stock (Generic)
 
-{- | `/package/:package/:cabal.cabal/edit`                  | GET    | html    | edit-cabal-files         |
-| `/package/:package/:cabal.cabal/edit`                  | POST   | html    | edit-cabal-files         |
--}
+-- `/package/:package/:cabal.cabal/edit`                  | GET    | html    | edit-cabal-files         |
+-- `/package/:package/:cabal.cabal/edit`                  | POST   | html    | edit-cabal-files         |
 data EditCabalFilesAPI mode = EditCabalFilesAPI
     { packageCabalEditGet :: mode :- "package" :> Capture "package" PackageName :> Capture "cabal" (WithFormat PackageName "cabal") :> "edit" :> Get '[HTML] ()
     , packageCabalEditPost :: mode :- "package" :> Capture "package" PackageName :> Capture "cabal" (WithFormat PackageName "cabal") :> "edit" :> Post '[HTML] ()
     }
     deriving stock (Generic)
 
-{- | `/user/:username/endorse`                              | GET    | html    | endorse                  |
-| `/user/:username/endorse`                              | POST   | html    | endorse                  |
--}
+-- `/user/:username/endorse`                              | GET    | html    | endorse                  |
+-- `/user/:username/endorse`                              | POST   | html    | endorse                  |
 data EndorseAPI mode = EndorseAPI
     { userEndorseGet :: mode :- "user" :> Capture "username" Username :> "endorse" :> Get '[HTML] ()
     , userEndorsePost :: mode :- "user" :> Capture "username" Username :> "endorse" :> Post '[HTML] ()
@@ -237,31 +219,30 @@ data HoogleDataAPI mode = HoogleDataAPI
     }
     deriving stock (Generic)
 
-{- | `/package/:package.:format`                            | GET    | html    | html                     |
-| `/package/:package/analytics-pixels.:format`           | GET    | html    | html                     |
-| `/package/:package/analytics-pixels.:format`           | POST   | html    | html                     |
-| `/package/:package/analytics-pixels.:format`           | DELETE | html    | html                     |
-| `/package/:package/candidate.:format`                  | GET    | html    | html                     |
-| `/package/:package/candidate.:format`                  | PUT    | html    | html                     |
-| `/package/:package/candidate.:format`                  | DELETE | html    | html                     |
-| `/package/:package/candidate/delete.:format`           | GET    | html    | html                     |
-| `/package/:package/candidate/delete.:format`           | POST   | html    | html                     |
-| `/package/:package/candidate/dependencies`             | GET    | html    | html                     |
-| `/package/:package/candidate/docs.:format`             | PUT    | html    | html                     |
-| `/package/:package/candidate/docs.:format`             | DELETE | html    | html                     |
-| `/package/:package/candidate/maintain`                 | GET    | html    | html                     |
-| `/package/:package/candidate/maintain/docs`            | GET    | html    | html                     |
-| `/package/:package/candidate/publish.:format`          | GET    | html    | html                     |
-| `/package/:package/candidate/publish.:format`          | POST   | html    | html                     |
-| `/package/:package/candidate/upload`                   | GET    | html    | html                     |
-| `/package/:package/candidates/.:format`                | GET    | html    | html                     |
-| `/package/:package/candidates/.:format`                | POST   | *       | html                     |
-| `/package/:package/candidates/delete.:format`          | GET    | html    | html                     |
-| `/package/:package/candidates/delete.:format`          | POST   | html    | html                     |
-| `/packages/candidates/.:format`                        | GET    | html    | html                     |
-| `/packages/candidates/.:format`                        | POST   | html    | html                     |
-| `/packages/candidates/upload`                          | GET    | html    | html                     |
--}
+-- `/package/:package.:format`                            | GET    | html    | html                     |
+-- `/package/:package/analytics-pixels.:format`           | GET    | html    | html                     |
+-- `/package/:package/analytics-pixels.:format`           | POST   | html    | html                     |
+-- `/package/:package/analytics-pixels.:format`           | DELETE | html    | html                     |
+-- `/package/:package/candidate.:format`                  | GET    | html    | html                     |
+-- `/package/:package/candidate.:format`                  | PUT    | html    | html                     |
+-- `/package/:package/candidate.:format`                  | DELETE | html    | html                     |
+-- `/package/:package/candidate/delete.:format`           | GET    | html    | html                     |
+-- `/package/:package/candidate/delete.:format`           | POST   | html    | html                     |
+-- `/package/:package/candidate/dependencies`             | GET    | html    | html                     |
+-- `/package/:package/candidate/docs.:format`             | PUT    | html    | html                     |
+-- `/package/:package/candidate/docs.:format`             | DELETE | html    | html                     |
+-- `/package/:package/candidate/maintain`                 | GET    | html    | html                     |
+-- `/package/:package/candidate/maintain/docs`            | GET    | html    | html                     |
+-- `/package/:package/candidate/publish.:format`          | GET    | html    | html                     |
+-- `/package/:package/candidate/publish.:format`          | POST   | html    | html                     |
+-- `/package/:package/candidate/upload`                   | GET    | html    | html                     |
+-- `/package/:package/candidates/.:format`                | GET    | html    | html                     |
+-- `/package/:package/candidates/.:format`                | POST   | *       | html                     |
+-- `/package/:package/candidates/delete.:format`          | GET    | html    | html                     |
+-- `/package/:package/candidates/delete.:format`          | POST   | html    | html                     |
+-- `/packages/candidates/.:format`                        | GET    | html    | html                     |
+-- `/packages/candidates/.:format`                        | POST   | html    | html                     |
+-- `/packages/candidates/upload`                          | GET    | html    | html                     |
 data CandidatesHtmlAPI mode = CandidatesHtmlAPI
     { htmlCandidateGet :: mode :- "package" :> Capture "package" PackageName :> "candidate.html" :> Get '[HTML] ()
     , htmlCandidatePut :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> Put '[HTML] ()
@@ -286,34 +267,33 @@ data CandidatesHtmlAPI mode = CandidatesHtmlAPI
     }
     deriving stock (Generic)
 
-{- | `/package/:package.:format`                            | GET    | html    | html                     |
-| `/package/:package/analytics-pixels.:format`           | GET    | html    | html                     |
-| `/package/:package/analytics-pixels.:format`           | POST   | html    | html                     |
-| `/package/:package/analytics-pixels.:format`           | DELETE | html    | html                     |
-| `/package/:package/dependencies`                       | GET    | html    | html                     |
-| `/package/:package/deprecated.:format`                 | GET    | html    | html                     |
-| `/package/:package/deprecated.:format`                 | PUT    | html    | html                     |
-| `/package/:package/deprecated/edit`                    | GET    | html    | html                     |
-| `/package/:package/distro-monitor.:format`             | GET    | html    | html                     |
-| `/package/:package/docs.:format`                       | PUT    | html    | html                     |
-| `/package/:package/docs.:format`                       | DELETE | html    | html                     |
-| `/package/:package/maintain`                           | GET    | html    | html                     |
-| `/package/:package/maintain/docs`                      | GET    | html    | html                     |
-| `/package/:package/preferred.:format`                  | GET    | html    | html                     |
-| `/package/:package/preferred.:format`                  | PUT    | html    | html                     |
-| `/package/:package/preferred/edit`                     | GET    | html    | html                     |
-| `/package/:package/reports/.:format`                   | GET    | html    | html                     |
-| `/package/:package/reports/:id.:format`                | GET    | html    | html                     |
-| `/package/:package/reports/testsEnabled/`              | GET    | html    | html                     |
-| `/package/:package/reverse.:format`                    | GET    | html    | html                     |
-| `/package/:package/reverse/flat.:format`               | GET    | html    | html                     |
-| `/package/:package/reverse/old.:format`                | GET    | html    | html                     |
-| `/package/:package/reverse/verbose.:format`            | GET    | html    | html                     |
-| `/package/:package/revisions/.:format`                 | GET    | html    | html                     |
-| `/package/:package/tags.:format`                       | GET    | html    | html                     |
-| `/package/:package/tags.:format`                       | PUT    | html    | html                     |
-| `/package/:package/tags/edit`                          | GET    | html    | html                     |
--}
+-- `/package/:package.:format`                            | GET    | html    | html                     |
+-- `/package/:package/analytics-pixels.:format`           | GET    | html    | html                     |
+-- `/package/:package/analytics-pixels.:format`           | POST   | html    | html                     |
+-- `/package/:package/analytics-pixels.:format`           | DELETE | html    | html                     |
+-- `/package/:package/dependencies`                       | GET    | html    | html                     |
+-- `/package/:package/deprecated.:format`                 | GET    | html    | html                     |
+-- `/package/:package/deprecated.:format`                 | PUT    | html    | html                     |
+-- `/package/:package/deprecated/edit`                    | GET    | html    | html                     |
+-- `/package/:package/distro-monitor.:format`             | GET    | html    | html                     |
+-- `/package/:package/docs.:format`                       | PUT    | html    | html                     |
+-- `/package/:package/docs.:format`                       | DELETE | html    | html                     |
+-- `/package/:package/maintain`                           | GET    | html    | html                     |
+-- `/package/:package/maintain/docs`                      | GET    | html    | html                     |
+-- `/package/:package/preferred.:format`                  | GET    | html    | html                     |
+-- `/package/:package/preferred.:format`                  | PUT    | html    | html                     |
+-- `/package/:package/preferred/edit`                     | GET    | html    | html                     |
+-- `/package/:package/reports/.:format`                   | GET    | html    | html                     |
+-- `/package/:package/reports/:id.:format`                | GET    | html    | html                     |
+-- `/package/:package/reports/testsEnabled/`              | GET    | html    | html                     |
+-- `/package/:package/reverse.:format`                    | GET    | html    | html                     |
+-- `/package/:package/reverse/flat.:format`               | GET    | html    | html                     |
+-- `/package/:package/reverse/old.:format`                | GET    | html    | html                     |
+-- `/package/:package/reverse/verbose.:format`            | GET    | html    | html                     |
+-- `/package/:package/revisions/.:format`                 | GET    | html    | html                     |
+-- `/package/:package/tags.:format`                       | GET    | html    | html                     |
+-- `/package/:package/tags.:format`                       | PUT    | html    | html                     |
+-- `/package/:package/tags/edit`                          | GET    | html    | html                     |
 data PackageHtmlAPI mode = PackageHtmlAPI
     { htmlPackageGet :: mode :- "package" :> Capture "package" (WithFormat PackageName "html") :> Get '[HTML] ()
     , htmlPackageAnalyticsGet :: mode :- "package" :> Capture "package" PackageName :> "analytics-pixels.html" :> Get '[HTML] ()
@@ -345,24 +325,23 @@ data PackageHtmlAPI mode = PackageHtmlAPI
     }
     deriving stock (Generic)
 
-{- | `/package/:package/maintainers/.:format`               | GET    | html    | html                     |
-| `/package/:package/maintainers/.:format`               | POST   | html    | html                     |
-| `/package/:package/maintainers/edit`                   | GET    | html    | html                     |
-| `/package/:package/maintainers/user/:username.:format` | DELETE | html    | html                     |
-| `/packages/mirrorers/.:format`                         | GET    | html    | html                     |
-| `/packages/mirrorers/.:format`                         | POST   | html    | html                     |
-| `/packages/mirrorers/edit`                             | GET    | html    | html                     |
-| `/packages/mirrorers/user/:username.:format`           | DELETE | html    | html                     |
-| `/packages/trustees/.:format`                          | GET    | html    | html                     |
-| `/packages/trustees/.:format`                          | POST   | html    | html                     |
-| `/packages/trustees/edit`                              | GET    | html    | html                     |
-| `/packages/trustees/user/:username.:format`            | DELETE | html    | html                     |
-| `/packages/upload`                                     | GET    | html    | html                     |
-| `/packages/uploaders/.:format`                         | GET    | html    | html                     |
-| `/packages/uploaders/.:format`                         | POST   | html    | html                     |
-| `/packages/uploaders/edit`                             | GET    | html    | html                     |
-| `/packages/uploaders/user/:username.:format`           | DELETE | html    | html                     |
--}
+-- `/package/:package/maintainers/.:format`               | GET    | html    | html                     |
+-- `/package/:package/maintainers/.:format`               | POST   | html    | html                     |
+-- `/package/:package/maintainers/edit`                   | GET    | html    | html                     |
+-- `/package/:package/maintainers/user/:username.:format` | DELETE | html    | html                     |
+-- `/packages/mirrorers/.:format`                         | GET    | html    | html                     |
+-- `/packages/mirrorers/.:format`                         | POST   | html    | html                     |
+-- `/packages/mirrorers/edit`                             | GET    | html    | html                     |
+-- `/packages/mirrorers/user/:username.:format`           | DELETE | html    | html                     |
+-- `/packages/trustees/.:format`                          | GET    | html    | html                     |
+-- `/packages/trustees/.:format`                          | POST   | html    | html                     |
+-- `/packages/trustees/edit`                              | GET    | html    | html                     |
+-- `/packages/trustees/user/:username.:format`            | DELETE | html    | html                     |
+-- `/packages/upload`                                     | GET    | html    | html                     |
+-- `/packages/uploaders/.:format`                         | GET    | html    | html                     |
+-- `/packages/uploaders/.:format`                         | POST   | html    | html                     |
+-- `/packages/uploaders/edit`                             | GET    | html    | html                     |
+-- `/packages/uploaders/user/:username.:format`           | DELETE | html    | html                     |
 data MaintainersHtmlAPI mode = MaintainersHtmlAPI
     { htmlPackageMaintainersGet :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> Get '[HTML] ()
     , htmlPackageMaintainersPost :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> Post '[HTML] ()
@@ -384,26 +363,25 @@ data MaintainersHtmlAPI mode = MaintainersHtmlAPI
     }
     deriving stock (Generic)
 
-{- | `/packages/.:format`                                   | GET    | html    | html                     |
-| `/packages/.:format`                                   | POST   | html    | html                     |
-| `/packages/browse`                                     | GET    | html    | html                     |
-| `/packages/deprecated.:format`                         | GET    | html    | html                     |
-| `/packages/graph`                                      | GET    | html    | html                     |
-| `/packages/graph.json`                                 | GET    | json    | html                     |
-| `/packages/names`                                      | GET    | html    | html                     |
-| `/packages/preferred.:format`                          | GET    | html    | html                     |
-| `/packages/recent.:format`                             | GET    | html    | html                     |
-| `/packages/recent.:format`                             | GET    | rss     | html                     |
-| `/packages/recent/revisions.:format`                   | GET    | html    | html                     |
-| `/packages/recent/revisions.:format`                   | GET    | rss     | html                     |
-| `/packages/reverse.:format`                            | GET    | html    | html                     |
-| `/packages/search.:format`                             | GET    | html    | html                     |
-| `/packages/tag/:tag.:format`                           | GET    | html    | html                     |
-| `/packages/tag/:tag/alias`                             | PUT    | html    | html                     |
-| `/packages/tag/:tag/alias/edit`                        | GET    | html    | html                     |
-| `/packages/tags/.:format`                              | GET    | html    | html                     |
-| `/packages/top.:format`                                | GET    | html    | html                     |
--}
+-- `/packages/.:format`                                   | GET    | html    | html                     |
+-- `/packages/.:format`                                   | POST   | html    | html                     |
+-- `/packages/browse`                                     | GET    | html    | html                     |
+-- `/packages/deprecated.:format`                         | GET    | html    | html                     |
+-- `/packages/graph`                                      | GET    | html    | html                     |
+-- `/packages/graph.json`                                 | GET    | json    | html                     |
+-- `/packages/names`                                      | GET    | html    | html                     |
+-- `/packages/preferred.:format`                          | GET    | html    | html                     |
+-- `/packages/recent.:format`                             | GET    | html    | html                     |
+-- `/packages/recent.:format`                             | GET    | rss     | html                     |
+-- `/packages/recent/revisions.:format`                   | GET    | html    | html                     |
+-- `/packages/recent/revisions.:format`                   | GET    | rss     | html                     |
+-- `/packages/reverse.:format`                            | GET    | html    | html                     |
+-- `/packages/search.:format`                             | GET    | html    | html                     |
+-- `/packages/tag/:tag.:format`                           | GET    | html    | html                     |
+-- `/packages/tag/:tag/alias`                             | PUT    | html    | html                     |
+-- `/packages/tag/:tag/alias/edit`                        | GET    | html    | html                     |
+-- `/packages/tags/.:format`                              | GET    | html    | html                     |
+-- `/packages/top.:format`                                | GET    | html    | html                     |
 data PackagesHtmlAPI mode = PackagesHtmlAPI
     { htmlPackagesGet :: mode :- "packages" :> Get '[HTML] ()
     , htmlPackagesPost :: mode :- "packages" :> Post '[HTML] ()
@@ -427,20 +405,19 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
     }
     deriving stock (Generic)
 
-{- | `/user/:username.:format`                              | GET    | html    | html                     |
-| `/user/:username/analytics-pixels.:format`             | GET    | html    | html                     |
-| `/user/:username/analytics-pixels.:format`             | POST   | html    | html                     |
-| `/user/:username/analytics-pixels.:format`             | DELETE | html    | html                     |
-| `/user/:username/password.:format`                     | GET    | html    | html                     |
-| `/user/:username/password.:format`                     | PUT    | html    | html                     |
-| `/users/.:format`                                      | GET    | html    | html                     |
-| `/users/.:format`                                      | POST   | html    | html                     |
-| `/users/admins/.:format`                               | GET    | html    | html                     |
-| `/users/admins/.:format`                               | POST   | html    | html                     |
-| `/users/admins/edit`                                   | GET    | html    | html                     |
-| `/users/admins/user/:username.:format`                 | DELETE | html    | html                     |
-| `/users/register`                                      | GET    | html    | html                     |
--}
+-- `/user/:username.:format`                              | GET    | html    | html                     |
+-- `/user/:username/analytics-pixels.:format`             | GET    | html    | html                     |
+-- `/user/:username/analytics-pixels.:format`             | POST   | html    | html                     |
+-- `/user/:username/analytics-pixels.:format`             | DELETE | html    | html                     |
+-- `/user/:username/password.:format`                     | GET    | html    | html                     |
+-- `/user/:username/password.:format`                     | PUT    | html    | html                     |
+-- `/users/.:format`                                      | GET    | html    | html                     |
+-- `/users/.:format`                                      | POST   | html    | html                     |
+-- `/users/admins/.:format`                               | GET    | html    | html                     |
+-- `/users/admins/.:format`                               | POST   | html    | html                     |
+-- `/users/admins/edit`                                   | GET    | html    | html                     |
+-- `/users/admins/user/:username.:format`                 | DELETE | html    | html                     |
+-- `/users/register`                                      | GET    | html    | html                     |
 data UsersHtmlAPI mode = UsersHtmlAPI
     { htmlUserGet :: mode :- "user" :> Capture "username" (WithFormat Username "html") :> Get '[HTML] ()
     , htmlUserAnalyticsGet :: mode :- "user" :> Capture "username" Username :> "analytics-pixels.html" :> Get '[HTML] ()
@@ -458,16 +435,15 @@ data UsersHtmlAPI mode = UsersHtmlAPI
     }
     deriving stock (Generic)
 
-{- | `/package/:package/:cabal.cabal`                       | PUT    | *       | mirror                   |
-| `/package/:package/:tarball.tar.gz`                    | PUT    | *       | mirror                   |
-| `/package/:package/upload-time`                        | GET    | *       | mirror                   |
-| `/package/:package/upload-time`                        | PUT    | *       | mirror                   |
-| `/package/:package/uploader`                           | GET    | *       | mirror                   |
-| `/package/:package/uploader`                           | PUT    | *       | mirror                   |
-| `/packages/mirrorers/.:format`                         | GET    | json    | mirror                   |
-| `/packages/mirrorers/user/:username.:format`           | PUT    | *       | mirror                   |
-| `/packages/mirrorers/user/:username.:format`           | DELETE | *       | mirror                   |
--}
+-- `/package/:package/:cabal.cabal`                       | PUT    | *       | mirror                   |
+-- `/package/:package/:tarball.tar.gz`                    | PUT    | *       | mirror                   |
+-- `/package/:package/upload-time`                        | GET    | *       | mirror                   |
+-- `/package/:package/upload-time`                        | PUT    | *       | mirror                   |
+-- `/package/:package/uploader`                           | GET    | *       | mirror                   |
+-- `/package/:package/uploader`                           | PUT    | *       | mirror                   |
+-- `/packages/mirrorers/.:format`                         | GET    | json    | mirror                   |
+-- `/packages/mirrorers/user/:username.:format`           | PUT    | *       | mirror                   |
+-- `/packages/mirrorers/user/:username.:format`           | DELETE | *       | mirror                   |
 data MirrorAPI mode = MirrorAPI
     { mirrorPackageCabalPut :: mode :- "package" :> Capture "package" PackageName :> Capture "cabal" (WithFormat PackageName "cabal") :> Put '[TODO] ()
     , mirrorPackageTarballPut :: mode :- "package" :> Capture "package" PackageName :> Capture "tarball" (WithFormat PackageName "tar.gz") :> Put '[TODO] ()
@@ -487,12 +463,11 @@ data PackageFeedAPI mode = PackageFeedAPI
     }
     deriving stock (Generic)
 
-{- | `/package/:package/changelog.:format`                  | GET    | html    | package-contents         |
-| `/package/:package/changelog.:format`                  | GET    | txt     | package-contents         |
-| `/package/:package/readme.:format`                     | GET    | html    | package-contents         |
-| `/package/:package/readme.:format`                     | GET    | txt     | package-contents         |
-| `/package/:package/src/...`                            | GET    | *       | package-contents         |
--}
+-- `/package/:package/changelog.:format`                  | GET    | html    | package-contents         |
+-- `/package/:package/changelog.:format`                  | GET    | txt     | package-contents         |
+-- `/package/:package/readme.:format`                     | GET    | html    | package-contents         |
+-- `/package/:package/readme.:format`                     | GET    | txt     | package-contents         |
+-- `/package/:package/src/...`                            | GET    | *       | package-contents         |
 data PackageContentsAPI mode = PackageContentsAPI
     { packageChangelogHtml :: mode :- "package" :> Capture "package" PackageName :> "changelog.html" :> Get '[HTML] ()
     , packageChangelogTxt :: mode :- "package" :> Capture "package" PackageName :> "changelog.txt" :> Get '[TXT] ()
@@ -502,30 +477,28 @@ data PackageContentsAPI mode = PackageContentsAPI
     }
     deriving stock (Generic)
 
-{- | `/package/:package.:format`                            | GET    | json    | package-info-json        |
-| `/package/:package/revision/:revision.:format`         | GET    | json    | package-info-json        |
--}
+-- `/package/:package.:format`                            | GET    | json    | package-info-json        |
+-- `/package/:package/revision/:revision.:format`         | GET    | json    | package-info-json        |
 data PackageInfoJsonAPI mode = PackageInfoJsonAPI
     { packageInfoJson :: mode :- "package" :> Capture "package" (WithFormat PackageName "json") :> Get '[JSON] ()
     , packageRevisionInfoJson :: mode :- "package" :> Capture "package" PackageName :> "revision" :> Capture "revision" (WithFormat Revision "json") :> Get '[JSON] ()
     }
     deriving stock (Generic)
 
-{- | `/package/:package/candidate/reports/.:format`         | GET    | txt     | reports-candidates       |
-| `/package/:package/candidate/reports/.:format`         | POST   | *       | reports-candidates       |
-| `/package/:package/candidate/reports/.:format`         | PUT    | json    | reports-candidates       |
-| `/package/:package/candidate/reports/:id.:format`      | GET    | txt     | reports-candidates       |
-| `/package/:package/candidate/reports/:id.:format`      | DELETE | *       | reports-candidates       |
-| `/package/:package/candidate/reports/:id/log`          | GET    | txt     | reports-candidates       |
-| `/package/:package/candidate/reports/:id/log`          | PUT    | *       | reports-candidates       |
-| `/package/:package/candidate/reports/:id/log`          | DELETE | *       | reports-candidates       |
-| `/package/:package/candidate/reports/:id/test`         | GET    | txt     | reports-candidates       |
-| `/package/:package/candidate/reports/:id/test`         | PUT    | *       | reports-candidates       |
-| `/package/:package/candidate/reports/:id/test`         | DELETE | *       | reports-candidates       |
-| `/package/:package/candidate/reports/reset/`           | GET    | *       | reports-candidates       |
-| `/package/:package/candidate/reports/testsEnabled/`    | GET    | json    | reports-candidates       |
-| `/package/:package/candidate/reports/testsEnabled/`    | POST   | *       | reports-candidates       |
--}
+-- `/package/:package/candidate/reports/.:format`         | GET    | txt     | reports-candidates       |
+-- `/package/:package/candidate/reports/.:format`         | POST   | *       | reports-candidates       |
+-- `/package/:package/candidate/reports/.:format`         | PUT    | json    | reports-candidates       |
+-- `/package/:package/candidate/reports/:id.:format`      | GET    | txt     | reports-candidates       |
+-- `/package/:package/candidate/reports/:id.:format`      | DELETE | *       | reports-candidates       |
+-- `/package/:package/candidate/reports/:id/log`          | GET    | txt     | reports-candidates       |
+-- `/package/:package/candidate/reports/:id/log`          | PUT    | *       | reports-candidates       |
+-- `/package/:package/candidate/reports/:id/log`          | DELETE | *       | reports-candidates       |
+-- `/package/:package/candidate/reports/:id/test`         | GET    | txt     | reports-candidates       |
+-- `/package/:package/candidate/reports/:id/test`         | PUT    | *       | reports-candidates       |
+-- `/package/:package/candidate/reports/:id/test`         | DELETE | *       | reports-candidates       |
+-- `/package/:package/candidate/reports/reset/`           | GET    | *       | reports-candidates       |
+-- `/package/:package/candidate/reports/testsEnabled/`    | GET    | json    | reports-candidates       |
+-- `/package/:package/candidate/reports/testsEnabled/`    | POST   | *       | reports-candidates       |
 data ReportsCandidatesAPI mode = ReportsCandidatesAPI
     { candidateReportsGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> Get '[TXT] ()
     , candidateReportsPost :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> Post '[TODO] ()
@@ -544,21 +517,20 @@ data ReportsCandidatesAPI mode = ReportsCandidatesAPI
     }
     deriving stock (Generic)
 
-{- | `/package/:package/reports/.:format`                   | GET    | txt     | reports-core             |
-| `/package/:package/reports/.:format`                   | POST   | *       | reports-core             |
-| `/package/:package/reports/.:format`                   | PUT    | json    | reports-core             |
-| `/package/:package/reports/:id.:format`                | GET    | txt     | reports-core             |
-| `/package/:package/reports/:id.:format`                | DELETE | *       | reports-core             |
-| `/package/:package/reports/:id/log`                    | GET    | txt     | reports-core             |
-| `/package/:package/reports/:id/log`                    | PUT    | *       | reports-core             |
-| `/package/:package/reports/:id/log`                    | DELETE | *       | reports-core             |
-| `/package/:package/reports/:id/test`                   | GET    | txt     | reports-core             |
-| `/package/:package/reports/:id/test`                   | PUT    | *       | reports-core             |
-| `/package/:package/reports/:id/test`                   | DELETE | *       | reports-core             |
-| `/package/:package/reports/reset/`                     | GET    | *       | reports-core             |
-| `/package/:package/reports/testsEnabled/`              | GET    | json    | reports-core             |
-| `/package/:package/reports/testsEnabled/`              | POST   | *       | reports-core             |
--}
+-- `/package/:package/reports/.:format`                   | GET    | txt     | reports-core             |
+-- `/package/:package/reports/.:format`                   | POST   | *       | reports-core             |
+-- `/package/:package/reports/.:format`                   | PUT    | json    | reports-core             |
+-- `/package/:package/reports/:id.:format`                | GET    | txt     | reports-core             |
+-- `/package/:package/reports/:id.:format`                | DELETE | *       | reports-core             |
+-- `/package/:package/reports/:id/log`                    | GET    | txt     | reports-core             |
+-- `/package/:package/reports/:id/log`                    | PUT    | *       | reports-core             |
+-- `/package/:package/reports/:id/log`                    | DELETE | *       | reports-core             |
+-- `/package/:package/reports/:id/test`                   | GET    | txt     | reports-core             |
+-- `/package/:package/reports/:id/test`                   | PUT    | *       | reports-core             |
+-- `/package/:package/reports/:id/test`                   | DELETE | *       | reports-core             |
+-- `/package/:package/reports/reset/`                     | GET    | *       | reports-core             |
+-- `/package/:package/reports/testsEnabled/`              | GET    | json    | reports-core             |
+-- `/package/:package/reports/testsEnabled/`              | POST   | *       | reports-core             |
 data ReportsCoreAPI mode = ReportsCoreAPI
     { reportsGet :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Get '[TXT] ()
     , reportsPost :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Post '[TODO] ()
@@ -577,19 +549,17 @@ data ReportsCoreAPI mode = ReportsCoreAPI
     }
     deriving stock (Generic)
 
-{- | `/packages/opensearch.xml`                             | GET    | xml     | search                   |
-| `/packages/search.:format`                             | GET    | json    | search                   |
--}
+-- `/packages/opensearch.xml`                             | GET    | xml     | search                   |
+-- `/packages/search.:format`                             | GET    | json    | search                   |
 data SearchAPI mode = SearchAPI
     { packagesOpensearch :: mode :- "packages" :> "opensearch.xml" :> Get '[XML] ()
     , packagesSearchJson :: mode :- "packages" :> "search.json" :> Get '[JSON] ()
     }
     deriving stock (Generic)
 
-{- | `/packages/noscript-search`                            | GET    | html    | search/browse backend    |
-| `/packages/noscript-search`                            | POST   | html    | search/browse backend    |
-| `/packages/search`                                     | POST   | json    | search/browse backend    |
--}
+-- `/packages/noscript-search`                            | GET    | html    | search/browse backend    |
+-- `/packages/noscript-search`                            | POST   | html    | search/browse backend    |
+-- `/packages/search`                                     | POST   | json    | search/browse backend    |
 data SearchBrowseAPI mode = SearchBrowseAPI
     { packagesNoscriptSearchGet :: mode :- "packages" :> "noscript-search" :> Get '[HTML] ()
     , packagesNoscriptSearchPost :: mode :- "packages" :> "noscript-search" :> Post '[HTML] ()
@@ -597,11 +567,10 @@ data SearchBrowseAPI mode = SearchBrowseAPI
     }
     deriving stock (Generic)
 
-{- | `/mirrors.json`                                        | GET    | json    | security                 |
-| `/root.json`                                           | GET    | json    | security                 |
-| `/snapshot.json`                                       | GET    | json    | security                 |
-| `/timestamp.json`                                      | GET    | json    | security                 |
--}
+-- `/mirrors.json`                                        | GET    | json    | security                 |
+-- `/root.json`                                           | GET    | json    | security                 |
+-- `/snapshot.json`                                       | GET    | json    | security                 |
+-- `/timestamp.json`                                      | GET    | json    | security                 |
 data SecurityAPI mode = SecurityAPI
     { mirrorsJson :: mode :- "mirrors.json" :> Get '[JSON] ()
     , rootJson :: mode :- "root.json" :> Get '[JSON] ()
@@ -616,21 +585,19 @@ data ServerApiAPI mode = ServerApiAPI
     }
     deriving stock (Generic)
 
-{- | `/sitemap/:filename`                                   | GET    | xml     | sitemap                  |
-| `/sitemap_index.xml`                                   | GET    | xml     | sitemap                  |
--}
+-- `/sitemap/:filename`                                   | GET    | xml     | sitemap                  |
+-- `/sitemap_index.xml`                                   | GET    | xml     | sitemap                  |
 data SitemapAPI mode = SitemapAPI
     { sitemapFile :: mode :- "sitemap" :> Capture "filename" Text :> Get '[XML] ()
     , sitemapIndex :: mode :- "sitemap_index.xml" :> Get '[XML] ()
     }
     deriving stock (Generic)
 
-{- | `/accounts`                                            | GET    | *       | static-files             |
-| `/hackageErrorPage`                                    | GET    | *       | static-files             |
-| `/index`                                               | GET    | *       | static-files             |
-| `/static/...`                                          | GET    | *       | static-files             |
-| `/upload`                                              | GET    | *       | static-files             |
--}
+-- `/accounts`                                            | GET    | *       | static-files             |
+-- `/hackageErrorPage`                                    | GET    | *       | static-files             |
+-- `/index`                                               | GET    | *       | static-files             |
+-- `/static/...`                                          | GET    | *       | static-files             |
+-- `/upload`                                              | GET    | *       | static-files             |
 data StaticFilesAPI mode = StaticFilesAPI
     { staticAccounts :: mode :- "accounts" :> Get '[TODO] ()
     , staticHackageError :: mode :- "hackageErrorPage" :> Get '[TODO] ()
@@ -640,26 +607,24 @@ data StaticFilesAPI mode = StaticFilesAPI
     }
     deriving stock (Generic)
 
-{- | `/server-status/tarindices.:format`                    | GET    | json    | tarIndexCache            |
-| `/server-status/tarindices.:format`                    | DELETE | *       | tarIndexCache            |
--}
+-- `/server-status/tarindices.:format`                    | GET    | json    | tarIndexCache            |
+-- `/server-status/tarindices.:format`                    | DELETE | *       | tarIndexCache            |
 data TarIndexCacheAPI mode = TarIndexCacheAPI
     { tarIndicesGet :: mode :- "server-status" :> "tarindices.json" :> Get '[JSON] ()
     , tarIndicesDel :: mode :- "server-status" :> "tarindices" :> Delete '[TODO] ()
     }
     deriving stock (Generic)
 
-{- | `/package/:package/maintainers/.:format`               | GET    | json    | upload                   |
-| `/package/:package/maintainers/user/:username.:format` | PUT    | *       | upload                   |
-| `/package/:package/maintainers/user/:username.:format` | DELETE | *       | upload                   |
-| `/packages/.:format`                                   | POST   | txt     | upload                   |
-| `/packages/trustees/.:format`                          | GET    | json    | upload                   |
-| `/packages/trustees/user/:username.:format`            | PUT    | *       | upload                   |
-| `/packages/trustees/user/:username.:format`            | DELETE | *       | upload                   |
-| `/packages/uploaders/.:format`                         | GET    | json    | upload                   |
-| `/packages/uploaders/user/:username.:format`           | PUT    | *       | upload                   |
-| `/packages/uploaders/user/:username.:format`           | DELETE | *       | upload                   |
--}
+-- `/package/:package/maintainers/.:format`               | GET    | json    | upload                   |
+-- `/package/:package/maintainers/user/:username.:format` | PUT    | *       | upload                   |
+-- `/package/:package/maintainers/user/:username.:format` | DELETE | *       | upload                   |
+-- `/packages/.:format`                                   | POST   | txt     | upload                   |
+-- `/packages/trustees/.:format`                          | GET    | json    | upload                   |
+-- `/packages/trustees/user/:username.:format`            | PUT    | *       | upload                   |
+-- `/packages/trustees/user/:username.:format`            | DELETE | *       | upload                   |
+-- `/packages/uploaders/.:format`                         | GET    | json    | upload                   |
+-- `/packages/uploaders/user/:username.:format`           | PUT    | *       | upload                   |
+-- `/packages/uploaders/user/:username.:format`           | DELETE | *       | upload                   |
 data UploadAPI mode = UploadAPI
     { packageMaintainersGet :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> Get '[JSON] ()
     , packageMaintainerPut :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithAnyFormat Username) :> Put '[TODO] ()
@@ -674,14 +639,13 @@ data UploadAPI mode = UploadAPI
     }
     deriving stock (Generic)
 
-{- | `/user/:username/admin-info.:format`                   | GET    | json    | user-details             |
-| `/user/:username/admin-info.:format`                   | PUT    | json    | user-details             |
-| `/user/:username/admin-info.:format`                   | DELETE | *       | user-details             |
-| `/user/:username/name-contact.:format`                 | GET    | html    | user-details             |
-| `/user/:username/name-contact.:format`                 | GET    | json    | user-details             |
-| `/user/:username/name-contact.:format`                 | PUT    | json    | user-details             |
-| `/user/:username/name-contact.:format`                 | DELETE | *       | user-details             |
--}
+-- `/user/:username/admin-info.:format`                   | GET    | json    | user-details             |
+-- `/user/:username/admin-info.:format`                   | PUT    | json    | user-details             |
+-- `/user/:username/admin-info.:format`                   | DELETE | *       | user-details             |
+-- `/user/:username/name-contact.:format`                 | GET    | html    | user-details             |
+-- `/user/:username/name-contact.:format`                 | GET    | json    | user-details             |
+-- `/user/:username/name-contact.:format`                 | PUT    | json    | user-details             |
+-- `/user/:username/name-contact.:format`                 | DELETE | *       | user-details             |
 data UserDetailsAPI mode = UserDetailsAPI
     { userAdminInfoGet :: mode :- "user" :> Capture "username" Username :> "admin-info.json" :> Get '[JSON] ()
     , userAdminInfoPut :: mode :- "user" :> Capture "username" Username :> "admin-info.json" :> Put '[JSON] ()
@@ -693,12 +657,9 @@ data UserDetailsAPI mode = UserDetailsAPI
     }
     deriving stock (Generic)
 
---
-
-{- | `/user/:username/notify.:format`                       | GET    | html    | user-notify              |
-| `/user/:username/notify.:format`                       | GET    | json    | user-notify              |
-| `/user/:username/notify.:format`                       | PUT    | json    | user-notify              |
--}
+-- `/user/:username/notify.:format`                       | GET    | html    | user-notify              |
+-- `/user/:username/notify.:format`                       | GET    | json    | user-notify              |
+-- `/user/:username/notify.:format`                       | PUT    | json    | user-notify              |
 data UserNotifyAPI mode = UserNotifyAPI
     { userNotifyGetHtml :: mode :- "user" :> Capture "username" Username :> "notify.html" :> Get '[HTML] ()
     , userNotifyGetJson :: mode :- "user" :> Capture "username" Username :> "notify.json" :> Get '[JSON] ()
@@ -706,16 +667,15 @@ data UserNotifyAPI mode = UserNotifyAPI
     }
     deriving stock (Generic)
 
-{- | `/users/password-reset`                                | GET    | *       | user-signup-reset        |
-| `/users/password-reset`                                | POST   | *       | user-signup-reset        |
-| `/users/password-reset/:nonce`                         | GET    | *       | user-signup-reset        |
-| `/users/password-reset/:nonce`                         | POST   | *       | user-signup-reset        |
-| `/users/register-request`                              | GET    | *       | user-signup-reset        |
-| `/users/register-request`                              | POST   | *       | user-signup-reset        |
-| `/users/register-request/:nonce`                       | GET    | *       | user-signup-reset        |
-| `/users/register-request/:nonce`                       | POST   | *       | user-signup-reset        |
-| `/users/register/captcha`                              | GET    | json    | user-signup-reset        |
--}
+-- `/users/password-reset`                                | GET    | *       | user-signup-reset        |
+-- `/users/password-reset`                                | POST   | *       | user-signup-reset        |
+-- `/users/password-reset/:nonce`                         | GET    | *       | user-signup-reset        |
+-- `/users/password-reset/:nonce`                         | POST   | *       | user-signup-reset        |
+-- `/users/register-request`                              | GET    | *       | user-signup-reset        |
+-- `/users/register-request`                              | POST   | *       | user-signup-reset        |
+-- `/users/register-request/:nonce`                       | GET    | *       | user-signup-reset        |
+-- `/users/register-request/:nonce`                       | POST   | *       | user-signup-reset        |
+-- `/users/register/captcha`                              | GET    | json    | user-signup-reset        |
 data UserSignupResetAPI mode = UserSignupResetAPI
     { passwordResetGet :: mode :- "users" :> "password-reset" :> Get '[TODO] ()
     , passwordResetPost :: mode :- "users" :> "password-reset" :> Post '[TODO] ()
@@ -729,21 +689,18 @@ data UserSignupResetAPI mode = UserSignupResetAPI
     }
     deriving stock (Generic)
 
---
-
-{- | `/user/:username.:format`                              | GET    | json    | users                    |
-| `/user/:username.:format`                              | PUT    | *       | users                    |
-| `/user/:username.:format`                              | DELETE | *       | users                    |
-| `/user/:username/enabled.:format`                      | GET    | json    | users                    |
-| `/user/:username/enabled.:format`                      | PUT    | json    | users                    |
-| `/user/:username/manage.:format`                       | GET    | *       | users                    |
-| `/user/:username/manage.:format`                       | POST   | *       | users                    |
-| `/users/.:format`                                      | GET    | json    | users                    |
-| `/users/account-management.:format`                    | GET    | *       | users                    |
-| `/users/admins/.:format`                               | GET    | json    | users                    |
-| `/users/admins/user/:username.:format`                 | PUT    | *       | users                    |
-| `/users/admins/user/:username.:format`                 | DELETE | *       | users                    |
--}
+-- `/user/:username.:format`                              | GET    | json    | users                    |
+-- `/user/:username.:format`                              | PUT    | *       | users                    |
+-- `/user/:username.:format`                              | DELETE | *       | users                    |
+-- `/user/:username/enabled.:format`                      | GET    | json    | users                    |
+-- `/user/:username/enabled.:format`                      | PUT    | json    | users                    |
+-- `/user/:username/manage.:format`                       | GET    | *       | users                    |
+-- `/user/:username/manage.:format`                       | POST   | *       | users                    |
+-- `/users/.:format`                                      | GET    | json    | users                    |
+-- `/users/account-management.:format`                    | GET    | *       | users                    |
+-- `/users/admins/.:format`                               | GET    | json    | users                    |
+-- `/users/admins/user/:username.:format`                 | PUT    | *       | users                    |
+-- `/users/admins/user/:username.:format`                 | DELETE | *       | users                    |
 data UsersAPI mode = UsersAPI
     { userGetJson :: mode :- "user" :> Capture "username" (WithFormat Username "json") :> Get '[JSON] ()
     , userPut :: mode :- "user" :> Capture "username" (WithAnyFormat Username) :> Put '[TODO] ()
@@ -760,14 +717,11 @@ data UsersAPI mode = UsersAPI
     }
     deriving stock (Generic)
 
---
-
-{- | `/package/:package/deprecated.:format`                 | GET    | json    | versions                 |
-| `/package/:package/deprecated.:format`                 | PUT    | json    | versions                 |
-| `/package/:package/preferred.:format`                  | GET    | json    | versions                 |
-| `/packages/deprecated.:format`                         | GET    | json    | versions                 |
-| `/packages/preferred-versions`                         | GET    | txt     | versions                 |
--}
+-- `/package/:package/deprecated.:format`                 | GET    | json    | versions                 |
+-- `/package/:package/deprecated.:format`                 | PUT    | json    | versions                 |
+-- `/package/:package/preferred.:format`                  | GET    | json    | versions                 |
+-- `/packages/deprecated.:format`                         | GET    | json    | versions                 |
+-- `/packages/preferred-versions`                         | GET    | txt     | versions                 |
 data VersionsAPI mode = VersionsAPI
     { packageDeprecatedGet :: mode :- "package" :> Capture "package" PackageName :> "deprecated.json" :> Get '[JSON] ()
     , packageDeprecatedPut :: mode :- "package" :> Capture "package" PackageName :> "deprecated.json" :> Put '[JSON] ()
@@ -777,11 +731,10 @@ data VersionsAPI mode = VersionsAPI
     }
     deriving stock (Generic)
 
-{- | `/package/:package/votes.:format`                      | GET    | json    | votes                    |
-| `/package/:package/votes.:format`                      | POST   | *       | votes                    |
-| `/package/:package/votes.:format`                      | DELETE | *       | votes                    |
-| `/packages/votes.:format`                              | GET    | json    | votes                    |
--}
+-- `/package/:package/votes.:format`                      | GET    | json    | votes                    |
+-- `/package/:package/votes.:format`                      | POST   | *       | votes                    |
+-- `/package/:package/votes.:format`                      | DELETE | *       | votes                    |
+-- `/packages/votes.:format`                              | GET    | json    | votes                    |
 data VotesAPI mode = VotesAPI
     { packageVotesGet :: mode :- "package" :> Capture "package" PackageName :> "votes.json" :> Get '[JSON] ()
     , packageVotesPost :: mode :- "package" :> Capture "package" PackageName :> "votes" :> Post '[TODO] ()
@@ -791,7 +744,8 @@ data VotesAPI mode = VotesAPI
     deriving stock (Generic)
 
 data RedirectAPI mode = RedirectAPI
-    { redirDistroMaintainers :: mode :- Capture "package" PackageName :> "maintainers" :> "user" :> Capture "format" AnyFormat :> Redirect
+    { distrosRedir :: mode :- "distros" :> Capture "format" AnyFormat :> Redirect
+    , redirDistroMaintainers :: mode :- Capture "package" PackageName :> "maintainers" :> "user" :> Capture "format" AnyFormat :> Redirect
     , redirPackageCandidates :: mode :- "package" :> Capture "package" PackageName :> "candidates" :> Capture "format" AnyFormat :> Redirect
     , redirPackagesCandidates :: mode :- "packages" :> "candidates" :> Capture "format" AnyFormat :> Redirect
     , redirPackageRevisions :: mode :- "package" :> Capture "package" PackageName :> "revisions" :> Capture "format" AnyFormat :> Redirect
