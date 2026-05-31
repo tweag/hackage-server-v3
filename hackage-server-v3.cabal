@@ -38,6 +38,7 @@ library
   build-depends:
       base >=4.7 && <5
     , blaze-markup
+    , gdp
     , http-types
     , rel8
     , resourcet
@@ -62,6 +63,7 @@ executable hackage-server-v3-exe
   build-depends:
       base >=4.7 && <5
     , blaze-markup
+    , gdp
     , hackage-server-v3
     , http-types
     , rel8
@@ -88,6 +90,7 @@ test-suite hackage-server-v3-test
   build-depends:
       base >=4.7 && <5
     , blaze-markup
+    , gdp
     , hackage-server-v3
     , http-types
     , rel8

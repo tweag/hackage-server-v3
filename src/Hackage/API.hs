@@ -10,13 +10,11 @@ import Data.Text (Text)
 import GHC.Generics
 import Servant.API
 import Servant.HTML.Blaze
-
-type HackageAPI = ()
+import Hackage.Types
 
 type TODO = ()
 type IndexTarball = ()
 
--- Content type aliases (to be filled in)
 type TXT = ()
 type CSV = ()
 type RSS = ()
@@ -25,21 +23,10 @@ type TAR = ()
 type Tarball = ()
 type Cabal = ()
 
--- Capture type aliases (to be filled in)
-type DistroName = Text
-type PackageName = Text
-type Username = Text
-type Nonce = Text
-type Tag = Text
-type ReportId = Text
-type Revision = Text
-
 data IndexTarballAPI mode = IndexTarballAPI
     { indexTarball :: mode :- "01-index.tar" :> Get '[TODO] IndexTarball
     , indexTarballGz :: mode :- "01-index.tar.gz" :> Get '[TODO] IndexTarball
     }
-
-type UserId = Int
 
 -- `/admin`              | GET    | html    | admin-frontend
 -- `/admin/account/:uid` | GET    | html    | admin-frontend

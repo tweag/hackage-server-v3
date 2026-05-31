@@ -33,6 +33,7 @@ dependencies:
 - wai
 - http-types
 - warp
+- gdp
 
 ghc-options:
 - -Wall
