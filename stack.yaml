@@ -1,0 +1,14 @@
+snapshot: lts-24.35
+
+packages:
+- .
+
+extra-deps:
+- rel8-1.7.0.0
+
+nix:
+  packages:
+    - postgresql
+    - pkg-config
+    - openssl
+    - libz
