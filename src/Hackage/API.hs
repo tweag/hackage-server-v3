@@ -258,6 +258,38 @@ data HoogleDataAPI mode = HoogleDataAPI
 | `/package/:package/candidates/.:format`                | POST   | *       | html                     |
 | `/package/:package/candidates/delete.:format`          | GET    | html    | html                     |
 | `/package/:package/candidates/delete.:format`          | POST   | html    | html                     |
+| `/packages/candidates/.:format`                        | GET    | html    | html                     |
+| `/packages/candidates/.:format`                        | POST   | html    | html                     |
+| `/packages/candidates/upload`                          | GET    | html    | html                     |
+-}
+data CandidatesHtmlAPI mode = CandidatesHtmlAPI
+    { htmlCandidateGet :: mode :- "package" :> Capture "package" PackageName :> "candidate.html" :> Get '[HTML] ()
+    , htmlCandidatePut :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> Put '[HTML] ()
+    , htmlCandidateDel :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> Delete '[HTML] ()
+    , htmlCandidateDeleteGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "delete.html" :> Get '[HTML] ()
+    , htmlCandidateDeletePost :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "delete" :> Post '[HTML] ()
+    , htmlCandidateDependencies :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "dependencies" :> Get '[HTML] ()
+    , htmlCandidateDocsPut :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "docs" :> Put '[HTML] ()
+    , htmlCandidateDocsDel :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "docs" :> Delete '[HTML] ()
+    , htmlCandidateMaintain :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "maintain" :> Get '[HTML] ()
+    , htmlCandidateMaintainDocs :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "maintain" :> "docs" :> Get '[HTML] ()
+    , htmlCandidatePublishGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "publish.html" :> Get '[HTML] ()
+    , htmlCandidatePublishPost :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "publish" :> Post '[HTML] ()
+    , htmlCandidateUpload :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "upload" :> Get '[HTML] ()
+    , htmlPackageCandidatesGet :: mode :- "package" :> Capture "package" PackageName :> "candidates" :> Get '[HTML] ()
+    , htmlPackageCandidatesPost :: mode :- "package" :> Capture "package" PackageName :> "candidates" :> Post '[TODO] ()
+    , htmlPackageCandidatesDeleteGet :: mode :- "package" :> Capture "package" PackageName :> "candidates" :> "delete.html" :> Get '[HTML] ()
+    , htmlPackageCandidatesDeletePost :: mode :- "package" :> Capture "package" PackageName :> "candidates" :> "delete" :> Post '[HTML] ()
+    , htmlPackagesCandidatesGet :: mode :- "packages" :> "candidates" :> Get '[HTML] ()
+    , htmlPackagesCandidatesPost :: mode :- "packages" :> "candidates" :> Post '[HTML] ()
+    , htmlPackagesCandidatesUpload :: mode :- "packages" :> "candidates" :> "upload" :> Get '[HTML] ()
+    }
+    deriving stock (Generic)
+
+{- | `/package/:package.:format`                            | GET    | html    | html                     |
+| `/package/:package/analytics-pixels.:format`           | GET    | html    | html                     |
+| `/package/:package/analytics-pixels.:format`           | POST   | html    | html                     |
+| `/package/:package/analytics-pixels.:format`           | DELETE | html    | html                     |
 | `/package/:package/dependencies`                       | GET    | html    | html                     |
 | `/package/:package/deprecated.:format`                 | GET    | html    | html                     |
 | `/package/:package/deprecated.:format`                 | PUT    | html    | html                     |
@@ -267,10 +299,6 @@ data HoogleDataAPI mode = HoogleDataAPI
 | `/package/:package/docs.:format`                       | DELETE | html    | html                     |
 | `/package/:package/maintain`                           | GET    | html    | html                     |
 | `/package/:package/maintain/docs`                      | GET    | html    | html                     |
-| `/package/:package/maintainers/.:format`               | GET    | html    | html                     |
-| `/package/:package/maintainers/.:format`               | POST   | html    | html                     |
-| `/package/:package/maintainers/edit`                   | GET    | html    | html                     |
-| `/package/:package/maintainers/user/:username.:format` | DELETE | html    | html                     |
 | `/package/:package/preferred.:format`                  | GET    | html    | html                     |
 | `/package/:package/preferred.:format`                  | PUT    | html    | html                     |
 | `/package/:package/preferred/edit`                     | GET    | html    | html                     |
@@ -285,19 +313,83 @@ data HoogleDataAPI mode = HoogleDataAPI
 | `/package/:package/tags.:format`                       | GET    | html    | html                     |
 | `/package/:package/tags.:format`                       | PUT    | html    | html                     |
 | `/package/:package/tags/edit`                          | GET    | html    | html                     |
-| `/packages/.:format`                                   | GET    | html    | html                     |
-| `/packages/.:format`                                   | POST   | html    | html                     |
-| `/packages/browse`                                     | GET    | html    | html                     |
-| `/packages/candidates/.:format`                        | GET    | html    | html                     |
-| `/packages/candidates/.:format`                        | POST   | html    | html                     |
-| `/packages/candidates/upload`                          | GET    | html    | html                     |
-| `/packages/deprecated.:format`                         | GET    | html    | html                     |
-| `/packages/graph`                                      | GET    | html    | html                     |
-| `/packages/graph.json`                                 | GET    | json    | html                     |
+-}
+data PackageHtmlAPI mode = PackageHtmlAPI
+    { htmlPackageGet :: mode :- "package" :> Capture "package" (WithFormat PackageName "html") :> Get '[HTML] ()
+    , htmlPackageAnalyticsGet :: mode :- "package" :> Capture "package" PackageName :> "analytics-pixels.html" :> Get '[HTML] ()
+    , htmlPackageAnalyticsPost :: mode :- "package" :> Capture "package" PackageName :> "analytics-pixels" :> Post '[HTML] ()
+    , htmlPackageAnalyticsDel :: mode :- "package" :> Capture "package" PackageName :> "analytics-pixels" :> Delete '[HTML] ()
+    , htmlPackageDependencies :: mode :- "package" :> Capture "package" PackageName :> "dependencies" :> Get '[HTML] ()
+    , htmlPackageDeprecatedGet :: mode :- "package" :> Capture "package" PackageName :> "deprecated.html" :> Get '[HTML] ()
+    , htmlPackageDeprecatedPut :: mode :- "package" :> Capture "package" PackageName :> "deprecated" :> Put '[HTML] ()
+    , htmlPackageDeprecatedEdit :: mode :- "package" :> Capture "package" PackageName :> "deprecated" :> "edit" :> Get '[HTML] ()
+    , htmlPackageDistroMonitor :: mode :- "package" :> Capture "package" PackageName :> "distro-monitor.html" :> Get '[HTML] ()
+    , htmlPackageDocsPut :: mode :- "package" :> Capture "package" PackageName :> "docs" :> Put '[HTML] ()
+    , htmlPackageDocsDel :: mode :- "package" :> Capture "package" PackageName :> "docs" :> Delete '[HTML] ()
+    , htmlPackageMaintain :: mode :- "package" :> Capture "package" PackageName :> "maintain" :> Get '[HTML] ()
+    , htmlPackageMaintainDocs :: mode :- "package" :> Capture "package" PackageName :> "maintain" :> "docs" :> Get '[HTML] ()
+    , htmlPackagePreferredGet :: mode :- "package" :> Capture "package" PackageName :> "preferred.html" :> Get '[HTML] ()
+    , htmlPackagePreferredPut :: mode :- "package" :> Capture "package" PackageName :> "preferred" :> Put '[HTML] ()
+    , htmlPackagePreferredEdit :: mode :- "package" :> Capture "package" PackageName :> "preferred" :> "edit" :> Get '[HTML] ()
+    , htmlPackageReportsGet :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Get '[HTML] ()
+    , htmlPackageReportIdGet :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Capture "id" (WithFormat ReportId "html") :> Get '[HTML] ()
+    , htmlPackageReportsTestsEnabled :: mode :- "package" :> Capture "package" PackageName :> "reports" :> "testsEnabled" :> Get '[HTML] ()
+    , htmlPackageReverseGet :: mode :- "package" :> Capture "package" PackageName :> "reverse.html" :> Get '[HTML] ()
+    , htmlPackageReverseFlatGet :: mode :- "package" :> Capture "package" PackageName :> "reverse" :> "flat.html" :> Get '[HTML] ()
+    , htmlPackageReverseOldGet :: mode :- "package" :> Capture "package" PackageName :> "reverse" :> "old.html" :> Get '[HTML] ()
+    , htmlPackageReverseVerboseGet :: mode :- "package" :> Capture "package" PackageName :> "reverse" :> "verbose.html" :> Get '[HTML] ()
+    , htmlPackageRevisionsGet :: mode :- "package" :> Capture "package" PackageName :> "revisions" :> Get '[HTML] ()
+    , htmlPackageTagsGet :: mode :- "package" :> Capture "package" PackageName :> "tags.html" :> Get '[HTML] ()
+    , htmlPackageTagsPut :: mode :- "package" :> Capture "package" PackageName :> "tags" :> Put '[HTML] ()
+    , htmlPackageTagsEdit :: mode :- "package" :> Capture "package" PackageName :> "tags" :> "edit" :> Get '[HTML] ()
+    }
+    deriving stock (Generic)
+
+{- | `/package/:package/maintainers/.:format`               | GET    | html    | html                     |
+| `/package/:package/maintainers/.:format`               | POST   | html    | html                     |
+| `/package/:package/maintainers/edit`                   | GET    | html    | html                     |
+| `/package/:package/maintainers/user/:username.:format` | DELETE | html    | html                     |
 | `/packages/mirrorers/.:format`                         | GET    | html    | html                     |
 | `/packages/mirrorers/.:format`                         | POST   | html    | html                     |
 | `/packages/mirrorers/edit`                             | GET    | html    | html                     |
 | `/packages/mirrorers/user/:username.:format`           | DELETE | html    | html                     |
+| `/packages/trustees/.:format`                          | GET    | html    | html                     |
+| `/packages/trustees/.:format`                          | POST   | html    | html                     |
+| `/packages/trustees/edit`                              | GET    | html    | html                     |
+| `/packages/trustees/user/:username.:format`            | DELETE | html    | html                     |
+| `/packages/upload`                                     | GET    | html    | html                     |
+| `/packages/uploaders/.:format`                         | GET    | html    | html                     |
+| `/packages/uploaders/.:format`                         | POST   | html    | html                     |
+| `/packages/uploaders/edit`                             | GET    | html    | html                     |
+| `/packages/uploaders/user/:username.:format`           | DELETE | html    | html                     |
+-}
+data MaintainersHtmlAPI mode = MaintainersHtmlAPI
+    { htmlPackageMaintainersGet :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> Get '[HTML] ()
+    , htmlPackageMaintainersPost :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> Post '[HTML] ()
+    , htmlPackageMaintainersEdit :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "edit" :> Get '[HTML] ()
+    , htmlPackageMaintainerDel :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithFormat Username "html") :> Delete '[HTML] ()
+    , htmlMirrorersGet :: mode :- "packages" :> "mirrorers" :> Get '[HTML] ()
+    , htmlMirrorersPost :: mode :- "packages" :> "mirrorers" :> Post '[HTML] ()
+    , htmlMirrorersEdit :: mode :- "packages" :> "mirrorers" :> "edit" :> Get '[HTML] ()
+    , htmlMirrorerUserDel :: mode :- "packages" :> "mirrorers" :> "user" :> Capture "username" (WithFormat Username "html") :> Delete '[HTML] ()
+    , htmlTrusteesGet :: mode :- "packages" :> "trustees" :> Get '[HTML] ()
+    , htmlTrusteesPost :: mode :- "packages" :> "trustees" :> Post '[HTML] ()
+    , htmlTrusteesEdit :: mode :- "packages" :> "trustees" :> "edit" :> Get '[HTML] ()
+    , htmlTrusteeUserDel :: mode :- "packages" :> "trustees" :> "user" :> Capture "username" (WithFormat Username "html") :> Delete '[HTML] ()
+    , htmlPackagesUpload :: mode :- "packages" :> "upload" :> Get '[HTML] ()
+    , htmlUploadersGet :: mode :- "packages" :> "uploaders" :> Get '[HTML] ()
+    , htmlUploadersPost :: mode :- "packages" :> "uploaders" :> Post '[HTML] ()
+    , htmlUploadersEdit :: mode :- "packages" :> "uploaders" :> "edit" :> Get '[HTML] ()
+    , htmlUploaderUserDel :: mode :- "packages" :> "uploaders" :> "user" :> Capture "username" (WithFormat Username "html") :> Delete '[HTML] ()
+    }
+    deriving stock (Generic)
+
+{- | `/packages/.:format`                                   | GET    | html    | html                     |
+| `/packages/.:format`                                   | POST   | html    | html                     |
+| `/packages/browse`                                     | GET    | html    | html                     |
+| `/packages/deprecated.:format`                         | GET    | html    | html                     |
+| `/packages/graph`                                      | GET    | html    | html                     |
+| `/packages/graph.json`                                 | GET    | json    | html                     |
 | `/packages/names`                                      | GET    | html    | html                     |
 | `/packages/preferred.:format`                          | GET    | html    | html                     |
 | `/packages/recent.:format`                             | GET    | html    | html                     |
@@ -311,16 +403,31 @@ data HoogleDataAPI mode = HoogleDataAPI
 | `/packages/tag/:tag/alias/edit`                        | GET    | html    | html                     |
 | `/packages/tags/.:format`                              | GET    | html    | html                     |
 | `/packages/top.:format`                                | GET    | html    | html                     |
-| `/packages/trustees/.:format`                          | GET    | html    | html                     |
-| `/packages/trustees/.:format`                          | POST   | html    | html                     |
-| `/packages/trustees/edit`                              | GET    | html    | html                     |
-| `/packages/trustees/user/:username.:format`            | DELETE | html    | html                     |
-| `/packages/upload`                                     | GET    | html    | html                     |
-| `/packages/uploaders/.:format`                         | GET    | html    | html                     |
-| `/packages/uploaders/.:format`                         | POST   | html    | html                     |
-| `/packages/uploaders/edit`                             | GET    | html    | html                     |
-| `/packages/uploaders/user/:username.:format`           | DELETE | html    | html                     |
-| `/user/:username.:format`                              | GET    | html    | html                     |
+-}
+data PackagesHtmlAPI mode = PackagesHtmlAPI
+    { htmlPackagesGet :: mode :- "packages" :> Get '[HTML] ()
+    , htmlPackagesPost :: mode :- "packages" :> Post '[HTML] ()
+    , htmlPackagesBrowse :: mode :- "packages" :> "browse" :> Get '[HTML] ()
+    , htmlPackagesDeprecated :: mode :- "packages" :> "deprecated.html" :> Get '[HTML] ()
+    , htmlPackagesGraph :: mode :- "packages" :> "graph" :> Get '[HTML] ()
+    , htmlPackagesGraphJson :: mode :- "packages" :> "graph.json" :> Get '[JSON] ()
+    , htmlPackagesNames :: mode :- "packages" :> "names" :> Get '[HTML] ()
+    , htmlPackagesPreferred :: mode :- "packages" :> "preferred.html" :> Get '[HTML] ()
+    , htmlPackagesRecentHtml :: mode :- "packages" :> "recent.html" :> Get '[HTML] ()
+    , htmlPackagesRecentRss :: mode :- "packages" :> "recent.rss" :> Get '[RSS] ()
+    , htmlPackagesRecentRevisionsHtml :: mode :- "packages" :> "recent" :> "revisions.html" :> Get '[HTML] ()
+    , htmlPackagesRecentRevisionsRss :: mode :- "packages" :> "recent" :> "revisions.rss" :> Get '[RSS] ()
+    , htmlPackagesReverse :: mode :- "packages" :> "reverse.html" :> Get '[HTML] ()
+    , htmlPackagesSearch :: mode :- "packages" :> "search.html" :> Get '[HTML] ()
+    , htmlPackagesTagGet :: mode :- "packages" :> "tag" :> Capture "tag" (WithFormat Tag "html") :> Get '[HTML] ()
+    , htmlPackagesTagAliasPut :: mode :- "packages" :> "tag" :> Capture "tag" Tag :> "alias" :> Put '[HTML] ()
+    , htmlPackagesTagAliasEdit :: mode :- "packages" :> "tag" :> Capture "tag" Tag :> "alias" :> "edit" :> Get '[HTML] ()
+    , htmlPackagesTagsGet :: mode :- "packages" :> "tags" :> Get '[HTML] ()
+    , htmlPackagesTop :: mode :- "packages" :> "top.html" :> Get '[HTML] ()
+    }
+    deriving stock (Generic)
+
+{- | `/user/:username.:format`                              | GET    | html    | html                     |
 | `/user/:username/analytics-pixels.:format`             | GET    | html    | html                     |
 | `/user/:username/analytics-pixels.:format`             | POST   | html    | html                     |
 | `/user/:username/analytics-pixels.:format`             | DELETE | html    | html                     |
@@ -334,6 +441,22 @@ data HoogleDataAPI mode = HoogleDataAPI
 | `/users/admins/user/:username.:format`                 | DELETE | html    | html                     |
 | `/users/register`                                      | GET    | html    | html                     |
 -}
+data UsersHtmlAPI mode = UsersHtmlAPI
+    { htmlUserGet :: mode :- "user" :> Capture "username" (WithFormat Username "html") :> Get '[HTML] ()
+    , htmlUserAnalyticsGet :: mode :- "user" :> Capture "username" Username :> "analytics-pixels.html" :> Get '[HTML] ()
+    , htmlUserAnalyticsPost :: mode :- "user" :> Capture "username" Username :> "analytics-pixels" :> Post '[HTML] ()
+    , htmlUserAnalyticsDel :: mode :- "user" :> Capture "username" Username :> "analytics-pixels" :> Delete '[HTML] ()
+    , htmlUserPasswordGet :: mode :- "user" :> Capture "username" Username :> "password.html" :> Get '[HTML] ()
+    , htmlUserPasswordPut :: mode :- "user" :> Capture "username" Username :> "password" :> Put '[HTML] ()
+    , htmlUsersGet :: mode :- "users" :> Get '[HTML] ()
+    , htmlUsersPost :: mode :- "users" :> Post '[HTML] ()
+    , htmlUsersAdminsGet :: mode :- "users" :> "admins" :> Get '[HTML] ()
+    , htmlUsersAdminsPost :: mode :- "users" :> "admins" :> Post '[HTML] ()
+    , htmlUsersAdminsEdit :: mode :- "users" :> "admins" :> "edit" :> Get '[HTML] ()
+    , htmlUsersAdminUserDel :: mode :- "users" :> "admins" :> "user" :> Capture "username" (WithFormat Username "html") :> Delete '[HTML] ()
+    , htmlUsersRegister :: mode :- "users" :> "register" :> Get '[HTML] ()
+    }
+    deriving stock (Generic)
 
 {- | `/package/:package/:cabal.cabal`                       | PUT    | *       | mirror                   |
 | `/package/:package/:tarball.tar.gz`                    | PUT    | *       | mirror                   |
@@ -682,5 +805,6 @@ data RedirectAPI mode = RedirectAPI
     , redirUploaders :: mode :- "packages" :> "uploaders" :> Capture "format" AnyFormat :> Redirect
     , redirUsers :: mode :- "users" :> Capture "format" AnyFormat :> Redirect
     , redirUsersAdmins :: mode :- "users" :> "admins" :> Capture "format" AnyFormat :> Redirect
+    , redirPackagesTags :: mode :- "packages" :> "tags" :> Capture "format" AnyFormat :> Redirect
     }
     deriving stock (Generic)
