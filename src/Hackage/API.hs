@@ -4,14 +4,12 @@
 
 module Hackage.API where
 
-import Data.Kind (Type)
+import Servant.HackageCombinators
 import Data.Proxy (Proxy (..))
 import Data.Text (Text)
 import GHC.Generics
-import GHC.TypeLits (Symbol)
 import Servant.API
 import Servant.HTML.Blaze
-import Servant.Links
 
 type HackageAPI = ()
 
@@ -42,8 +40,6 @@ data IndexTarballAPI mode = IndexTarballAPI
     }
 
 type UserId = Int
-
-data AnyFormat
 
 -- `/admin`              | GET    | html    | admin-frontend
 -- `/admin/account/:uid` | GET    | html    | admin-frontend
@@ -103,17 +99,6 @@ type API = NamedRoutes AllAPI
 api :: Proxy API
 api = Proxy
 
-type ApiAPI =
-    "api.html" :> Get '[HTML] ()
-        :<|> "api.json" :> Get '[JSON] ()
-
-type WithFormat :: Type -> Symbol -> Type
-newtype WithFormat a b = WithFormat {unWithFormat :: a}
-
-type WithAnyFormat :: Type -> Type
-newtype WithAnyFormat a = WithAnyFormat {unWithAnyFormat :: a}
-
-data Redirect
 
 data IsAdmin
 
@@ -744,21 +729,22 @@ data VotesAPI mode = VotesAPI
     deriving stock (Generic)
 
 data RedirectAPI mode = RedirectAPI
-    { distrosRedir :: mode :- "distros" :> Capture "format" AnyFormat :> Redirect
-    , redirDistroMaintainers :: mode :- Capture "package" PackageName :> "maintainers" :> "user" :> Capture "format" AnyFormat :> Redirect
-    , redirPackageCandidates :: mode :- "package" :> Capture "package" PackageName :> "candidates" :> Capture "format" AnyFormat :> Redirect
-    , redirPackagesCandidates :: mode :- "packages" :> "candidates" :> Capture "format" AnyFormat :> Redirect
-    , redirPackageRevisions :: mode :- "package" :> Capture "package" PackageName :> "revisions" :> Capture "format" AnyFormat :> Redirect
-    , redirPackages :: mode :- "packages" :> Capture "format" AnyFormat :> Redirect
-    , redirCandidateDocs :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "docs" :> Capture "format" AnyFormat :> Redirect
-    , redirMirrorers :: mode :- "packages" :> "mirrorers" :> Capture "format" AnyFormat :> Redirect
-    , redirCandidateReports :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> Capture "format" AnyFormat :> Redirect
-    , redirReports :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Capture "format" AnyFormat :> Redirect
-    , redirPackageMaintainers :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> Capture "format" AnyFormat :> Redirect
-    , redirTrustees :: mode :- "packages" :> "trustees" :> Capture "format" AnyFormat :> Redirect
-    , redirUploaders :: mode :- "packages" :> "uploaders" :> Capture "format" AnyFormat :> Redirect
-    , redirUsers :: mode :- "users" :> Capture "format" AnyFormat :> Redirect
-    , redirUsersAdmins :: mode :- "users" :> "admins" :> Capture "format" AnyFormat :> Redirect
-    , redirPackagesTags :: mode :- "packages" :> "tags" :> Capture "format" AnyFormat :> Redirect
+    { distrosRedir :: mode :- "distros" :> Capture "format" AnyFormat :> PermanentRedirect
+    , redirDistroMaintainers :: mode :- Capture "package" PackageName :> "maintainers" :> "user" :> Capture "format" AnyFormat :> PermanentRedirect
+    , redirPackageCandidates :: mode :- "package" :> Capture "package" PackageName :> "candidates" :> Capture "format" AnyFormat :> PermanentRedirect
+    , redirPackagesCandidates :: mode :- "packages" :> "candidates" :> Capture "format" AnyFormat :> PermanentRedirect
+    , redirPackageRevisions :: mode :- "package" :> Capture "package" PackageName :> "revisions" :> Capture "format" AnyFormat :> PermanentRedirect
+    , redirPackages :: mode :- "packages" :> Capture "format" AnyFormat :> PermanentRedirect
+    , redirCandidateDocs :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "docs" :> Capture "format" AnyFormat :> PermanentRedirect
+    , redirMirrorers :: mode :- "packages" :> "mirrorers" :> Capture "format" AnyFormat :> PermanentRedirect
+    , redirCandidateReports :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> Capture "format" AnyFormat :> PermanentRedirect
+    , redirReports :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Capture "format" AnyFormat :> PermanentRedirect
+    , redirPackageMaintainers :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> Capture "format" AnyFormat :> PermanentRedirect
+    , redirTrustees :: mode :- "packages" :> "trustees" :> Capture "format" AnyFormat :> PermanentRedirect
+    , redirUploaders :: mode :- "packages" :> "uploaders" :> Capture "format" AnyFormat :> PermanentRedirect
+    , redirUsers :: mode :- "users" :> Capture "format" AnyFormat :> PermanentRedirect
+    , redirUsersAdmins :: mode :- "users" :> "admins" :> Capture "format" AnyFormat :> PermanentRedirect
+    , redirPackagesTags :: mode :- "packages" :> "tags" :> Capture "format" AnyFormat :> PermanentRedirect
     }
     deriving stock (Generic)
+

@@ -28,6 +28,11 @@ dependencies:
 - servant-blaze
 - blaze-markup
 - text
+- tagged
+- resourcet
+- wai
+- http-types
+- warp
 
 ghc-options:
 - -Wall

@@ -27,6 +27,7 @@ library
   exposed-modules:
       Hackage.API
       Lib
+      Servant.HackageCombinators
   other-modules:
       Paths_hackage_server_v3
   autogen-modules:
@@ -37,11 +38,16 @@ library
   build-depends:
       base >=4.7 && <5
     , blaze-markup
+    , http-types
     , rel8
+    , resourcet
     , servant
     , servant-blaze
     , servant-server
+    , tagged
     , text
+    , wai
+    , warp
   default-language: GHC2024
 
 executable hackage-server-v3-exe
@@ -57,11 +63,16 @@ executable hackage-server-v3-exe
       base >=4.7 && <5
     , blaze-markup
     , hackage-server-v3
+    , http-types
     , rel8
+    , resourcet
     , servant
     , servant-blaze
     , servant-server
+    , tagged
     , text
+    , wai
+    , warp
   default-language: GHC2024
 
 test-suite hackage-server-v3-test
@@ -78,9 +89,14 @@ test-suite hackage-server-v3-test
       base >=4.7 && <5
     , blaze-markup
     , hackage-server-v3
+    , http-types
     , rel8
+    , resourcet
     , servant
     , servant-blaze
     , servant-server
+    , tagged
     , text
+    , wai
+    , warp
   default-language: GHC2024
