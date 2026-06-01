@@ -39,6 +39,9 @@ dependencies:
 - time
 - mtl
 - Cabal-syntax
+- containers
+- base64-bytestring
+- random
 
 ghc-options:
 - -Wall

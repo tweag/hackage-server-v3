@@ -34,6 +34,7 @@ library
       Hackage.Utils
       Lib
       Rel8.CreateTable
+      Servant.HackageAuth
       Servant.HackageCombinators
   other-modules:
       Paths_hackage_server_v3
@@ -49,12 +50,15 @@ library
   build-depends:
       Cabal-syntax
     , base >=4.7 && <5
+    , base64-bytestring
     , blaze-markup
     , bytestring
+    , containers
     , gdp
     , hasql
     , http-types
     , mtl
+    , random
     , rel8
     , resourcet
     , servant
@@ -83,13 +87,16 @@ executable hackage-server-v3-exe
   build-depends:
       Cabal-syntax
     , base >=4.7 && <5
+    , base64-bytestring
     , blaze-markup
     , bytestring
+    , containers
     , gdp
     , hackage-server-v3
     , hasql
     , http-types
     , mtl
+    , random
     , rel8
     , resourcet
     , servant
@@ -119,13 +126,16 @@ test-suite hackage-server-v3-test
   build-depends:
       Cabal-syntax
     , base >=4.7 && <5
+    , base64-bytestring
     , blaze-markup
     , bytestring
+    , containers
     , gdp
     , hackage-server-v3
     , hasql
     , http-types
     , mtl
+    , random
     , rel8
     , resourcet
     , servant
