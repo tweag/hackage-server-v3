@@ -1,22 +1,28 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE TypeFamilies         #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Servant.HackageCombinators where
 
-import Data.Functor ((<&>))
 import Control.Monad.IO.Class
-import Servant.Server
-import Data.Proxy (Proxy (..))
-import Servant.API
-import Data.Kind (Type)
-import GHC.TypeLits
-import Data.Text qualified as T
-import Servant.Server.Internal.Router
-import Servant.Server.Internal.Delayed
 import Control.Monad.Trans.Resource (runResourceT)
-import Network.Wai
-import Network.HTTP.Types.Status (permanentRedirect308)
+import Control.Monad.Except (ExceptT(..), runExceptT)
+import Data.Functor ((<&>))
+import Data.Kind (Type)
+import Data.Proxy (Proxy (..))
+import Data.Text qualified as T
+import GHC.TypeLits
+import Hackage.Types
+import Hackage.Utils (Connection)
 import Network.HTTP.Types.Header (hLocation)
+import Network.HTTP.Types.Status (permanentRedirect308)
+import Network.Wai
+import Servant.API
+import Servant.HackageAuth
+import Servant.Server
+import Servant.Server.Experimental.Auth
+import Servant.Server.Internal.Delayed
+import Servant.Server.Internal.Router
 
 
 -- | A 'Capture'-able segment corresponding to hackage v2's @.:format@
@@ -66,4 +72,18 @@ instance HasServer PermanentRedirect context where
     delayed <- runDelayed tlink env req
     liftIO $ resp $ delayed <&> \link ->
       responseLBS permanentRedirect308 [(hLocation, "/" <> toHeader link)] mempty
+
+
+-- | Custom combinator for doing the same auth checks as Hackage v2.
+type HackageAuth = AuthProtect "hackage-auth"
+type instance AuthServerData HackageAuth = UserId
+
+
+-- | Generate an 'AuthHandler' for 'HackageAuth' auth.
+hackageAuthHandler :: RealmName -> Connection -> AuthHandler Request UserId
+hackageAuthHandler realm conn = mkAuthHandler $ \req -> Handler $ ExceptT $ do
+  eauth <- runExceptT $ checkAuthenticated hackageRealm conn req
+  case eauth of
+    Left err -> fmap Left $ authErrorResponse realm err
+    Right a -> pure $ pure a
 
