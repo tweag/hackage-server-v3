@@ -37,6 +37,7 @@ dependencies:
 - hasql
 - bytestring
 - time
+- mtl
 
 ghc-options:
 - -Wall

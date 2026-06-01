@@ -31,6 +31,7 @@ library
       Hackage.Auth.Trustee
       Hackage.Schemas.Users
       Hackage.Types
+      Hackage.Utils
       Lib
       Rel8.CreateTable
       Servant.HackageCombinators
@@ -52,6 +53,7 @@ library
     , gdp
     , hasql
     , http-types
+    , mtl
     , rel8
     , resourcet
     , servant
@@ -85,6 +87,7 @@ executable hackage-server-v3-exe
     , hackage-server-v3
     , hasql
     , http-types
+    , mtl
     , rel8
     , resourcet
     , servant
@@ -119,6 +122,7 @@ test-suite hackage-server-v3-test
     , hackage-server-v3
     , hasql
     , http-types
+    , mtl
     , rel8
     , resourcet
     , servant
