@@ -1,6 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Hackage.Utils where
+module Hackage.Utils
+  ( module Hackage.Utils
+  , Connection
+  ) where
 
 import Hasql.Connection (Connection)
 import Hasql.Session (SessionError, statement, run)
