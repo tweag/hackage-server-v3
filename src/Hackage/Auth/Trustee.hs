@@ -13,6 +13,6 @@ import Theory.Named
 type role IsTrustee nominal
 data IsTrustee user = TrustMe
 
-isTrustee :: Named user Username -> IO (Maybe (IsTrustee user))
+isTrustee :: Named user UserName -> IO (Maybe (IsTrustee user))
 isTrustee _ = pure $ error "implement isTrustee" TrustMe
 

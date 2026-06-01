@@ -13,6 +13,6 @@ import Theory.Named
 type role IsAdmin nominal
 data IsAdmin user = TrustMe
 
-isAdmin :: Named user Username -> IO (Maybe (IsAdmin user))
+isAdmin :: Named user UserName -> IO (Maybe (IsAdmin user))
 isAdmin _ = pure $ error "implement isAdmin" TrustMe
 

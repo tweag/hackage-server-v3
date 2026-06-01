@@ -14,7 +14,7 @@ type role IsMaintainer nominal nominal
 data IsMaintainer user package = TrustMe
 
 isMaintainer
-  :: Named user Username
+  :: Named user UserName
   -> Named package PackageName
   -> IO (Maybe (IsMaintainer user package))
 isMaintainer _ = pure $ error "implement isMaintainer" TrustMe

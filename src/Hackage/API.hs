@@ -69,8 +69,8 @@ data DistroAPI mode = DistroAPI
     , distroPkgsPutCsv :: mode :- "distro" :> Capture "distro" DistroName :> "packages.csv" :> Put '[CSV] ()
     , distroPkgsGetTxt :: mode :- "distro" :> Capture "distro" DistroName :> "packages.txt" :> Get '[TXT] ()
     , distroPkgMaintainersGet :: mode :- "distro" :> Capture "package" PackageName :> "maintainers" :> "user" :> Get '[JSON] ()
-    , distroPkgMaintainersPut :: mode :- "distro" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithAnyFormat Username) :> Put '[] ()
-    , distroPkgMaintainersDel :: mode :- "distro" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithAnyFormat Username) :> Delete '[] ()
+    , distroPkgMaintainersPut :: mode :- "distro" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Put '[] ()
+    , distroPkgMaintainersDel :: mode :- "distro" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Delete '[] ()
     , distrosGet :: mode :- "distros" :> IsAdmin :> Get '[TXT] ()
     , distrosPost :: mode :- "distros" :> IsAdmin :> Post '[] ()
     }
@@ -127,7 +127,7 @@ data CoreAPI mode = CoreAPI
     , packagesGet :: mode :- "packages" :> Get '[JSON] ()
     , packagesDeauth :: mode :- "packages" :> "deauth" :> Get '[TODO] ()
     , packagesIndexTarball :: mode :- "packages" :> "index.tar.gz" :> Get '[Tarball] ()
-    , userDeauth :: mode :- "user" :> Capture "user" Username :> "deauth" :> Get '[TODO] ()
+    , userDeauth :: mode :- "user" :> Capture "user" UserName :> "deauth" :> Get '[TODO] ()
     }
     deriving stock (Generic)
 
@@ -180,8 +180,8 @@ data EditCabalFilesAPI mode = EditCabalFilesAPI
 -- `/user/:username/endorse`                              | GET    | html    | endorse                  |
 -- `/user/:username/endorse`                              | POST   | html    | endorse                  |
 data EndorseAPI mode = EndorseAPI
-    { userEndorseGet :: mode :- "user" :> Capture "username" Username :> "endorse" :> Get '[HTML] ()
-    , userEndorsePost :: mode :- "user" :> Capture "username" Username :> "endorse" :> Post '[HTML] ()
+    { userEndorseGet :: mode :- "user" :> Capture "username" UserName :> "endorse" :> Get '[HTML] ()
+    , userEndorsePost :: mode :- "user" :> Capture "username" UserName :> "endorse" :> Post '[HTML] ()
     }
     deriving stock (Generic)
 
@@ -318,20 +318,20 @@ data MaintainersHtmlAPI mode = MaintainersHtmlAPI
     { htmlPackageMaintainersGet :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> Get '[HTML] ()
     , htmlPackageMaintainersPost :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> Post '[HTML] ()
     , htmlPackageMaintainersEdit :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "edit" :> Get '[HTML] ()
-    , htmlPackageMaintainerDel :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithFormat Username "html") :> Delete '[HTML] ()
+    , htmlPackageMaintainerDel :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithFormat UserName "html") :> Delete '[HTML] ()
     , htmlMirrorersGet :: mode :- "packages" :> "mirrorers" :> Get '[HTML] ()
     , htmlMirrorersPost :: mode :- "packages" :> "mirrorers" :> Post '[HTML] ()
     , htmlMirrorersEdit :: mode :- "packages" :> "mirrorers" :> "edit" :> Get '[HTML] ()
-    , htmlMirrorerUserDel :: mode :- "packages" :> "mirrorers" :> "user" :> Capture "username" (WithFormat Username "html") :> Delete '[HTML] ()
+    , htmlMirrorerUserDel :: mode :- "packages" :> "mirrorers" :> "user" :> Capture "username" (WithFormat UserName "html") :> Delete '[HTML] ()
     , htmlTrusteesGet :: mode :- "packages" :> "trustees" :> Get '[HTML] ()
     , htmlTrusteesPost :: mode :- "packages" :> "trustees" :> Post '[HTML] ()
     , htmlTrusteesEdit :: mode :- "packages" :> "trustees" :> "edit" :> Get '[HTML] ()
-    , htmlTrusteeUserDel :: mode :- "packages" :> "trustees" :> "user" :> Capture "username" (WithFormat Username "html") :> Delete '[HTML] ()
+    , htmlTrusteeUserDel :: mode :- "packages" :> "trustees" :> "user" :> Capture "username" (WithFormat UserName "html") :> Delete '[HTML] ()
     , htmlPackagesUpload :: mode :- "packages" :> "upload" :> Get '[HTML] ()
     , htmlUploadersGet :: mode :- "packages" :> "uploaders" :> Get '[HTML] ()
     , htmlUploadersPost :: mode :- "packages" :> "uploaders" :> Post '[HTML] ()
     , htmlUploadersEdit :: mode :- "packages" :> "uploaders" :> "edit" :> Get '[HTML] ()
-    , htmlUploaderUserDel :: mode :- "packages" :> "uploaders" :> "user" :> Capture "username" (WithFormat Username "html") :> Delete '[HTML] ()
+    , htmlUploaderUserDel :: mode :- "packages" :> "uploaders" :> "user" :> Capture "username" (WithFormat UserName "html") :> Delete '[HTML] ()
     }
     deriving stock (Generic)
 
@@ -391,18 +391,18 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
 -- `/users/admins/user/:username.:format`                 | DELETE | html    | html                     |
 -- `/users/register`                                      | GET    | html    | html                     |
 data UsersHtmlAPI mode = UsersHtmlAPI
-    { htmlUserGet :: mode :- "user" :> Capture "username" (WithFormat Username "html") :> Get '[HTML] ()
-    , htmlUserAnalyticsGet :: mode :- "user" :> Capture "username" Username :> "analytics-pixels.html" :> Get '[HTML] ()
-    , htmlUserAnalyticsPost :: mode :- "user" :> Capture "username" Username :> "analytics-pixels" :> Post '[HTML] ()
-    , htmlUserAnalyticsDel :: mode :- "user" :> Capture "username" Username :> "analytics-pixels" :> Delete '[HTML] ()
-    , htmlUserPasswordGet :: mode :- "user" :> Capture "username" Username :> "password.html" :> Get '[HTML] ()
-    , htmlUserPasswordPut :: mode :- "user" :> Capture "username" Username :> "password" :> Put '[HTML] ()
+    { htmlUserGet :: mode :- "user" :> Capture "username" (WithFormat UserName "html") :> Get '[HTML] ()
+    , htmlUserAnalyticsGet :: mode :- "user" :> Capture "username" UserName :> "analytics-pixels.html" :> Get '[HTML] ()
+    , htmlUserAnalyticsPost :: mode :- "user" :> Capture "username" UserName :> "analytics-pixels" :> Post '[HTML] ()
+    , htmlUserAnalyticsDel :: mode :- "user" :> Capture "username" UserName :> "analytics-pixels" :> Delete '[HTML] ()
+    , htmlUserPasswordGet :: mode :- "user" :> Capture "username" UserName :> "password.html" :> Get '[HTML] ()
+    , htmlUserPasswordPut :: mode :- "user" :> Capture "username" UserName :> "password" :> Put '[HTML] ()
     , htmlUsersGet :: mode :- "users" :> Get '[HTML] ()
     , htmlUsersPost :: mode :- "users" :> Post '[HTML] ()
     , htmlUsersAdminsGet :: mode :- "users" :> "admins" :> Get '[HTML] ()
     , htmlUsersAdminsPost :: mode :- "users" :> "admins" :> Post '[HTML] ()
     , htmlUsersAdminsEdit :: mode :- "users" :> "admins" :> "edit" :> Get '[HTML] ()
-    , htmlUsersAdminUserDel :: mode :- "users" :> "admins" :> "user" :> Capture "username" (WithFormat Username "html") :> Delete '[HTML] ()
+    , htmlUsersAdminUserDel :: mode :- "users" :> "admins" :> "user" :> Capture "username" (WithFormat UserName "html") :> Delete '[HTML] ()
     , htmlUsersRegister :: mode :- "users" :> "register" :> Get '[HTML] ()
     }
     deriving stock (Generic)
@@ -424,8 +424,8 @@ data MirrorAPI mode = MirrorAPI
     , mirrorPackageUploaderGet :: mode :- "package" :> Capture "package" PackageName :> "uploader" :> Get '[TODO] ()
     , mirrorPackageUploaderPut :: mode :- "package" :> Capture "package" PackageName :> "uploader" :> Put '[TODO] ()
     , mirrorersGet :: mode :- "packages" :> "mirrorers" :> Get '[JSON] ()
-    , mirrorerUserPut :: mode :- "packages" :> "mirrorers" :> "user" :> Capture "username" (WithAnyFormat Username) :> Put '[TODO] ()
-    , mirrorerUserDel :: mode :- "packages" :> "mirrorers" :> "user" :> Capture "username" (WithAnyFormat Username) :> Delete '[TODO] ()
+    , mirrorerUserPut :: mode :- "packages" :> "mirrorers" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Put '[TODO] ()
+    , mirrorerUserDel :: mode :- "packages" :> "mirrorers" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Delete '[TODO] ()
     }
     deriving stock (Generic)
 
@@ -599,15 +599,15 @@ data TarIndexCacheAPI mode = TarIndexCacheAPI
 -- `/packages/uploaders/user/:username.:format`           | DELETE | *       | upload                   |
 data UploadAPI mode = UploadAPI
     { packageMaintainersGet :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> Get '[JSON] ()
-    , packageMaintainerPut :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithAnyFormat Username) :> Put '[TODO] ()
-    , packageMaintainerDel :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithAnyFormat Username) :> Delete '[TODO] ()
+    , packageMaintainerPut :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Put '[TODO] ()
+    , packageMaintainerDel :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Delete '[TODO] ()
     , packagesPost :: mode :- "packages" :> Post '[TXT] ()
     , trusteesGet :: mode :- "packages" :> "trustees" :> Get '[JSON] ()
-    , trusteeUserPut :: mode :- "packages" :> "trustees" :> "user" :> Capture "username" (WithAnyFormat Username) :> Put '[TODO] ()
-    , trusteeUserDel :: mode :- "packages" :> "trustees" :> "user" :> Capture "username" (WithAnyFormat Username) :> Delete '[TODO] ()
+    , trusteeUserPut :: mode :- "packages" :> "trustees" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Put '[TODO] ()
+    , trusteeUserDel :: mode :- "packages" :> "trustees" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Delete '[TODO] ()
     , uploadersGet :: mode :- "packages" :> "uploaders" :> Get '[JSON] ()
-    , uploaderUserPut :: mode :- "packages" :> "uploaders" :> "user" :> Capture "username" (WithAnyFormat Username) :> Put '[TODO] ()
-    , uploaderUserDel :: mode :- "packages" :> "uploaders" :> "user" :> Capture "username" (WithAnyFormat Username) :> Delete '[TODO] ()
+    , uploaderUserPut :: mode :- "packages" :> "uploaders" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Put '[TODO] ()
+    , uploaderUserDel :: mode :- "packages" :> "uploaders" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Delete '[TODO] ()
     }
     deriving stock (Generic)
 
@@ -619,13 +619,13 @@ data UploadAPI mode = UploadAPI
 -- `/user/:username/name-contact.:format`                 | PUT    | json    | user-details             |
 -- `/user/:username/name-contact.:format`                 | DELETE | *       | user-details             |
 data UserDetailsAPI mode = UserDetailsAPI
-    { userAdminInfoGet :: mode :- "user" :> Capture "username" Username :> "admin-info.json" :> Get '[JSON] ()
-    , userAdminInfoPut :: mode :- "user" :> Capture "username" Username :> "admin-info.json" :> Put '[JSON] ()
-    , userAdminInfoDel :: mode :- "user" :> Capture "username" Username :> "admin-info" :> Delete '[TODO] ()
-    , userNameContactGetHtml :: mode :- "user" :> Capture "username" Username :> "name-contact.html" :> Get '[HTML] ()
-    , userNameContactGetJson :: mode :- "user" :> Capture "username" Username :> "name-contact.json" :> Get '[JSON] ()
-    , userNameContactPut :: mode :- "user" :> Capture "username" Username :> "name-contact.json" :> Put '[JSON] ()
-    , userNameContactDel :: mode :- "user" :> Capture "username" Username :> "name-contact" :> Delete '[TODO] ()
+    { userAdminInfoGet :: mode :- "user" :> Capture "username" UserName :> "admin-info.json" :> Get '[JSON] ()
+    , userAdminInfoPut :: mode :- "user" :> Capture "username" UserName :> "admin-info.json" :> Put '[JSON] ()
+    , userAdminInfoDel :: mode :- "user" :> Capture "username" UserName :> "admin-info" :> Delete '[TODO] ()
+    , userNameContactGetHtml :: mode :- "user" :> Capture "username" UserName :> "name-contact.html" :> Get '[HTML] ()
+    , userNameContactGetJson :: mode :- "user" :> Capture "username" UserName :> "name-contact.json" :> Get '[JSON] ()
+    , userNameContactPut :: mode :- "user" :> Capture "username" UserName :> "name-contact.json" :> Put '[JSON] ()
+    , userNameContactDel :: mode :- "user" :> Capture "username" UserName :> "name-contact" :> Delete '[TODO] ()
     }
     deriving stock (Generic)
 
@@ -633,9 +633,9 @@ data UserDetailsAPI mode = UserDetailsAPI
 -- `/user/:username/notify.:format`                       | GET    | json    | user-notify              |
 -- `/user/:username/notify.:format`                       | PUT    | json    | user-notify              |
 data UserNotifyAPI mode = UserNotifyAPI
-    { userNotifyGetHtml :: mode :- "user" :> Capture "username" Username :> "notify.html" :> Get '[HTML] ()
-    , userNotifyGetJson :: mode :- "user" :> Capture "username" Username :> "notify.json" :> Get '[JSON] ()
-    , userNotifyPut :: mode :- "user" :> Capture "username" Username :> "notify.json" :> Put '[JSON] ()
+    { userNotifyGetHtml :: mode :- "user" :> Capture "username" UserName :> "notify.html" :> Get '[HTML] ()
+    , userNotifyGetJson :: mode :- "user" :> Capture "username" UserName :> "notify.json" :> Get '[JSON] ()
+    , userNotifyPut :: mode :- "user" :> Capture "username" UserName :> "notify.json" :> Put '[JSON] ()
     }
     deriving stock (Generic)
 
@@ -674,18 +674,18 @@ data UserSignupResetAPI mode = UserSignupResetAPI
 -- `/users/admins/user/:username.:format`                 | PUT    | *       | users                    |
 -- `/users/admins/user/:username.:format`                 | DELETE | *       | users                    |
 data UsersAPI mode = UsersAPI
-    { userGetJson :: mode :- "user" :> Capture "username" (WithFormat Username "json") :> Get '[JSON] ()
-    , userPut :: mode :- "user" :> Capture "username" (WithAnyFormat Username) :> Put '[TODO] ()
-    , userDel :: mode :- "user" :> Capture "username" (WithAnyFormat Username) :> Delete '[TODO] ()
-    , userEnabledGet :: mode :- "user" :> Capture "username" Username :> "enabled.json" :> Get '[JSON] ()
-    , userEnabledPut :: mode :- "user" :> Capture "username" Username :> "enabled.json" :> Put '[JSON] ()
-    , userManageGet :: mode :- "user" :> Capture "username" Username :> "manage" :> Get '[TODO] ()
-    , userManagePost :: mode :- "user" :> Capture "username" Username :> "manage" :> Post '[TODO] ()
+    { userGetJson :: mode :- "user" :> Capture "username" (WithFormat UserName "json") :> Get '[JSON] ()
+    , userPut :: mode :- "user" :> Capture "username" (WithAnyFormat UserName) :> Put '[TODO] ()
+    , userDel :: mode :- "user" :> Capture "username" (WithAnyFormat UserName) :> Delete '[TODO] ()
+    , userEnabledGet :: mode :- "user" :> Capture "username" UserName :> "enabled.json" :> Get '[JSON] ()
+    , userEnabledPut :: mode :- "user" :> Capture "username" UserName :> "enabled.json" :> Put '[JSON] ()
+    , userManageGet :: mode :- "user" :> Capture "username" UserName :> "manage" :> Get '[TODO] ()
+    , userManagePost :: mode :- "user" :> Capture "username" UserName :> "manage" :> Post '[TODO] ()
     , usersGet :: mode :- "users" :> Get '[JSON] ()
     , usersAccountMgmt :: mode :- "users" :> "account-management" :> Get '[TODO] ()
     , usersAdminsGet :: mode :- "users" :> "admins" :> Get '[JSON] ()
-    , usersAdminUserPut :: mode :- "users" :> "admins" :> "user" :> Capture "username" (WithAnyFormat Username) :> Put '[TODO] ()
-    , usersAdminUserDel :: mode :- "users" :> "admins" :> "user" :> Capture "username" (WithAnyFormat Username) :> Delete '[TODO] ()
+    , usersAdminUserPut :: mode :- "users" :> "admins" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Put '[TODO] ()
+    , usersAdminUserDel :: mode :- "users" :> "admins" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Delete '[TODO] ()
     }
     deriving stock (Generic)
 

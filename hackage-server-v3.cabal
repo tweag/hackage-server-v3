@@ -26,7 +26,13 @@ source-repository head
 library
   exposed-modules:
       Hackage.API
+      Hackage.Auth.Admin
+      Hackage.Auth.Maintainer
+      Hackage.Auth.Trustee
+      Hackage.Schemas.Users
+      Hackage.Types
       Lib
+      Rel8.CreateTable
       Servant.HackageCombinators
   other-modules:
       Paths_hackage_server_v3
@@ -34,11 +40,17 @@ library
       Paths_hackage_server_v3
   hs-source-dirs:
       src
+  default-extensions:
+      DerivingVia
+      DeriveAnyClass
+      GeneralizedNewtypeDeriving
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
     , blaze-markup
+    , bytestring
     , gdp
+    , hasql
     , http-types
     , rel8
     , resourcet
@@ -47,6 +59,7 @@ library
     , servant-server
     , tagged
     , text
+    , time
     , wai
     , warp
   default-language: GHC2024
@@ -59,12 +72,18 @@ executable hackage-server-v3-exe
       Paths_hackage_server_v3
   hs-source-dirs:
       app
+  default-extensions:
+      DerivingVia
+      DeriveAnyClass
+      GeneralizedNewtypeDeriving
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , blaze-markup
+    , bytestring
     , gdp
     , hackage-server-v3
+    , hasql
     , http-types
     , rel8
     , resourcet
@@ -73,6 +92,7 @@ executable hackage-server-v3-exe
     , servant-server
     , tagged
     , text
+    , time
     , wai
     , warp
   default-language: GHC2024
@@ -86,12 +106,18 @@ test-suite hackage-server-v3-test
       Paths_hackage_server_v3
   hs-source-dirs:
       test
+  default-extensions:
+      DerivingVia
+      DeriveAnyClass
+      GeneralizedNewtypeDeriving
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , blaze-markup
+    , bytestring
     , gdp
     , hackage-server-v3
+    , hasql
     , http-types
     , rel8
     , resourcet
@@ -100,6 +126,7 @@ test-suite hackage-server-v3-test
     , servant-server
     , tagged
     , text
+    , time
     , wai
     , warp
   default-language: GHC2024

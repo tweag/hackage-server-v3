@@ -34,6 +34,9 @@ dependencies:
 - http-types
 - warp
 - gdp
+- hasql
+- bytestring
+- time
 
 ghc-options:
 - -Wall
@@ -43,6 +46,11 @@ ghc-options:
 - -Wincomplete-uni-patterns
 - -Wpartial-fields
 - -Wredundant-constraints
+
+default-extensions:
+- DerivingVia
+- DeriveAnyClass
+- GeneralizedNewtypeDeriving
 
 library:
   source-dirs: src
