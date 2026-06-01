@@ -14,7 +14,7 @@ import Data.The
 import Hackage.Schemas.Users
 import Hackage.Types
 import Hackage.Utils
-import Rel8 ((==.), each, where_, Result, lit, optional)
+import Rel8 ((==.), (&&.), each, where_, Result, lit, optional)
 import Servant.Server (Handler)
 import Theory.Named
 
@@ -53,9 +53,7 @@ checkIsImpl urole conn uid = do
   fmap (fmap HasRole) $ doSelect1E conn $ optional $ do
     role <- each userRolesSchema
     where_ $ userRoleRole role ==. lit urole
-    u <- activeUsers
-    where_ $ userRoleUserId role ==. userId u
-    where_ $ userId u ==. lit (the uid)
+         &&. userRoleUserId role ==. lit (the uid)
     pure role
 
 
