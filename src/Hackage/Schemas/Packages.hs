@@ -194,7 +194,7 @@ data PackageRole = Maintainer
 
 data PackageMaintainerRow f = PackageMaintainerRow
   { pmId :: Column f Int64
-  , pmPackageName :: Column f PackageName
+  , pmPackageId :: Column f PkgInfoId
   , pmUserId :: Column f UserId
   , pmRole :: Column f PackageRole
   , pmAssignedTime :: Column f UTCTime
@@ -207,7 +207,7 @@ packageMaintainersSchema = TableSchema
   { name = "package_maintainers"
   , columns = PackageMaintainerRow
       { pmId = "package_maintainer_id"
-      , pmPackageName = "package_name"
+      , pmPackageId = "package_id"
       , pmUserId = "user_id"
       , pmRole = "role"
       , pmAssignedTime = "assigned_time"
