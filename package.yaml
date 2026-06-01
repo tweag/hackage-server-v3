@@ -38,6 +38,7 @@ dependencies:
 - bytestring
 - time
 - mtl
+- Cabal-syntax
 
 ghc-options:
 - -Wall

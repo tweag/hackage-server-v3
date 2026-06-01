@@ -28,7 +28,7 @@ library
       Hackage.API
       Hackage.Auth.Admin
       Hackage.Auth.Maintainer
-      Hackage.Auth.Trustee
+      Hackage.Schemas.Packages
       Hackage.Schemas.Users
       Hackage.Types
       Hackage.Utils
@@ -47,7 +47,8 @@ library
       GeneralizedNewtypeDeriving
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
   build-depends:
-      base >=4.7 && <5
+      Cabal-syntax
+    , base >=4.7 && <5
     , blaze-markup
     , bytestring
     , gdp
@@ -80,7 +81,8 @@ executable hackage-server-v3-exe
       GeneralizedNewtypeDeriving
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      Cabal-syntax
+    , base >=4.7 && <5
     , blaze-markup
     , bytestring
     , gdp
@@ -115,7 +117,8 @@ test-suite hackage-server-v3-test
       GeneralizedNewtypeDeriving
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      Cabal-syntax
+    , base >=4.7 && <5
     , blaze-markup
     , bytestring
     , gdp

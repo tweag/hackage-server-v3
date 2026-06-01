@@ -3,6 +3,8 @@ module Hackage.Auth.Admin
   , checkIsAdmin
   , IsTrustee
   , checkIsTrustee
+  , IsUploader
+  , checkIsUploader
   , roleWitness
   , name
   ) where
@@ -36,6 +38,10 @@ type IsAdmin = HasRole 'Admin
 type IsTrustee = HasRole 'Trustee
 
 
+-- | A proof that the named user is an uploader.
+type IsUploader = HasRole 'Uploader
+
+
 -- | Get the 'UserRoleRow' that witnesses the given user is an admin.
 roleWitness :: HasRole userRole user -> UserRoleRow Result
 roleWitness (HasRole x) = x
@@ -61,4 +67,9 @@ checkIsAdmin = checkIsImpl Admin
 -- | Attempt to summon up a proof that the given user is a trustee.
 checkIsTrustee :: Connection -> Named user UserId -> Handler (Maybe (IsTrustee user))
 checkIsTrustee = checkIsImpl Trustee
+
+
+-- | Attempt to summon up a proof that the given user is an uploader.
+checkIsUploader :: Connection -> Named user UserId -> Handler (Maybe (IsUploader user))
+checkIsUploader = checkIsImpl Uploader
 
