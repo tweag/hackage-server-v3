@@ -19,9 +19,10 @@ import Distribution.Utils.MD5 (md5, showMD5)
 import Hackage.Schemas.Users
 import Hackage.Types
 import Hackage.Utils
+import Hasql.Session (SessionError)
 import Network.HTTP.Types.Header (Header)
 import Network.Wai
-import Rel8 (where_, (==.), lit)
+import Rel8 (where_, (==.), lit, optional)
 import Servant.Server (ServerError(..), err400, err401, err500)
 import System.Random (randomRs, newStdGen)
 import qualified Data.ByteString.Base64 as Base64
@@ -120,7 +121,7 @@ checkBasicAuth conn realm ahdr = do
       u <- activeUsers
       where_ $ userName u ==. lit uname
       pure (userId u, userAuth u)
-    (uid, passwdhash) <- liftEither $ first (const DatabaseError) mres
+    (uid, passwdhash) <- liftEither $ first DatabaseError mres
     liftEither $ guard (checkBasicAuthInfo passwdhash authInfo)    ?! PasswordMismatchError uid
     return uid
 
@@ -182,11 +183,12 @@ checkDigestAuth
 checkDigestAuth conn ahdr req = do
     authInfo <- liftEither $ getDigestAuthInfo ahdr req ?! UnrecognizedAuthError
     let uname = digestUsername authInfo
-    mres <- liftIO $ doSelect1 conn $ do
+    eres <- liftIO $ doSelect1 conn $ optional $ do
       u <- activeUsers
       where_ $ userName u ==. lit uname
       pure (userId u, userAuth u)
-    (uid, passwdhash) <- liftEither $ first (const DatabaseError) mres
+    mres <- liftEither $ first DatabaseError eres
+    (uid, passwdhash) <- maybe (throwError $ NoSuchUserError uname) pure mres
     liftEither $ guard (checkDigestAuthInfo passwdhash authInfo)    ?! PasswordMismatchError uid
     -- TODO: if we want to prevent replay attacks, then we must check the
     -- nonce and nonce count and issue stale=true replies.
@@ -219,7 +221,7 @@ getDigestAuthInfo authHeader req = do
        digestNonce    = nonce,
        digestResponse = response,
        digestURI      = uri,
-       digestRqMethod = show (requestMethod req),
+       digestRqMethod = BS.unpack (requestMethod req),
        digestQoP      = qopInfo
     }
   where
@@ -280,7 +282,7 @@ data AuthError = NoAuthError
                | UserStatusError       UserId
                | PasswordMismatchError UserId
                | BadApiKeyError
-               | DatabaseError
+               | DatabaseError SessionError
                | BadHost { actualHost :: Maybe BS.ByteString, oughtToBeHost :: String }
   deriving Show
 
@@ -307,7 +309,7 @@ authErrorResponse realm autherr = do
       err401 { errReasonPhrase = "Bad auth token" }
     BadHost {} ->
       err401 { errReasonPhrase = "Bad host" }
-    DatabaseError ->
+    DatabaseError _err ->
       err500 { errReasonPhrase = "Database error" }
     -- we don't want to leak info for the other cases, so same message for them all:
     _ ->
