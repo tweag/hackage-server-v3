@@ -42,6 +42,10 @@ dependencies:
 - containers
 - base64-bytestring
 - random
+- aeson
+- http-reverse-proxy
+- http-client
+- http-client-tls
 
 ghc-options:
 - -Wall

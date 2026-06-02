@@ -4,6 +4,8 @@
 
 module Servant.HackageCombinators where
 
+import Network.HTTP.Types.Header (hHost)
+import Network.HTTP.ReverseProxy
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Resource (runResourceT)
 import Control.Monad.Except (ExceptT(..), runExceptT)
@@ -19,10 +21,11 @@ import Network.HTTP.Types.Status (permanentRedirect308)
 import Network.Wai
 import Servant.API
 import Servant.HackageAuth
-import Servant.Server
+import Servant.Server hiding (respond)
 import Servant.Server.Experimental.Auth
 import Servant.Server.Internal.Delayed
 import Servant.Server.Internal.Router
+import Network.HTTP.Client (Manager)
 
 
 -- | A 'Capture'-able segment corresponding to hackage v2's @.:format@
@@ -87,3 +90,29 @@ hackageAuthHandler realm conn = mkAuthHandler $ \req -> Handler $ ExceptT $ do
     Left err -> fmap Left $ authErrorResponse realm err
     Right a -> pure $ pure a
 
+
+-- | Custom combinator for routes that are not yet ported to v3; in these cases,
+-- the routing framework will automatically reverse proxy Hackage v2.
+data NotYetPorted = NotYetPorted
+
+instance HasContextEntry context Manager => HasServer NotYetPorted context where
+  type ServerT NotYetPorted m = NotYetPorted
+  hoistServerWithContext _ _ _ = id
+  route _ ctx application = RawRouter $ \env req respond ->
+    waiProxyTo
+      forwardRequest
+      defaultOnExc
+      (getContextEntry ctx)
+      req $ \resp -> runResourceT $ do
+        delayed <- runDelayed application env req
+        liftIO $ respond $ resp <$ delayed
+    where
+      forwardRequest req =
+        pure
+          $ WPRModifiedRequestSecure
+              req
+                { requestHeaders
+                    = (hHost, "hackage.haskell.org")
+                    : filter ((/= hHost) . fst) (requestHeaders req)
+                }
+          $ ProxyDest "hackage.haskell.org" 443

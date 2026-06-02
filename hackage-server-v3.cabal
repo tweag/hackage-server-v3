@@ -49,6 +49,7 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
   build-depends:
       Cabal-syntax
+    , aeson
     , base >=4.7 && <5
     , base64-bytestring
     , blaze-markup
@@ -56,6 +57,9 @@ library
     , containers
     , gdp
     , hasql
+    , http-client
+    , http-client-tls
+    , http-reverse-proxy
     , http-types
     , mtl
     , random
@@ -86,6 +90,7 @@ executable hackage-server-v3-exe
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Cabal-syntax
+    , aeson
     , base >=4.7 && <5
     , base64-bytestring
     , blaze-markup
@@ -94,6 +99,9 @@ executable hackage-server-v3-exe
     , gdp
     , hackage-server-v3
     , hasql
+    , http-client
+    , http-client-tls
+    , http-reverse-proxy
     , http-types
     , mtl
     , random
@@ -125,6 +133,7 @@ test-suite hackage-server-v3-test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Cabal-syntax
+    , aeson
     , base >=4.7 && <5
     , base64-bytestring
     , blaze-markup
@@ -133,6 +142,9 @@ test-suite hackage-server-v3-test
     , gdp
     , hackage-server-v3
     , hasql
+    , http-client
+    , http-client-tls
+    , http-reverse-proxy
     , http-types
     , mtl
     , random

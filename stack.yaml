@@ -12,3 +12,4 @@ nix:
     - pkg-config
     - openssl
     - libz
+    - cacert
