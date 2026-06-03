@@ -5,8 +5,8 @@ packages:
 
 extra-deps:
   - rel8-1.7.0.0
-  - github: SiriusCourses/servant-ede
-    commit: bb636d432a9a856ef302c28b3c5377853ec701d7
+  - github: isovector/servant-ede
+    commit: bbbd3bf21c62fd828368506c865776d5ad0af018
 
 nix:
   packages:
