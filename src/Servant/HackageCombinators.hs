@@ -51,7 +51,7 @@ instance (FromHttpApiData a, KnownSymbol b) => FromHttpApiData (WithFormat a b) 
     let ext = "." <> T.pack (symbolVal (Proxy @b))
     case T.isSuffixOf ext t of
       True -> parseUrlPiece $ T.dropEnd (T.length ext) t
-      False -> Left $ "Non-matching format"
+      False -> Left $ "Non-matching format: " <> t
 
 instance (ToHttpApiData a, KnownSymbol b) => ToHttpApiData (WithFormat a b) where
   toUrlPiece (WithFormat x) = toUrlPiece x <> "." <> T.pack (symbolVal (Proxy @b))
