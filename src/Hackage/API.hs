@@ -9,7 +9,7 @@ import Data.Proxy (Proxy (..))
 import Data.Text (Text)
 import GHC.Generics
 import Servant.API
-import Servant.HTML.Blaze
+import Servant.EDE
 import Hackage.Types
 
 type TODO = ()
@@ -34,13 +34,13 @@ data IndexTarballAPI mode = IndexTarballAPI
 -- `/admin/resets`       | GET    | html    | admin-frontend
 -- `/admin/signups`      | GET    | html    | admin-frontend
 data AdminAPI mode = AdminApi
-    { adminPage :: mode :- Get '[HTML] ()
-    , adminUser :: mode :- "admin" :> "account" :> Capture "uid" UserId :> Get '[HTML] ()
-    , adminAccounts :: mode :- "admin" :> "accounts" :> Get '[HTML] ()
-    , adminDeauth :: mode :- "admin" :> "deauth" :> Get '[HTML, JSON] ()
-    , adminLog :: mode :- "admin" :> "log.html" :> Get '[HTML] ()
-    , adminResets :: mode :- "admin" :> "resets" :> Get '[HTML] ()
-    , adminSignups :: mode :- "admin" :> "signups" :> Get '[HTML] ()
+    { adminPage :: mode :- Get '[HTML "todo.html"] ()
+    , adminUser :: mode :- "admin" :> "account" :> Capture "uid" UserId :> Get '[HTML "todo.html"] ()
+    , adminAccounts :: mode :- "admin" :> "accounts" :> Get '[HTML "todo.html"] ()
+    , adminDeauth :: mode :- "admin" :> "deauth" :> Get '[HTML "todo.html", JSON] ()
+    , adminLog :: mode :- "admin" :> "log.html" :> Get '[HTML "todo.html"] ()
+    , adminResets :: mode :- "admin" :> "resets" :> Get '[HTML "todo.html"] ()
+    , adminSignups :: mode :- "admin" :> "signups" :> Get '[HTML "todo.html"] ()
     }
     deriving stock (Generic)
 
@@ -98,7 +98,7 @@ data IsAdmin
 data CandidatesAPI mode = CandidatesAPI
     { candidateCabalGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> Capture "cabal" (WithFormat PackageName "cabal") :> Get '[PlainText] ()
     , candidateTarballGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> Capture "tarball" (WithFormat PackageName "tar.gz") :> Get '[Tarball] ()
-    , candidateChangelogHtml :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "changelog.html" :> Get '[HTML] ()
+    , candidateChangelogHtml :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "changelog.html" :> Get '[HTML "todo.html"] ()
     , candidateChangelogTxt :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "changelog.txt" :> Get '[PlainText] ()
     , candidateSrcGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "src" :> Raw
     , packageCandidatesGet :: mode :- "package" :> Capture "package" PackageName :> "candidates" :> Get '[JSON] ()
@@ -170,16 +170,16 @@ data DownloadAPI mode = DownloadAPI
 -- `/package/:package/:cabal.cabal/edit`                  | GET    | html    | edit-cabal-files         |
 -- `/package/:package/:cabal.cabal/edit`                  | POST   | html    | edit-cabal-files         |
 data EditCabalFilesAPI mode = EditCabalFilesAPI
-    { packageCabalEditGet :: mode :- "package" :> Capture "package" PackageName :> Capture "cabal" (WithFormat PackageName "cabal") :> "edit" :> Get '[HTML] ()
-    , packageCabalEditPost :: mode :- "package" :> Capture "package" PackageName :> Capture "cabal" (WithFormat PackageName "cabal") :> "edit" :> Post '[HTML] ()
+    { packageCabalEditGet :: mode :- "package" :> Capture "package" PackageName :> Capture "cabal" (WithFormat PackageName "cabal") :> "edit" :> Get '[HTML "todo.html"] ()
+    , packageCabalEditPost :: mode :- "package" :> Capture "package" PackageName :> Capture "cabal" (WithFormat PackageName "cabal") :> "edit" :> Post '[HTML "todo.html"] ()
     }
     deriving stock (Generic)
 
 -- `/user/:username/endorse`                              | GET    | html    | endorse                  |
 -- `/user/:username/endorse`                              | POST   | html    | endorse                  |
 data EndorseAPI mode = EndorseAPI
-    { userEndorseGet :: mode :- "user" :> Capture "username" UserName :> "endorse" :> Get '[HTML] ()
-    , userEndorsePost :: mode :- "user" :> Capture "username" UserName :> "endorse" :> Post '[HTML] ()
+    { userEndorseGet :: mode :- "user" :> Capture "username" UserName :> "endorse" :> Get '[HTML "todo.html"] ()
+    , userEndorsePost :: mode :- "user" :> Capture "username" UserName :> "endorse" :> Post '[HTML "todo.html"] ()
     }
     deriving stock (Generic)
 
@@ -214,26 +214,26 @@ data HoogleDataAPI mode = HoogleDataAPI
 -- `/packages/candidates/.:format`                        | POST   | html    | html                     |
 -- `/packages/candidates/upload`                          | GET    | html    | html                     |
 data CandidatesHtmlAPI mode = CandidatesHtmlAPI
-    { htmlCandidateGet :: mode :- "package" :> Capture "package" PackageName :> "candidate.html" :> Get '[HTML] ()
-    , htmlCandidatePut :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> Put '[HTML] ()
-    , htmlCandidateDel :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> Delete '[HTML] ()
-    , htmlCandidateDeleteGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "delete.html" :> Get '[HTML] ()
-    , htmlCandidateDeletePost :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "delete" :> Post '[HTML] ()
-    , htmlCandidateDependencies :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "dependencies" :> Get '[HTML] ()
-    , htmlCandidateDocsPut :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "docs" :> Put '[HTML] ()
-    , htmlCandidateDocsDel :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "docs" :> Delete '[HTML] ()
-    , htmlCandidateMaintain :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "maintain" :> Get '[HTML] ()
-    , htmlCandidateMaintainDocs :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "maintain" :> "docs" :> Get '[HTML] ()
-    , htmlCandidatePublishGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "publish.html" :> Get '[HTML] ()
-    , htmlCandidatePublishPost :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "publish" :> Post '[HTML] ()
-    , htmlCandidateUpload :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "upload" :> Get '[HTML] ()
-    , htmlPackageCandidatesGet :: mode :- "package" :> Capture "package" PackageName :> "candidates" :> Get '[HTML] ()
+    { htmlCandidateGet :: mode :- "package" :> Capture "package" PackageName :> "candidate.html" :> Get '[HTML "todo.html"] ()
+    , htmlCandidatePut :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> Put '[HTML "todo.html"] ()
+    , htmlCandidateDel :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> Delete '[HTML "todo.html"] ()
+    , htmlCandidateDeleteGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "delete.html" :> Get '[HTML "todo.html"] ()
+    , htmlCandidateDeletePost :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "delete" :> Post '[HTML "todo.html"] ()
+    , htmlCandidateDependencies :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "dependencies" :> Get '[HTML "todo.html"] ()
+    , htmlCandidateDocsPut :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "docs" :> Put '[HTML "todo.html"] ()
+    , htmlCandidateDocsDel :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "docs" :> Delete '[HTML "todo.html"] ()
+    , htmlCandidateMaintain :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "maintain" :> Get '[HTML "todo.html"] ()
+    , htmlCandidateMaintainDocs :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "maintain" :> "docs" :> Get '[HTML "todo.html"] ()
+    , htmlCandidatePublishGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "publish.html" :> Get '[HTML "todo.html"] ()
+    , htmlCandidatePublishPost :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "publish" :> Post '[HTML "todo.html"] ()
+    , htmlCandidateUpload :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "upload" :> Get '[HTML "todo.html"] ()
+    , htmlPackageCandidatesGet :: mode :- "package" :> Capture "package" PackageName :> "candidates" :> Get '[HTML "todo.html"] ()
     , htmlPackageCandidatesPost :: mode :- "package" :> Capture "package" PackageName :> "candidates" :> Post '[TODO] ()
-    , htmlPackageCandidatesDeleteGet :: mode :- "package" :> Capture "package" PackageName :> "candidates" :> "delete.html" :> Get '[HTML] ()
-    , htmlPackageCandidatesDeletePost :: mode :- "package" :> Capture "package" PackageName :> "candidates" :> "delete" :> Post '[HTML] ()
-    , htmlPackagesCandidatesGet :: mode :- "packages" :> "candidates" :> Get '[HTML] ()
-    , htmlPackagesCandidatesPost :: mode :- "packages" :> "candidates" :> Post '[HTML] ()
-    , htmlPackagesCandidatesUpload :: mode :- "packages" :> "candidates" :> "upload" :> Get '[HTML] ()
+    , htmlPackageCandidatesDeleteGet :: mode :- "package" :> Capture "package" PackageName :> "candidates" :> "delete.html" :> Get '[HTML "todo.html"] ()
+    , htmlPackageCandidatesDeletePost :: mode :- "package" :> Capture "package" PackageName :> "candidates" :> "delete" :> Post '[HTML "todo.html"] ()
+    , htmlPackagesCandidatesGet :: mode :- "packages" :> "candidates" :> Get '[HTML "todo.html"] ()
+    , htmlPackagesCandidatesPost :: mode :- "packages" :> "candidates" :> Post '[HTML "todo.html"] ()
+    , htmlPackagesCandidatesUpload :: mode :- "packages" :> "candidates" :> "upload" :> Get '[HTML "todo.html"] ()
     }
     deriving stock (Generic)
 
@@ -265,33 +265,33 @@ data CandidatesHtmlAPI mode = CandidatesHtmlAPI
 -- `/package/:package/tags.:format`                       | PUT    | html    | html                     |
 -- `/package/:package/tags/edit`                          | GET    | html    | html                     |
 data PackageHtmlAPI mode = PackageHtmlAPI
-    { htmlPackageGet :: mode :- "package" :> Capture "package" (WithFormat PackageName "html") :> Get '[HTML] ()
-    , htmlPackageAnalyticsGet :: mode :- "package" :> Capture "package" PackageName :> "analytics-pixels.html" :> Get '[HTML] ()
-    , htmlPackageAnalyticsPost :: mode :- "package" :> Capture "package" PackageName :> "analytics-pixels" :> Post '[HTML] ()
-    , htmlPackageAnalyticsDel :: mode :- "package" :> Capture "package" PackageName :> "analytics-pixels" :> Delete '[HTML] ()
-    , htmlPackageDependencies :: mode :- "package" :> Capture "package" PackageName :> "dependencies" :> Get '[HTML] ()
-    , htmlPackageDeprecatedGet :: mode :- "package" :> Capture "package" PackageName :> "deprecated.html" :> Get '[HTML] ()
-    , htmlPackageDeprecatedPut :: mode :- "package" :> Capture "package" PackageName :> "deprecated" :> Put '[HTML] ()
-    , htmlPackageDeprecatedEdit :: mode :- "package" :> Capture "package" PackageName :> "deprecated" :> "edit" :> Get '[HTML] ()
-    , htmlPackageDistroMonitor :: mode :- "package" :> Capture "package" PackageName :> "distro-monitor.html" :> Get '[HTML] ()
-    , htmlPackageDocsPut :: mode :- "package" :> Capture "package" PackageName :> "docs" :> Put '[HTML] ()
-    , htmlPackageDocsDel :: mode :- "package" :> Capture "package" PackageName :> "docs" :> Delete '[HTML] ()
-    , htmlPackageMaintain :: mode :- "package" :> Capture "package" PackageName :> "maintain" :> Get '[HTML] ()
-    , htmlPackageMaintainDocs :: mode :- "package" :> Capture "package" PackageName :> "maintain" :> "docs" :> Get '[HTML] ()
-    , htmlPackagePreferredGet :: mode :- "package" :> Capture "package" PackageName :> "preferred.html" :> Get '[HTML] ()
-    , htmlPackagePreferredPut :: mode :- "package" :> Capture "package" PackageName :> "preferred" :> Put '[HTML] ()
-    , htmlPackagePreferredEdit :: mode :- "package" :> Capture "package" PackageName :> "preferred" :> "edit" :> Get '[HTML] ()
-    , htmlPackageReportsGet :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Get '[HTML] ()
-    , htmlPackageReportIdGet :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Capture "id" (WithFormat ReportId "html") :> Get '[HTML] ()
-    , htmlPackageReportsTestsEnabled :: mode :- "package" :> Capture "package" PackageName :> "reports" :> "testsEnabled" :> Get '[HTML] ()
-    , htmlPackageReverseGet :: mode :- "package" :> Capture "package" PackageName :> "reverse.html" :> Get '[HTML] ()
-    , htmlPackageReverseFlatGet :: mode :- "package" :> Capture "package" PackageName :> "reverse" :> "flat.html" :> Get '[HTML] ()
-    , htmlPackageReverseOldGet :: mode :- "package" :> Capture "package" PackageName :> "reverse" :> "old.html" :> Get '[HTML] ()
-    , htmlPackageReverseVerboseGet :: mode :- "package" :> Capture "package" PackageName :> "reverse" :> "verbose.html" :> Get '[HTML] ()
-    , htmlPackageRevisionsGet :: mode :- "package" :> Capture "package" PackageName :> "revisions" :> Get '[HTML] ()
-    , htmlPackageTagsGet :: mode :- "package" :> Capture "package" PackageName :> "tags.html" :> Get '[HTML] ()
-    , htmlPackageTagsPut :: mode :- "package" :> Capture "package" PackageName :> "tags" :> Put '[HTML] ()
-    , htmlPackageTagsEdit :: mode :- "package" :> Capture "package" PackageName :> "tags" :> "edit" :> Get '[HTML] ()
+    { htmlPackageGet :: mode :- "package" :> Capture "package" (WithFormat PackageName "html") :> Get '[HTML "todo.html"] ()
+    , htmlPackageAnalyticsGet :: mode :- "package" :> Capture "package" PackageName :> "analytics-pixels.html" :> Get '[HTML "todo.html"] ()
+    , htmlPackageAnalyticsPost :: mode :- "package" :> Capture "package" PackageName :> "analytics-pixels" :> Post '[HTML "todo.html"] ()
+    , htmlPackageAnalyticsDel :: mode :- "package" :> Capture "package" PackageName :> "analytics-pixels" :> Delete '[HTML "todo.html"] ()
+    , htmlPackageDependencies :: mode :- "package" :> Capture "package" PackageName :> "dependencies" :> Get '[HTML "todo.html"] ()
+    , htmlPackageDeprecatedGet :: mode :- "package" :> Capture "package" PackageName :> "deprecated.html" :> Get '[HTML "todo.html"] ()
+    , htmlPackageDeprecatedPut :: mode :- "package" :> Capture "package" PackageName :> "deprecated" :> Put '[HTML "todo.html"] ()
+    , htmlPackageDeprecatedEdit :: mode :- "package" :> Capture "package" PackageName :> "deprecated" :> "edit" :> Get '[HTML "todo.html"] ()
+    , htmlPackageDistroMonitor :: mode :- "package" :> Capture "package" PackageName :> "distro-monitor.html" :> Get '[HTML "todo.html"] ()
+    , htmlPackageDocsPut :: mode :- "package" :> Capture "package" PackageName :> "docs" :> Put '[HTML "todo.html"] ()
+    , htmlPackageDocsDel :: mode :- "package" :> Capture "package" PackageName :> "docs" :> Delete '[HTML "todo.html"] ()
+    , htmlPackageMaintain :: mode :- "package" :> Capture "package" PackageName :> "maintain" :> Get '[HTML "todo.html"] ()
+    , htmlPackageMaintainDocs :: mode :- "package" :> Capture "package" PackageName :> "maintain" :> "docs" :> Get '[HTML "todo.html"] ()
+    , htmlPackagePreferredGet :: mode :- "package" :> Capture "package" PackageName :> "preferred.html" :> Get '[HTML "todo.html"] ()
+    , htmlPackagePreferredPut :: mode :- "package" :> Capture "package" PackageName :> "preferred" :> Put '[HTML "todo.html"] ()
+    , htmlPackagePreferredEdit :: mode :- "package" :> Capture "package" PackageName :> "preferred" :> "edit" :> Get '[HTML "todo.html"] ()
+    , htmlPackageReportsGet :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Get '[HTML "todo.html"] ()
+    , htmlPackageReportIdGet :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Capture "id" (WithFormat ReportId "html") :> Get '[HTML "todo.html"] ()
+    , htmlPackageReportsTestsEnabled :: mode :- "package" :> Capture "package" PackageName :> "reports" :> "testsEnabled" :> Get '[HTML "todo.html"] ()
+    , htmlPackageReverseGet :: mode :- "package" :> Capture "package" PackageName :> "reverse.html" :> Get '[HTML "todo.html"] ()
+    , htmlPackageReverseFlatGet :: mode :- "package" :> Capture "package" PackageName :> "reverse" :> "flat.html" :> Get '[HTML "todo.html"] ()
+    , htmlPackageReverseOldGet :: mode :- "package" :> Capture "package" PackageName :> "reverse" :> "old.html" :> Get '[HTML "todo.html"] ()
+    , htmlPackageReverseVerboseGet :: mode :- "package" :> Capture "package" PackageName :> "reverse" :> "verbose.html" :> Get '[HTML "todo.html"] ()
+    , htmlPackageRevisionsGet :: mode :- "package" :> Capture "package" PackageName :> "revisions" :> Get '[HTML "todo.html"] ()
+    , htmlPackageTagsGet :: mode :- "package" :> Capture "package" PackageName :> "tags.html" :> Get '[HTML "todo.html"] ()
+    , htmlPackageTagsPut :: mode :- "package" :> Capture "package" PackageName :> "tags" :> Put '[HTML "todo.html"] ()
+    , htmlPackageTagsEdit :: mode :- "package" :> Capture "package" PackageName :> "tags" :> "edit" :> Get '[HTML "todo.html"] ()
     }
     deriving stock (Generic)
 
@@ -313,23 +313,23 @@ data PackageHtmlAPI mode = PackageHtmlAPI
 -- `/packages/uploaders/edit`                             | GET    | html    | html                     |
 -- `/packages/uploaders/user/:username.:format`           | DELETE | html    | html                     |
 data MaintainersHtmlAPI mode = MaintainersHtmlAPI
-    { htmlPackageMaintainersGet :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> Get '[HTML] ()
-    , htmlPackageMaintainersPost :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> Post '[HTML] ()
-    , htmlPackageMaintainersEdit :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "edit" :> Get '[HTML] ()
-    , htmlPackageMaintainerDel :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithFormat UserName "html") :> Delete '[HTML] ()
-    , htmlMirrorersGet :: mode :- "packages" :> "mirrorers" :> Get '[HTML] ()
-    , htmlMirrorersPost :: mode :- "packages" :> "mirrorers" :> Post '[HTML] ()
-    , htmlMirrorersEdit :: mode :- "packages" :> "mirrorers" :> "edit" :> Get '[HTML] ()
-    , htmlMirrorerUserDel :: mode :- "packages" :> "mirrorers" :> "user" :> Capture "username" (WithFormat UserName "html") :> Delete '[HTML] ()
-    , htmlTrusteesGet :: mode :- "packages" :> "trustees" :> Get '[HTML] ()
-    , htmlTrusteesPost :: mode :- "packages" :> "trustees" :> Post '[HTML] ()
-    , htmlTrusteesEdit :: mode :- "packages" :> "trustees" :> "edit" :> Get '[HTML] ()
-    , htmlTrusteeUserDel :: mode :- "packages" :> "trustees" :> "user" :> Capture "username" (WithFormat UserName "html") :> Delete '[HTML] ()
-    , htmlPackagesUpload :: mode :- "packages" :> "upload" :> Get '[HTML] ()
-    , htmlUploadersGet :: mode :- "packages" :> "uploaders" :> Get '[HTML] ()
-    , htmlUploadersPost :: mode :- "packages" :> "uploaders" :> Post '[HTML] ()
-    , htmlUploadersEdit :: mode :- "packages" :> "uploaders" :> "edit" :> Get '[HTML] ()
-    , htmlUploaderUserDel :: mode :- "packages" :> "uploaders" :> "user" :> Capture "username" (WithFormat UserName "html") :> Delete '[HTML] ()
+    { htmlPackageMaintainersGet :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> Get '[HTML "todo.html"] ()
+    , htmlPackageMaintainersPost :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> Post '[HTML "todo.html"] ()
+    , htmlPackageMaintainersEdit :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "edit" :> Get '[HTML "todo.html"] ()
+    , htmlPackageMaintainerDel :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithFormat UserName "html") :> Delete '[HTML "todo.html"] ()
+    , htmlMirrorersGet :: mode :- "packages" :> "mirrorers" :> Get '[HTML "todo.html"] ()
+    , htmlMirrorersPost :: mode :- "packages" :> "mirrorers" :> Post '[HTML "todo.html"] ()
+    , htmlMirrorersEdit :: mode :- "packages" :> "mirrorers" :> "edit" :> Get '[HTML "todo.html"] ()
+    , htmlMirrorerUserDel :: mode :- "packages" :> "mirrorers" :> "user" :> Capture "username" (WithFormat UserName "html") :> Delete '[HTML "todo.html"] ()
+    , htmlTrusteesGet :: mode :- "packages" :> "trustees" :> Get '[HTML "todo.html"] ()
+    , htmlTrusteesPost :: mode :- "packages" :> "trustees" :> Post '[HTML "todo.html"] ()
+    , htmlTrusteesEdit :: mode :- "packages" :> "trustees" :> "edit" :> Get '[HTML "todo.html"] ()
+    , htmlTrusteeUserDel :: mode :- "packages" :> "trustees" :> "user" :> Capture "username" (WithFormat UserName "html") :> Delete '[HTML "todo.html"] ()
+    , htmlPackagesUpload :: mode :- "packages" :> "upload" :> Get '[HTML "todo.html"] ()
+    , htmlUploadersGet :: mode :- "packages" :> "uploaders" :> Get '[HTML "todo.html"] ()
+    , htmlUploadersPost :: mode :- "packages" :> "uploaders" :> Post '[HTML "todo.html"] ()
+    , htmlUploadersEdit :: mode :- "packages" :> "uploaders" :> "edit" :> Get '[HTML "todo.html"] ()
+    , htmlUploaderUserDel :: mode :- "packages" :> "uploaders" :> "user" :> Capture "username" (WithFormat UserName "html") :> Delete '[HTML "todo.html"] ()
     }
     deriving stock (Generic)
 
@@ -353,25 +353,25 @@ data MaintainersHtmlAPI mode = MaintainersHtmlAPI
 -- `/packages/tags/.:format`                              | GET    | html    | html                     |
 -- `/packages/top.:format`                                | GET    | html    | html                     |
 data PackagesHtmlAPI mode = PackagesHtmlAPI
-    { htmlPackagesGet :: mode :- "packages" :> Get '[HTML] ()
-    , htmlPackagesPost :: mode :- "packages" :> Post '[HTML] ()
-    , htmlPackagesBrowse :: mode :- "packages" :> "browse" :> Get '[HTML] ()
-    , htmlPackagesDeprecated :: mode :- "packages" :> "deprecated.html" :> Get '[HTML] ()
-    , htmlPackagesGraph :: mode :- "packages" :> "graph" :> Get '[HTML] ()
+    { htmlPackagesGet :: mode :- "packages" :> Get '[HTML "todo.html"] ()
+    , htmlPackagesPost :: mode :- "packages" :> Post '[HTML "todo.html"] ()
+    , htmlPackagesBrowse :: mode :- "packages" :> "browse" :> Get '[HTML "todo.html"] ()
+    , htmlPackagesDeprecated :: mode :- "packages" :> "deprecated.html" :> Get '[HTML "todo.html"] ()
+    , htmlPackagesGraph :: mode :- "packages" :> "graph" :> Get '[HTML "todo.html"] ()
     , htmlPackagesGraphJson :: mode :- "packages" :> "graph.json" :> Get '[JSON] ()
-    , htmlPackagesNames :: mode :- "packages" :> "names" :> Get '[HTML] ()
-    , htmlPackagesPreferred :: mode :- "packages" :> "preferred.html" :> Get '[HTML] ()
-    , htmlPackagesRecentHtml :: mode :- "packages" :> "recent.html" :> Get '[HTML] ()
+    , htmlPackagesNames :: mode :- "packages" :> "names" :> Get '[HTML "todo.html"] ()
+    , htmlPackagesPreferred :: mode :- "packages" :> "preferred.html" :> Get '[HTML "todo.html"] ()
+    , htmlPackagesRecentHtml :: mode :- "packages" :> "recent.html" :> Get '[HTML "todo.html"] ()
     , htmlPackagesRecentRss :: mode :- "packages" :> "recent.rss" :> Get '[RSS] ()
-    , htmlPackagesRecentRevisionsHtml :: mode :- "packages" :> "recent" :> "revisions.html" :> Get '[HTML] ()
+    , htmlPackagesRecentRevisionsHtml :: mode :- "packages" :> "recent" :> "revisions.html" :> Get '[HTML "todo.html"] ()
     , htmlPackagesRecentRevisionsRss :: mode :- "packages" :> "recent" :> "revisions.rss" :> Get '[RSS] ()
-    , htmlPackagesReverse :: mode :- "packages" :> "reverse.html" :> Get '[HTML] ()
-    , htmlPackagesSearch :: mode :- "packages" :> "search.html" :> Get '[HTML] ()
-    , htmlPackagesTagGet :: mode :- "packages" :> "tag" :> Capture "tag" (WithFormat Tag "html") :> Get '[HTML] ()
-    , htmlPackagesTagAliasPut :: mode :- "packages" :> "tag" :> Capture "tag" Tag :> "alias" :> Put '[HTML] ()
-    , htmlPackagesTagAliasEdit :: mode :- "packages" :> "tag" :> Capture "tag" Tag :> "alias" :> "edit" :> Get '[HTML] ()
-    , htmlPackagesTagsGet :: mode :- "packages" :> "tags" :> Get '[HTML] ()
-    , htmlPackagesTop :: mode :- "packages" :> "top.html" :> Get '[HTML] ()
+    , htmlPackagesReverse :: mode :- "packages" :> "reverse.html" :> Get '[HTML "todo.html"] ()
+    , htmlPackagesSearch :: mode :- "packages" :> "search.html" :> Get '[HTML "todo.html"] ()
+    , htmlPackagesTagGet :: mode :- "packages" :> "tag" :> Capture "tag" (WithFormat Tag "html") :> Get '[HTML "todo.html"] ()
+    , htmlPackagesTagAliasPut :: mode :- "packages" :> "tag" :> Capture "tag" Tag :> "alias" :> Put '[HTML "todo.html"] ()
+    , htmlPackagesTagAliasEdit :: mode :- "packages" :> "tag" :> Capture "tag" Tag :> "alias" :> "edit" :> Get '[HTML "todo.html"] ()
+    , htmlPackagesTagsGet :: mode :- "packages" :> "tags" :> Get '[HTML "todo.html"] ()
+    , htmlPackagesTop :: mode :- "packages" :> "top.html" :> Get '[HTML "todo.html"] ()
     }
     deriving stock (Generic)
 
@@ -389,19 +389,19 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
 -- `/users/admins/user/:username.:format`                 | DELETE | html    | html                     |
 -- `/users/register`                                      | GET    | html    | html                     |
 data UsersHtmlAPI mode = UsersHtmlAPI
-    { htmlUserGet :: mode :- "user" :> Capture "username" (WithFormat UserName "html") :> Get '[HTML] ()
-    , htmlUserAnalyticsGet :: mode :- "user" :> Capture "username" UserName :> "analytics-pixels.html" :> Get '[HTML] ()
-    , htmlUserAnalyticsPost :: mode :- "user" :> Capture "username" UserName :> "analytics-pixels" :> Post '[HTML] ()
-    , htmlUserAnalyticsDel :: mode :- "user" :> Capture "username" UserName :> "analytics-pixels" :> Delete '[HTML] ()
-    , htmlUserPasswordGet :: mode :- "user" :> Capture "username" UserName :> "password.html" :> Get '[HTML] ()
-    , htmlUserPasswordPut :: mode :- "user" :> Capture "username" UserName :> "password" :> Put '[HTML] ()
-    , htmlUsersGet :: mode :- "users" :> Get '[HTML] ()
-    , htmlUsersPost :: mode :- "users" :> Post '[HTML] ()
-    , htmlUsersAdminsGet :: mode :- "users" :> "admins" :> Get '[HTML] ()
-    , htmlUsersAdminsPost :: mode :- "users" :> "admins" :> Post '[HTML] ()
-    , htmlUsersAdminsEdit :: mode :- "users" :> "admins" :> "edit" :> Get '[HTML] ()
-    , htmlUsersAdminUserDel :: mode :- "users" :> "admins" :> "user" :> Capture "username" (WithFormat UserName "html") :> Delete '[HTML] ()
-    , htmlUsersRegister :: mode :- "users" :> "register" :> Get '[HTML] ()
+    { htmlUserGet :: mode :- "user" :> Capture "username" (WithFormat UserName "html") :> Get '[HTML "todo.html"] ()
+    , htmlUserAnalyticsGet :: mode :- "user" :> Capture "username" UserName :> "analytics-pixels.html" :> Get '[HTML "todo.html"] ()
+    , htmlUserAnalyticsPost :: mode :- "user" :> Capture "username" UserName :> "analytics-pixels" :> Post '[HTML "todo.html"] ()
+    , htmlUserAnalyticsDel :: mode :- "user" :> Capture "username" UserName :> "analytics-pixels" :> Delete '[HTML "todo.html"] ()
+    , htmlUserPasswordGet :: mode :- "user" :> Capture "username" UserName :> "password.html" :> Get '[HTML "todo.html"] ()
+    , htmlUserPasswordPut :: mode :- "user" :> Capture "username" UserName :> "password" :> Put '[HTML "todo.html"] ()
+    , htmlUsersGet :: mode :- "users" :> Get '[HTML "todo.html"] ()
+    , htmlUsersPost :: mode :- "users" :> Post '[HTML "todo.html"] ()
+    , htmlUsersAdminsGet :: mode :- "users" :> "admins" :> Get '[HTML "todo.html"] ()
+    , htmlUsersAdminsPost :: mode :- "users" :> "admins" :> Post '[HTML "todo.html"] ()
+    , htmlUsersAdminsEdit :: mode :- "users" :> "admins" :> "edit" :> Get '[HTML "todo.html"] ()
+    , htmlUsersAdminUserDel :: mode :- "users" :> "admins" :> "user" :> Capture "username" (WithFormat UserName "html") :> Delete '[HTML "todo.html"] ()
+    , htmlUsersRegister :: mode :- "users" :> "register" :> Get '[HTML "todo.html"] ()
     }
     deriving stock (Generic)
 
@@ -439,9 +439,9 @@ data PackageFeedAPI mode = PackageFeedAPI
 -- `/package/:package/readme.:format`                     | GET    | txt     | package-contents         |
 -- `/package/:package/src/...`                            | GET    | *       | package-contents         |
 data PackageContentsAPI mode = PackageContentsAPI
-    { packageChangelogHtml :: mode :- "package" :> Capture "package" PackageName :> "changelog.html" :> Get '[HTML] ()
+    { packageChangelogHtml :: mode :- "package" :> Capture "package" PackageName :> "changelog.html" :> Get '[HTML "todo.html"] ()
     , packageChangelogTxt :: mode :- "package" :> Capture "package" PackageName :> "changelog.txt" :> Get '[PlainText] ()
-    , packageReadmeHtml :: mode :- "package" :> Capture "package" PackageName :> "readme.html" :> Get '[HTML] ()
+    , packageReadmeHtml :: mode :- "package" :> Capture "package" PackageName :> "readme.html" :> Get '[HTML "todo.html"] ()
     , packageReadmeTxt :: mode :- "package" :> Capture "package" PackageName :> "readme.txt" :> Get '[PlainText] ()
     , packageSrc :: mode :- "package" :> Capture "package" PackageName :> "src" :> Raw
     }
@@ -531,8 +531,8 @@ data SearchAPI mode = SearchAPI
 -- `/packages/noscript-search`                            | POST   | html    | search/browse backend    |
 -- `/packages/search`                                     | POST   | json    | search/browse backend    |
 data SearchBrowseAPI mode = SearchBrowseAPI
-    { packagesNoscriptSearchGet :: mode :- "packages" :> "noscript-search" :> Get '[HTML] ()
-    , packagesNoscriptSearchPost :: mode :- "packages" :> "noscript-search" :> Post '[HTML] ()
+    { packagesNoscriptSearchGet :: mode :- "packages" :> "noscript-search" :> Get '[HTML "todo.html"] ()
+    , packagesNoscriptSearchPost :: mode :- "packages" :> "noscript-search" :> Post '[HTML "todo.html"] ()
     , packagesSearchPost :: mode :- "packages" :> "search" :> Post '[JSON] ()
     }
     deriving stock (Generic)
@@ -551,7 +551,7 @@ data SecurityAPI mode = SecurityAPI
 
 -- | `/server-status/memory.:format`                        | GET    | html    | serverapi                |
 data ServerApiAPI mode = ServerApiAPI
-    { serverStatusMemory :: mode :- "server-status" :> "memory.html" :> Get '[HTML] ()
+    { serverStatusMemory :: mode :- "server-status" :> "memory.html" :> Get '[HTML "todo.html"] ()
     }
     deriving stock (Generic)
 
@@ -569,12 +569,12 @@ data SitemapAPI mode = SitemapAPI
 -- `/static/...`                                          | GET    | *       | static-files             |
 -- `/upload`                                              | GET    | *       | static-files             |
 data StaticFilesAPI mode = StaticFilesAPI
-    { staticAccounts :: mode :- "accounts" :> Get '[HTML] ()
-    , staticHackageError :: mode :- "hackageErrorPage" :> Get '[HTML] ()
+    { staticAccounts :: mode :- "accounts" :> Get '[HTML "todo.html"] ()
+    , staticHackageError :: mode :- "hackageErrorPage" :> Get '[HTML "todo.html"] ()
     -- TODO(sandy): we also need an empty segment for the root
-    , staticIndex :: mode :- "index" :> Get '[HTML] ()
+    , staticIndex :: mode :- "index" :> Get '[HTML "todo.html"] ()
     , staticFiles :: mode :- "static" :> Raw
-    , staticUpload :: mode :- "upload" :> Get '[HTML] ()
+    , staticUpload :: mode :- "upload" :> Get '[HTML "todo.html"] ()
     }
     deriving stock (Generic)
 
@@ -621,7 +621,7 @@ data UserDetailsAPI mode = UserDetailsAPI
     { userAdminInfoGet :: mode :- "user" :> Capture "username" UserName :> "admin-info.json" :> Get '[JSON] ()
     , userAdminInfoPut :: mode :- "user" :> Capture "username" UserName :> "admin-info.json" :> Put '[JSON] ()
     , userAdminInfoDel :: mode :- "user" :> Capture "username" UserName :> "admin-info" :> Delete '[TODO] ()
-    , userNameContactGetHtml :: mode :- "user" :> Capture "username" UserName :> "name-contact.html" :> Get '[HTML] ()
+    , userNameContactGetHtml :: mode :- "user" :> Capture "username" UserName :> "name-contact.html" :> Get '[HTML "todo.html"] ()
     , userNameContactGetJson :: mode :- "user" :> Capture "username" UserName :> "name-contact.json" :> Get '[JSON] ()
     , userNameContactPut :: mode :- "user" :> Capture "username" UserName :> "name-contact.json" :> Put '[JSON] ()
     , userNameContactDel :: mode :- "user" :> Capture "username" UserName :> "name-contact" :> Delete '[TODO] ()
@@ -632,7 +632,7 @@ data UserDetailsAPI mode = UserDetailsAPI
 -- `/user/:username/notify.:format`                       | GET    | json    | user-notify              |
 -- `/user/:username/notify.:format`                       | PUT    | json    | user-notify              |
 data UserNotifyAPI mode = UserNotifyAPI
-    { userNotifyGetHtml :: mode :- "user" :> Capture "username" UserName :> "notify.html" :> Get '[HTML] ()
+    { userNotifyGetHtml :: mode :- "user" :> Capture "username" UserName :> "notify.html" :> Get '[HTML "todo.html"] ()
     , userNotifyGetJson :: mode :- "user" :> Capture "username" UserName :> "notify.json" :> Get '[JSON] ()
     , userNotifyPut :: mode :- "user" :> Capture "username" UserName :> "notify.json" :> Put '[JSON] ()
     }

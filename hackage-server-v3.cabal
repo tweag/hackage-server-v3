@@ -28,6 +28,7 @@ library
       Hackage.API
       Hackage.Auth.Admin
       Hackage.Auth.Maintainer
+      Hackage.Features.Upload
       Hackage.Schemas.Packages
       Hackage.Schemas.Users
       Hackage.Types
@@ -36,6 +37,7 @@ library
       Rel8.CreateTable
       Servant.HackageAuth
       Servant.HackageCombinators
+      TestAPI
   other-modules:
       Paths_hackage_server_v3
   autogen-modules:
@@ -52,9 +54,9 @@ library
     , aeson
     , base >=4.7 && <5
     , base64-bytestring
-    , blaze-markup
     , bytestring
     , containers
+    , ede
     , gdp
     , hasql
     , http-client
@@ -66,11 +68,12 @@ library
     , rel8
     , resourcet
     , servant
-    , servant-blaze
+    , servant-ede
     , servant-server
     , tagged
     , text
     , time
+    , unordered-containers
     , wai
     , warp
   default-language: GHC2024
@@ -93,9 +96,9 @@ executable hackage-server-v3-exe
     , aeson
     , base >=4.7 && <5
     , base64-bytestring
-    , blaze-markup
     , bytestring
     , containers
+    , ede
     , gdp
     , hackage-server-v3
     , hasql
@@ -108,11 +111,12 @@ executable hackage-server-v3-exe
     , rel8
     , resourcet
     , servant
-    , servant-blaze
+    , servant-ede
     , servant-server
     , tagged
     , text
     , time
+    , unordered-containers
     , wai
     , warp
   default-language: GHC2024
@@ -136,9 +140,9 @@ test-suite hackage-server-v3-test
     , aeson
     , base >=4.7 && <5
     , base64-bytestring
-    , blaze-markup
     , bytestring
     , containers
+    , ede
     , gdp
     , hackage-server-v3
     , hasql
@@ -151,11 +155,12 @@ test-suite hackage-server-v3-test
     , rel8
     , resourcet
     , servant
-    , servant-blaze
+    , servant-ede
     , servant-server
     , tagged
     , text
     , time
+    , unordered-containers
     , wai
     , warp
   default-language: GHC2024

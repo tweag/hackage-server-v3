@@ -25,8 +25,7 @@ dependencies:
 - rel8
 - servant
 - servant-server
-- servant-blaze
-- blaze-markup
+- servant-ede
 - text
 - tagged
 - resourcet
@@ -46,6 +45,8 @@ dependencies:
 - http-reverse-proxy
 - http-client
 - http-client-tls
+- ede
+- unordered-containers
 
 ghc-options:
 - -Wall

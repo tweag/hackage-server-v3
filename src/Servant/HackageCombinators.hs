@@ -26,6 +26,7 @@ import Servant.Server.Experimental.Auth
 import Servant.Server.Internal.Delayed
 import Servant.Server.Internal.Router
 import Network.HTTP.Client (Manager)
+import Servant.EDE
 
 
 -- | A 'Capture'-able segment corresponding to hackage v2's @.:format@
@@ -116,3 +117,8 @@ instance HasContextEntry context Manager => HasServer NotYetPorted context where
                     : filter ((/= hHost) . fst) (requestHeaders req)
                 }
           $ ProxyDest "hackage.haskell.org" 443
+
+
+type instance TemplateFiles NotYetPorted = '[]
+type instance TemplateFiles PermanentRedirect = '[]
+

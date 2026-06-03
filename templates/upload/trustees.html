@@ -1,0 +1,11 @@
+{% include "../header.html" with title = "Trustees" %}
+
+Trustees:
+
+<ul>
+{% for member in members %}
+  <li><a href="/user/{{ member.value.username }}">{{ member.value.username }}</a></li>
+{% endfor %}
+</ul>
+
+{% include "../footer.html" %}
