@@ -81,56 +81,11 @@ library
     , warp
   default-language: GHC2024
 
-executable hackage-server-v3-exe
-  main-is: Main.hs
-  other-modules:
-      Paths_hackage_server_v3
-  autogen-modules:
-      Paths_hackage_server_v3
-  hs-source-dirs:
-      app
-  default-extensions:
-      DerivingVia
-      DeriveAnyClass
-      GeneralizedNewtypeDeriving
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      Cabal-syntax
-    , aeson
-    , base >=4.7 && <5
-    , base64-bytestring
-    , bytestring
-    , containers
-    , ede
-    , filepath
-    , gdp
-    , hackage-server-v3
-    , hasql
-    , http-client
-    , http-client-tls
-    , http-reverse-proxy
-    , http-types
-    , lens
-    , mime-types
-    , mtl
-    , random
-    , rel8
-    , resourcet
-    , servant
-    , servant-ede
-    , servant-server
-    , tagged
-    , text
-    , time
-    , unordered-containers
-    , wai
-    , warp
-  default-language: GHC2024
-
-test-suite hackage-server-v3-test
+test-suite tests
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      HackageCombinatorsSpec
       Paths_hackage_server_v3
   autogen-modules:
       Paths_hackage_server_v3
@@ -153,6 +108,9 @@ test-suite hackage-server-v3-test
     , gdp
     , hackage-server-v3
     , hasql
+    , hspec
+    , hspec-discover
+    , hspec-wai
     , http-client
     , http-client-tls
     , http-reverse-proxy
