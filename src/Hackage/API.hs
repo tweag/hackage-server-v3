@@ -67,8 +67,8 @@ data DistroAPI mode = DistroAPI
     , distroPkgsPutCsv :: mode :- "distro" :> Capture "distro" DistroName :> "packages.csv" :> Put '[CSV] ()
     , distroPkgsGetTxt :: mode :- "distro" :> Capture "distro" DistroName :> "packages.txt" :> Get '[PlainText] ()
     , distroPkgMaintainersGet :: mode :- "distro" :> Capture "package" PackageName :> "maintainers" :> "user" :> Get '[JSON] ()
-    , distroPkgMaintainersPut :: mode :- "distro" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Put '[] ()
-    , distroPkgMaintainersDel :: mode :- "distro" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Delete '[] ()
+    , distroPkgMaintainersPut :: mode :- "distro" :> Capture "package" PackageName :> "maintainers" :> "user" :> NegotiableContent :> Capture "username" UserName :> Put '[] ()
+    , distroPkgMaintainersDel :: mode :- "distro" :> Capture "package" PackageName :> "maintainers" :> "user" :> NegotiableContent :> Capture "username" UserName :> Delete '[] ()
     , distrosGet :: mode :- "distros" :> IsAdmin :> Get '[PlainText] ()
     , distrosPost :: mode :- "distros" :> IsAdmin :> Post '[] ()
     }
@@ -422,8 +422,8 @@ data MirrorAPI mode = MirrorAPI
     , mirrorPackageUploaderGet :: mode :- "package" :> Capture "package" PackageName :> "uploader" :> Get '[TODO] ()
     , mirrorPackageUploaderPut :: mode :- "package" :> Capture "package" PackageName :> "uploader" :> Put '[TODO] ()
     , mirrorersGet :: mode :- "packages" :> "mirrorers" :> Get '[JSON] ()
-    , mirrorerUserPut :: mode :- "packages" :> "mirrorers" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Put '[TODO] ()
-    , mirrorerUserDel :: mode :- "packages" :> "mirrorers" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Delete '[TODO] ()
+    , mirrorerUserPut :: mode :- "packages" :> "mirrorers" :> "user" :> NegotiableContent :> Capture "username" UserName :> Put '[TODO] ()
+    , mirrorerUserDel :: mode :- "packages" :> "mirrorers" :> "user" :> NegotiableContent :> Capture "username" UserName :> Delete '[TODO] ()
     }
     deriving stock (Generic)
 
@@ -474,7 +474,7 @@ data ReportsCandidatesAPI mode = ReportsCandidatesAPI
     , candidateReportsPost :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> Post '[TODO] ()
     , candidateReportsPut :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> Put '[JSON] ()
     , candidateReportIdGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> Capture "id" (WithFormat ReportId "txt") :> Get '[PlainText] ()
-    , candidateReportIdDel :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> Capture "id" (WithAnyFormat ReportId) :> Delete '[TODO] ()
+    , candidateReportIdDel :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> NegotiableContent :> Capture "id" ReportId :> Delete '[TODO] ()
     , candidateReportLogGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> Capture "id" ReportId :> "log" :> Get '[PlainText] ()
     , candidateReportLogPut :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> Capture "id" ReportId :> "log" :> Put '[TODO] ()
     , candidateReportLogDel :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> Capture "id" ReportId :> "log" :> Delete '[TODO] ()
@@ -506,7 +506,7 @@ data ReportsCoreAPI mode = ReportsCoreAPI
     , reportsPost :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Post '[TODO] ()
     , reportsPut :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Put '[JSON] ()
     , reportIdGet :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Capture "id" (WithFormat ReportId "txt") :> Get '[PlainText] ()
-    , reportIdDel :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Capture "id" (WithAnyFormat ReportId) :> Delete '[TODO] ()
+    , reportIdDel :: mode :- "package" :> Capture "package" PackageName :> "reports" :> NegotiableContent :> Capture "id" ReportId :> Delete '[TODO] ()
     , reportLogGet :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Capture "id" ReportId :> "log" :> Get '[PlainText] ()
     , reportLogPut :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Capture "id" ReportId :> "log" :> Put '[TODO] ()
     , reportLogDel :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Capture "id" ReportId :> "log" :> Delete '[TODO] ()
@@ -598,15 +598,15 @@ data TarIndexCacheAPI mode = TarIndexCacheAPI
 -- `/packages/uploaders/user/:username.:format`           | DELETE | *       | upload                   |
 data UploadAPI mode = UploadAPI
     { packageMaintainersGet :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> Get '[JSON] ()
-    , packageMaintainerPut :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Put '[TODO] ()
-    , packageMaintainerDel :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Delete '[TODO] ()
+    , packageMaintainerPut :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "user" :> NegotiableContent :> Capture "username" UserName :> Put '[TODO] ()
+    , packageMaintainerDel :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "user" :> NegotiableContent :> Capture "username" UserName :> Delete '[TODO] ()
     , packagesPost :: mode :- "packages" :> Post '[PlainText] ()
     , trusteesGet :: mode :- "packages" :> "trustees" :> Get '[JSON] ()
-    , trusteeUserPut :: mode :- "packages" :> "trustees" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Put '[TODO] ()
-    , trusteeUserDel :: mode :- "packages" :> "trustees" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Delete '[TODO] ()
+    , trusteeUserPut :: mode :- "packages" :> "trustees" :> "user" :> NegotiableContent :> Capture "username" UserName :> Put '[TODO] ()
+    , trusteeUserDel :: mode :- "packages" :> "trustees" :> "user" :> NegotiableContent :> Capture "username" UserName :> Delete '[TODO] ()
     , uploadersGet :: mode :- "packages" :> "uploaders" :> Get '[JSON] ()
-    , uploaderUserPut :: mode :- "packages" :> "uploaders" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Put '[TODO] ()
-    , uploaderUserDel :: mode :- "packages" :> "uploaders" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Delete '[TODO] ()
+    , uploaderUserPut :: mode :- "packages" :> "uploaders" :> "user" :> NegotiableContent :> Capture "username" UserName :> Put '[TODO] ()
+    , uploaderUserDel :: mode :- "packages" :> "uploaders" :> "user" :> NegotiableContent :> Capture "username" UserName :> Delete '[TODO] ()
     }
     deriving stock (Generic)
 
@@ -674,8 +674,8 @@ data UserSignupResetAPI mode = UserSignupResetAPI
 -- `/users/admins/user/:username.:format`                 | DELETE | *       | users                    |
 data UsersAPI mode = UsersAPI
     { userGetJson :: mode :- "user" :> Capture "username" (WithFormat UserName "json") :> Get '[JSON] ()
-    , userPut :: mode :- "user" :> Capture "username" (WithAnyFormat UserName) :> Put '[TODO] ()
-    , userDel :: mode :- "user" :> Capture "username" (WithAnyFormat UserName) :> Delete '[TODO] ()
+    , userPut :: mode :- "user" :> NegotiableContent :> Capture "username" UserName :> Put '[TODO] ()
+    , userDel :: mode :- "user" :> NegotiableContent :> Capture "username" UserName :> Delete '[TODO] ()
     , userEnabledGet :: mode :- "user" :> Capture "username" UserName :> "enabled.json" :> Get '[JSON] ()
     , userEnabledPut :: mode :- "user" :> Capture "username" UserName :> "enabled.json" :> Put '[JSON] ()
     , userManageGet :: mode :- "user" :> Capture "username" UserName :> "manage" :> Get '[TODO] ()
@@ -683,8 +683,8 @@ data UsersAPI mode = UsersAPI
     , usersGet :: mode :- "users" :> Get '[JSON] ()
     , usersAccountMgmt :: mode :- "users" :> "account-management" :> Get '[TODO] ()
     , usersAdminsGet :: mode :- "users" :> "admins" :> Get '[JSON] ()
-    , usersAdminUserPut :: mode :- "users" :> "admins" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Put '[TODO] ()
-    , usersAdminUserDel :: mode :- "users" :> "admins" :> "user" :> Capture "username" (WithAnyFormat UserName) :> Delete '[TODO] ()
+    , usersAdminUserPut :: mode :- "users" :> "admins" :> "user" :> NegotiableContent :> Capture "username" UserName :> Put '[TODO] ()
+    , usersAdminUserDel :: mode :- "users" :> "admins" :> "user" :> NegotiableContent :> Capture "username" UserName :> Delete '[TODO] ()
     }
     deriving stock (Generic)
 
@@ -711,26 +711,6 @@ data VotesAPI mode = VotesAPI
     , packageVotesPost :: mode :- "package" :> Capture "package" PackageName :> "votes" :> Post '[TODO] ()
     , packageVotesDel :: mode :- "package" :> Capture "package" PackageName :> "votes" :> Delete '[TODO] ()
     , packagesVotesGet :: mode :- "packages" :> "votes.json" :> Get '[JSON] ()
-    }
-    deriving stock (Generic)
-
-data RedirectAPI mode = RedirectAPI
-    { distrosRedir :: mode :- "distros" :> Capture "format" AnyFormat :> PermanentRedirect
-    , redirDistroMaintainers :: mode :- Capture "package" PackageName :> "maintainers" :> "user" :> Capture "format" AnyFormat :> PermanentRedirect
-    , redirPackageCandidates :: mode :- "package" :> Capture "package" PackageName :> "candidates" :> Capture "format" AnyFormat :> PermanentRedirect
-    , redirPackagesCandidates :: mode :- "packages" :> "candidates" :> Capture "format" AnyFormat :> PermanentRedirect
-    , redirPackageRevisions :: mode :- "package" :> Capture "package" PackageName :> "revisions" :> Capture "format" AnyFormat :> PermanentRedirect
-    , redirPackages :: mode :- "packages" :> Capture "format" AnyFormat :> PermanentRedirect
-    , redirCandidateDocs :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "docs" :> Capture "format" AnyFormat :> PermanentRedirect
-    , redirMirrorers :: mode :- "packages" :> "mirrorers" :> Capture "format" AnyFormat :> PermanentRedirect
-    , redirCandidateReports :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> Capture "format" AnyFormat :> PermanentRedirect
-    , redirReports :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Capture "format" AnyFormat :> PermanentRedirect
-    , redirPackageMaintainers :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> Capture "format" AnyFormat :> PermanentRedirect
-    , redirTrustees :: mode :- "packages" :> "trustees" :> Capture "format" AnyFormat :> PermanentRedirect
-    , redirUploaders :: mode :- "packages" :> "uploaders" :> Capture "format" AnyFormat :> PermanentRedirect
-    , redirUsers :: mode :- "users" :> Capture "format" AnyFormat :> PermanentRedirect
-    , redirUsersAdmins :: mode :- "users" :> "admins" :> Capture "format" AnyFormat :> PermanentRedirect
-    , redirPackagesTags :: mode :- "packages" :> "tags" :> Capture "format" AnyFormat :> PermanentRedirect
     }
     deriving stock (Generic)
 

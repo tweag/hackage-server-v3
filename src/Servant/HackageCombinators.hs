@@ -2,17 +2,26 @@
 {-# LANGUAGE TypeFamilies         #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Servant.HackageCombinators where
+module Servant.HackageCombinators
+  ( PermanentRedirect
+  , HackageAuth
+  , hackageAuthHandler
+  , NotYetPorted(..)
+  , NegotiableContent
+  , WithFormat(..)
+  ) where
 
 import Control.Lens (over, _last, preview)
 import Control.Monad.Except (ExceptT(..), runExceptT)
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Resource (runResourceT)
 import Data.Functor ((<&>))
+import Data.Kind (Type)
 import Data.Maybe (fromMaybe)
 import Data.Proxy (Proxy (..))
 import Data.Text qualified as T
 import Data.Text.Lens (unpacked)
+import GHC.TypeLits
 import Hackage.Types
 import Hackage.Utils (Connection)
 import Network.HTTP.Client (Manager)
@@ -30,21 +39,6 @@ import Servant.Server.Experimental.Auth
 import Servant.Server.Internal.Delayed
 import Servant.Server.Internal.Router
 import System.FilePath (dropExtensions)
-import Data.Kind (Type)
-import GHC.TypeLits
-
-
--- | A 'Capture'-able segment corresponding to hackage v2's @.:format@
-data AnyFormat = AnyFormat
-
-instance FromHttpApiData AnyFormat where
-  parseUrlPiece t =
-    case T.isPrefixOf "." t of
-      True -> pure AnyFormat
-      False -> Left $ "Invalid AnyFormat: " <> t
-
-instance ToHttpApiData AnyFormat where
-  toUrlPiece _ = ".dummy"
 
 
 -- | A 'Capture'-able segment corresponding to hackage v2's
@@ -61,12 +55,6 @@ instance (FromHttpApiData a, KnownSymbol b) => FromHttpApiData (WithFormat a b) 
 
 instance (ToHttpApiData a, KnownSymbol b) => ToHttpApiData (WithFormat a b) where
   toUrlPiece (WithFormat x) = toUrlPiece x <> "." <> T.pack (symbolVal (Proxy @b))
-
--- | A 'Capture'-able segment corresponding to hackage v2's
--- @:something.:format@. Unlike 'WithFormat', this combinator accepts any
--- format.
-type WithAnyFormat :: Type -> Type
-newtype WithAnyFormat a = WithAnyFormat {unWithAnyFormat :: a}
 
 
 -- | A permanent redirect (HTTP 308) to somewhere else in the app. Hackage v2's

@@ -15,6 +15,7 @@ import Servant.EDE
 import Servant.Server
 import qualified Data.Map as M
 
+
 data TrusteesObject = TrusteesObject (Map UserId UserName)
 
 instance ToJSON TrusteesObject where
