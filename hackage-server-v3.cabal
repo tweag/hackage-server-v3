@@ -57,12 +57,15 @@ library
     , bytestring
     , containers
     , ede
+    , filepath
     , gdp
     , hasql
     , http-client
     , http-client-tls
     , http-reverse-proxy
     , http-types
+    , lens
+    , mime-types
     , mtl
     , random
     , rel8
@@ -99,6 +102,7 @@ executable hackage-server-v3-exe
     , bytestring
     , containers
     , ede
+    , filepath
     , gdp
     , hackage-server-v3
     , hasql
@@ -106,6 +110,8 @@ executable hackage-server-v3-exe
     , http-client-tls
     , http-reverse-proxy
     , http-types
+    , lens
+    , mime-types
     , mtl
     , random
     , rel8
@@ -143,6 +149,7 @@ test-suite hackage-server-v3-test
     , bytestring
     , containers
     , ede
+    , filepath
     , gdp
     , hackage-server-v3
     , hasql
@@ -150,6 +157,8 @@ test-suite hackage-server-v3-test
     , http-client-tls
     , http-reverse-proxy
     , http-types
+    , lens
+    , mime-types
     , mtl
     , random
     , rel8

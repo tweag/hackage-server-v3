@@ -2,8 +2,8 @@
 
 module TestAPI where
 
+import Data.Foldable
 import Data.Map qualified as M
-import Data.Map (Map)
 import Hackage.Features.Upload
 import Servant.HackageAuth (hackageRealm)
 import Data.Proxy
@@ -20,17 +20,31 @@ import Servant.EDE
 import Network.HTTP.Client.TLS
 
 
-type API = ("test" :> HackageAuth :> Get '[JSON] UserId) :<|> Get '[JSON, HTML "upload/trustees.html" ] TrusteesObject :<|> NotYetPorted
+type API = "test"
+              :> HackageAuth
+              :> Get '[JSON] UserId
+      :<|> NegotiableContent
+              :> "test"
+              :> Capture "ok" String
+              :> Get '[JSON, HTML "upload/trustees.html" ] TrusteesObject
+      :<|> NotYetPorted
 
 withConn :: [DB.Setting] -> (Connection -> IO a) ->  IO a
 withConn ss = bracket (acquire ss >>= either (error . show) pure) release
 
+main :: IO ()
 main = do
   errs <- loadTemplates (Proxy @API) [] "templates"
-  print errs
+  traverse_ print errs
   client <- newTlsManager
   withConn (pure $ DB.connection $ DB.string "postgresql://sandy@/sandy") $ \conn -> do
-    run 8000 $ serveWithContext (Proxy @API) (client :. hackageAuthHandler hackageRealm conn :. EmptyContext) $
-      pure :<|> pure (TrusteesObject $ M.fromList
-                      [ (UserId 0, "isovector")
-                      ]) :<|> NotYetPorted
+    run 8000 $
+      serveWithContext
+        (Proxy @API)
+        (client
+          :. hackageAuthHandler hackageRealm conn
+          :. EmptyContext
+        ) $ pure
+      :<|> const
+              (pure $ TrusteesObject $ M.fromList [ (UserId 0, "isovector") ])
+      :<|> NotYetPorted

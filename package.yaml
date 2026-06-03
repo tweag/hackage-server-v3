@@ -47,6 +47,9 @@ dependencies:
 - http-client-tls
 - ede
 - unordered-containers
+- mime-types
+- lens
+- filepath
 
 ghc-options:
 - -Wall
