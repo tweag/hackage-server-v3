@@ -4,6 +4,7 @@ module Hackage.Types
   , Version
   ) where
 
+import Data.Aeson (ToJSON, FromJSON)
 import Data.Functor.Contravariant
 import Data.Text (Text)
 import Rel8 hiding (Enum)
@@ -16,7 +17,7 @@ import qualified Data.Text as T
 import qualified Distribution.Package as Pkg
 
 newtype UserId = UserId Int64
-  deriving newtype (Eq, Ord, Show, DBType, DBEq, DBOrd, DBAutoInc)
+  deriving newtype (Eq, Ord, Show, DBType, DBEq, DBOrd, DBAutoInc, ToJSON, FromJSON)
 
 
 data UserStatus = Enabled | Disabled | Deleted

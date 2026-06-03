@@ -46,6 +46,7 @@ dependencies:
 - http-reverse-proxy
 - http-client
 - http-client-tls
+- blaze-html
 
 ghc-options:
 - -Wall

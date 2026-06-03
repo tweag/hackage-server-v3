@@ -12,6 +12,20 @@ import Control.Monad.IO.Class
 import Control.Monad.Except
 import Rel8 hiding (null, run, Enum)
 import qualified Rel8 as Rel8
+import Data.Aeson (Value, ToJSON(..))
+import Text.Blaze (Markup, ToMarkup(..))
+
+
+data DualContent = DualContent
+  { html :: Markup
+  , json :: Value
+  }
+
+instance ToMarkup DualContent where
+  toMarkup = html
+
+instance ToJSON DualContent where
+  toJSON = json
 
 
 toE :: IO (Either SessionError a) -> Handler a

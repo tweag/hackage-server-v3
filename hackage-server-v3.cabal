@@ -28,6 +28,7 @@ library
       Hackage.API
       Hackage.Auth.Admin
       Hackage.Auth.Maintainer
+      Hackage.Features.Upload
       Hackage.Schemas.Packages
       Hackage.Schemas.Users
       Hackage.Types
@@ -52,6 +53,7 @@ library
     , aeson
     , base >=4.7 && <5
     , base64-bytestring
+    , blaze-html
     , blaze-markup
     , bytestring
     , containers
@@ -93,6 +95,7 @@ executable hackage-server-v3-exe
     , aeson
     , base >=4.7 && <5
     , base64-bytestring
+    , blaze-html
     , blaze-markup
     , bytestring
     , containers
@@ -136,6 +139,7 @@ test-suite hackage-server-v3-test
     , aeson
     , base >=4.7 && <5
     , base64-bytestring
+    , blaze-html
     , blaze-markup
     , bytestring
     , containers
