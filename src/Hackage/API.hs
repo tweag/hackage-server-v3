@@ -60,9 +60,9 @@ data AdminAPI mode = AdminApi
 data DistroAPI mode = DistroAPI
     { distroPut :: mode :- "distro" :> IsAdmin :> Capture "distro" DistroName :> Put '[TODO] ()
     , distroDel :: mode :- "distro" :> IsAdmin :> Capture "distro" DistroName :> Delete '[TODO] ()
-    , distroPkgGet :: mode :- "distro" :> Capture "distro" DistroName :> "package" :> Capture "package" (WithFormat PackageName "txt") :> Get '[PlainText] ()
-    , distroPkgPut :: mode :- "distro" :> Capture "distro" DistroName :> "package" :> Capture "package" (WithFormat PackageName "txt") :> Put '[PlainText] ()
-    , distroPkgDel :: mode :- "distro" :> Capture "distro" DistroName :> "package" :> Capture "package" (WithFormat PackageName "txt") :> Delete '[PlainText] ()
+    , distroPkgGet :: mode :- "distro" :> Capture "distro" DistroName :> "package" :> CaptureExt "package" PackageName "txt" :> Get '[PlainText] ()
+    , distroPkgPut :: mode :- "distro" :> Capture "distro" DistroName :> "package" :> CaptureExt "package" PackageName "txt" :> Put '[PlainText] ()
+    , distroPkgDel :: mode :- "distro" :> Capture "distro" DistroName :> "package" :> CaptureExt "package" PackageName "txt" :> Delete '[PlainText] ()
     , distroPkgsGetCsv :: mode :- "distro" :> Capture "distro" DistroName :> "packages.csv" :> Get '[CSV] ()
     , distroPkgsPutCsv :: mode :- "distro" :> Capture "distro" DistroName :> "packages.csv" :> Put '[CSV] ()
     , distroPkgsGetTxt :: mode :- "distro" :> Capture "distro" DistroName :> "packages.txt" :> Get '[PlainText] ()
@@ -96,8 +96,8 @@ data IsAdmin
 -- `/packages/candidates/.:format`                        | GET    | json    | candidates               |
 -- `/packages/candidates/.:format`                        | POST   | txt     | candidates               |
 data CandidatesAPI mode = CandidatesAPI
-    { candidateCabalGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> Capture "cabal" (WithFormat PackageName "cabal") :> Get '[PlainText] ()
-    , candidateTarballGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> Capture "tarball" (WithFormat PackageName "tar.gz") :> Get '[Tarball] ()
+    { candidateCabalGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> CaptureExt "cabal" PackageName "cabal" :> Get '[PlainText] ()
+    , candidateTarballGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> CaptureExt "tarball" PackageName "tar.gz" :> Get '[Tarball] ()
     , candidateChangelogHtml :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "changelog.html" :> Get '[HTML] ()
     , candidateChangelogTxt :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "changelog.txt" :> Get '[PlainText] ()
     , candidateSrcGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "src" :> Raw
@@ -118,9 +118,9 @@ data CandidatesAPI mode = CandidatesAPI
 -- `/user/:user/deauth`                                   | GET    | *       | core                     |
 data CoreAPI mode = CoreAPI
     { packageIndex :: mode :- "package" :> Get '[TODO] ()
-    , packageCabalGet :: mode :- "package" :> Capture "package" PackageName :> Capture "cabal" (WithFormat PackageName "cabal") :> Get '[PlainText] ()
-    , packageTarballGet :: mode :- "package" :> Capture "package" PackageName :> Capture "tarball" (WithFormat PackageName "tar.gz") :> Get '[OctetStream] ()
-    , packageRevisionGet :: mode :- "package" :> Capture "package" PackageName :> "revision" :> Capture "revision" (WithFormat Revision "cabal") :> Get '[PlainText] ()
+    , packageCabalGet :: mode :- "package" :> Capture "package" PackageName :> CaptureExt "cabal" PackageName "cabal" :> Get '[PlainText] ()
+    , packageTarballGet :: mode :- "package" :> Capture "package" PackageName :> CaptureExt "tarball" PackageName "tar.gz" :> Get '[OctetStream] ()
+    , packageRevisionGet :: mode :- "package" :> Capture "package" PackageName :> "revision" :> CaptureExt "revision" Revision "cabal" :> Get '[PlainText] ()
     , packageRevisionsGet :: mode :- "package" :> Capture "package" PackageName :> "revisions" :> Get '[JSON] ()
     , packagesGet :: mode :- "packages" :> Get '[JSON] ()
     , packagesDeauth :: mode :- "packages" :> "deauth" :> Get '[TODO] ()
@@ -170,8 +170,8 @@ data DownloadAPI mode = DownloadAPI
 -- `/package/:package/:cabal.cabal/edit`                  | GET    | html    | edit-cabal-files         |
 -- `/package/:package/:cabal.cabal/edit`                  | POST   | html    | edit-cabal-files         |
 data EditCabalFilesAPI mode = EditCabalFilesAPI
-    { packageCabalEditGet :: mode :- "package" :> Capture "package" PackageName :> Capture "cabal" (WithFormat PackageName "cabal") :> "edit" :> Get '[HTML] ()
-    , packageCabalEditPost :: mode :- "package" :> Capture "package" PackageName :> Capture "cabal" (WithFormat PackageName "cabal") :> "edit" :> Post '[HTML] ()
+    { packageCabalEditGet :: mode :- "package" :> Capture "package" PackageName :> CaptureExt "cabal" PackageName "cabal" :> "edit" :> Get '[HTML] ()
+    , packageCabalEditPost :: mode :- "package" :> Capture "package" PackageName :> CaptureExt "cabal" PackageName "cabal" :> "edit" :> Post '[HTML] ()
     }
     deriving stock (Generic)
 
@@ -265,7 +265,7 @@ data CandidatesHtmlAPI mode = CandidatesHtmlAPI
 -- `/package/:package/tags.:format`                       | PUT    | html    | html                     |
 -- `/package/:package/tags/edit`                          | GET    | html    | html                     |
 data PackageHtmlAPI mode = PackageHtmlAPI
-    { htmlPackageGet :: mode :- "package" :> Capture "package" (WithFormat PackageName "html") :> Get '[HTML] ()
+    { htmlPackageGet :: mode :- "package" :> CaptureExt "package" PackageName "html" :> Get '[HTML] ()
     , htmlPackageAnalyticsGet :: mode :- "package" :> Capture "package" PackageName :> "analytics-pixels.html" :> Get '[HTML] ()
     , htmlPackageAnalyticsPost :: mode :- "package" :> Capture "package" PackageName :> "analytics-pixels" :> Post '[HTML] ()
     , htmlPackageAnalyticsDel :: mode :- "package" :> Capture "package" PackageName :> "analytics-pixels" :> Delete '[HTML] ()
@@ -282,7 +282,7 @@ data PackageHtmlAPI mode = PackageHtmlAPI
     , htmlPackagePreferredPut :: mode :- "package" :> Capture "package" PackageName :> "preferred" :> Put '[HTML] ()
     , htmlPackagePreferredEdit :: mode :- "package" :> Capture "package" PackageName :> "preferred" :> "edit" :> Get '[HTML] ()
     , htmlPackageReportsGet :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Get '[HTML] ()
-    , htmlPackageReportIdGet :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Capture "id" (WithFormat ReportId "html") :> Get '[HTML] ()
+    , htmlPackageReportIdGet :: mode :- "package" :> Capture "package" PackageName :> "reports" :> CaptureExt "id" ReportId "html" :> Get '[HTML] ()
     , htmlPackageReportsTestsEnabled :: mode :- "package" :> Capture "package" PackageName :> "reports" :> "testsEnabled" :> Get '[HTML] ()
     , htmlPackageReverseGet :: mode :- "package" :> Capture "package" PackageName :> "reverse.html" :> Get '[HTML] ()
     , htmlPackageReverseFlatGet :: mode :- "package" :> Capture "package" PackageName :> "reverse" :> "flat.html" :> Get '[HTML] ()
@@ -316,20 +316,20 @@ data MaintainersHtmlAPI mode = MaintainersHtmlAPI
     { htmlPackageMaintainersGet :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> Get '[HTML] ()
     , htmlPackageMaintainersPost :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> Post '[HTML] ()
     , htmlPackageMaintainersEdit :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "edit" :> Get '[HTML] ()
-    , htmlPackageMaintainerDel :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "user" :> Capture "username" (WithFormat UserName "html") :> Delete '[HTML] ()
+    , htmlPackageMaintainerDel :: mode :- "package" :> Capture "package" PackageName :> "maintainers" :> "user" :> CaptureExt "username" UserName "html" :> Delete '[HTML] ()
     , htmlMirrorersGet :: mode :- "packages" :> "mirrorers" :> Get '[HTML] ()
     , htmlMirrorersPost :: mode :- "packages" :> "mirrorers" :> Post '[HTML] ()
     , htmlMirrorersEdit :: mode :- "packages" :> "mirrorers" :> "edit" :> Get '[HTML] ()
-    , htmlMirrorerUserDel :: mode :- "packages" :> "mirrorers" :> "user" :> Capture "username" (WithFormat UserName "html") :> Delete '[HTML] ()
+    , htmlMirrorerUserDel :: mode :- "packages" :> "mirrorers" :> "user" :> CaptureExt "username" UserName "html" :> Delete '[HTML] ()
     , htmlTrusteesGet :: mode :- "packages" :> "trustees" :> Get '[HTML] ()
     , htmlTrusteesPost :: mode :- "packages" :> "trustees" :> Post '[HTML] ()
     , htmlTrusteesEdit :: mode :- "packages" :> "trustees" :> "edit" :> Get '[HTML] ()
-    , htmlTrusteeUserDel :: mode :- "packages" :> "trustees" :> "user" :> Capture "username" (WithFormat UserName "html") :> Delete '[HTML] ()
+    , htmlTrusteeUserDel :: mode :- "packages" :> "trustees" :> "user" :> CaptureExt "username" UserName "html" :> Delete '[HTML] ()
     , htmlPackagesUpload :: mode :- "packages" :> "upload" :> Get '[HTML] ()
     , htmlUploadersGet :: mode :- "packages" :> "uploaders" :> Get '[HTML] ()
     , htmlUploadersPost :: mode :- "packages" :> "uploaders" :> Post '[HTML] ()
     , htmlUploadersEdit :: mode :- "packages" :> "uploaders" :> "edit" :> Get '[HTML] ()
-    , htmlUploaderUserDel :: mode :- "packages" :> "uploaders" :> "user" :> Capture "username" (WithFormat UserName "html") :> Delete '[HTML] ()
+    , htmlUploaderUserDel :: mode :- "packages" :> "uploaders" :> "user" :> CaptureExt "username" UserName "html" :> Delete '[HTML] ()
     }
     deriving stock (Generic)
 
@@ -367,7 +367,7 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
     , htmlPackagesRecentRevisionsRss :: mode :- "packages" :> "recent" :> "revisions.rss" :> Get '[RSS] ()
     , htmlPackagesReverse :: mode :- "packages" :> "reverse.html" :> Get '[HTML] ()
     , htmlPackagesSearch :: mode :- "packages" :> "search.html" :> Get '[HTML] ()
-    , htmlPackagesTagGet :: mode :- "packages" :> "tag" :> Capture "tag" (WithFormat Tag "html") :> Get '[HTML] ()
+    , htmlPackagesTagGet :: mode :- "packages" :> "tag" :> CaptureExt "tag" Tag "html" :> Get '[HTML] ()
     , htmlPackagesTagAliasPut :: mode :- "packages" :> "tag" :> Capture "tag" Tag :> "alias" :> Put '[HTML] ()
     , htmlPackagesTagAliasEdit :: mode :- "packages" :> "tag" :> Capture "tag" Tag :> "alias" :> "edit" :> Get '[HTML] ()
     , htmlPackagesTagsGet :: mode :- "packages" :> "tags" :> Get '[HTML] ()
@@ -389,7 +389,7 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
 -- `/users/admins/user/:username.:format`                 | DELETE | html    | html                     |
 -- `/users/register`                                      | GET    | html    | html                     |
 data UsersHtmlAPI mode = UsersHtmlAPI
-    { htmlUserGet :: mode :- "user" :> Capture "username" (WithFormat UserName "html") :> Get '[HTML] ()
+    { htmlUserGet :: mode :- "user" :> CaptureExt "username" UserName "html" :> Get '[HTML] ()
     , htmlUserAnalyticsGet :: mode :- "user" :> Capture "username" UserName :> "analytics-pixels.html" :> Get '[HTML] ()
     , htmlUserAnalyticsPost :: mode :- "user" :> Capture "username" UserName :> "analytics-pixels" :> Post '[HTML] ()
     , htmlUserAnalyticsDel :: mode :- "user" :> Capture "username" UserName :> "analytics-pixels" :> Delete '[HTML] ()
@@ -400,7 +400,7 @@ data UsersHtmlAPI mode = UsersHtmlAPI
     , htmlUsersAdminsGet :: mode :- "users" :> "admins" :> Get '[HTML] ()
     , htmlUsersAdminsPost :: mode :- "users" :> "admins" :> Post '[HTML] ()
     , htmlUsersAdminsEdit :: mode :- "users" :> "admins" :> "edit" :> Get '[HTML] ()
-    , htmlUsersAdminUserDel :: mode :- "users" :> "admins" :> "user" :> Capture "username" (WithFormat UserName "html") :> Delete '[HTML] ()
+    , htmlUsersAdminUserDel :: mode :- "users" :> "admins" :> "user" :> CaptureExt "username" UserName "html" :> Delete '[HTML] ()
     , htmlUsersRegister :: mode :- "users" :> "register" :> Get '[HTML] ()
     }
     deriving stock (Generic)
@@ -415,8 +415,8 @@ data UsersHtmlAPI mode = UsersHtmlAPI
 -- `/packages/mirrorers/user/:username.:format`           | PUT    | *       | mirror                   |
 -- `/packages/mirrorers/user/:username.:format`           | DELETE | *       | mirror                   |
 data MirrorAPI mode = MirrorAPI
-    { mirrorPackageCabalPut :: mode :- "package" :> Capture "package" PackageName :> Capture "cabal" (WithFormat PackageName "cabal") :> Put '[TODO] ()
-    , mirrorPackageTarballPut :: mode :- "package" :> Capture "package" PackageName :> Capture "tarball" (WithFormat PackageName "tar.gz") :> Put '[TODO] ()
+    { mirrorPackageCabalPut :: mode :- "package" :> Capture "package" PackageName :> CaptureExt "cabal" PackageName "cabal" :> Put '[TODO] ()
+    , mirrorPackageTarballPut :: mode :- "package" :> Capture "package" PackageName :> CaptureExt "tarball" PackageName "tar.gz" :> Put '[TODO] ()
     , mirrorPackageUploadTimeGet :: mode :- "package" :> Capture "package" PackageName :> "upload-time" :> Get '[TODO] ()
     , mirrorPackageUploadTimePut :: mode :- "package" :> Capture "package" PackageName :> "upload-time" :> Put '[TODO] ()
     , mirrorPackageUploaderGet :: mode :- "package" :> Capture "package" PackageName :> "uploader" :> Get '[TODO] ()
@@ -429,7 +429,7 @@ data MirrorAPI mode = MirrorAPI
 
 -- | `/package/:package.rss`                                | GET    | rss     | package feed             |
 data PackageFeedAPI mode = PackageFeedAPI
-    { packageRss :: mode :- "package" :> Capture "package" (WithFormat PackageName "rss") :> Get '[RSS] ()
+    { packageRss :: mode :- "package" :> CaptureExt "package" PackageName "rss" :> Get '[RSS] ()
     }
     deriving stock (Generic)
 
@@ -450,8 +450,8 @@ data PackageContentsAPI mode = PackageContentsAPI
 -- `/package/:package.:format`                            | GET    | json    | package-info-json        |
 -- `/package/:package/revision/:revision.:format`         | GET    | json    | package-info-json        |
 data PackageInfoJsonAPI mode = PackageInfoJsonAPI
-    { packageInfoJson :: mode :- "package" :> Capture "package" (WithFormat PackageName "json") :> Get '[JSON] ()
-    , packageRevisionInfoJson :: mode :- "package" :> Capture "package" PackageName :> "revision" :> Capture "revision" (WithFormat Revision "json") :> Get '[JSON] ()
+    { packageInfoJson :: mode :- "package" :> CaptureExt "package" PackageName "json" :> Get '[JSON] ()
+    , packageRevisionInfoJson :: mode :- "package" :> Capture "package" PackageName :> "revision" :> CaptureExt "revision" Revision "json" :> Get '[JSON] ()
     }
     deriving stock (Generic)
 
@@ -473,7 +473,7 @@ data ReportsCandidatesAPI mode = ReportsCandidatesAPI
     { candidateReportsGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> Get '[PlainText] ()
     , candidateReportsPost :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> Post '[TODO] ()
     , candidateReportsPut :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> Put '[JSON] ()
-    , candidateReportIdGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> Capture "id" (WithFormat ReportId "txt") :> Get '[PlainText] ()
+    , candidateReportIdGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> CaptureExt "id" ReportId "txt" :> Get '[PlainText] ()
     , candidateReportIdDel :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> NegotiableContent :> Capture "id" ReportId :> Delete '[TODO] ()
     , candidateReportLogGet :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> Capture "id" ReportId :> "log" :> Get '[PlainText] ()
     , candidateReportLogPut :: mode :- "package" :> Capture "package" PackageName :> "candidate" :> "reports" :> Capture "id" ReportId :> "log" :> Put '[TODO] ()
@@ -505,7 +505,7 @@ data ReportsCoreAPI mode = ReportsCoreAPI
     { reportsGet :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Get '[PlainText] ()
     , reportsPost :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Post '[TODO] ()
     , reportsPut :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Put '[JSON] ()
-    , reportIdGet :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Capture "id" (WithFormat ReportId "txt") :> Get '[PlainText] ()
+    , reportIdGet :: mode :- "package" :> Capture "package" PackageName :> "reports" :> CaptureExt "id" ReportId "txt" :> Get '[PlainText] ()
     , reportIdDel :: mode :- "package" :> Capture "package" PackageName :> "reports" :> NegotiableContent :> Capture "id" ReportId :> Delete '[TODO] ()
     , reportLogGet :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Capture "id" ReportId :> "log" :> Get '[PlainText] ()
     , reportLogPut :: mode :- "package" :> Capture "package" PackageName :> "reports" :> Capture "id" ReportId :> "log" :> Put '[TODO] ()
@@ -673,7 +673,7 @@ data UserSignupResetAPI mode = UserSignupResetAPI
 -- `/users/admins/user/:username.:format`                 | PUT    | *       | users                    |
 -- `/users/admins/user/:username.:format`                 | DELETE | *       | users                    |
 data UsersAPI mode = UsersAPI
-    { userGetJson :: mode :- "user" :> Capture "username" (WithFormat UserName "json") :> Get '[JSON] ()
+    { userGetJson :: mode :- "user" :> CaptureExt "username" UserName "json" :> Get '[JSON] ()
     , userPut :: mode :- "user" :> NegotiableContent :> Capture "username" UserName :> Put '[TODO] ()
     , userDel :: mode :- "user" :> NegotiableContent :> Capture "username" UserName :> Delete '[TODO] ()
     , userEnabledGet :: mode :- "user" :> Capture "username" UserName :> "enabled.json" :> Get '[JSON] ()

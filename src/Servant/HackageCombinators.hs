@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE TypeFamilies         #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-orphans      #-}
 
 module Servant.HackageCombinators
   ( PermanentRedirect
@@ -8,7 +9,7 @@ module Servant.HackageCombinators
   , hackageAuthHandler
   , NotYetPorted(..)
   , NegotiableContent
-  , WithFormat(..)
+  , CaptureExt
   ) where
 
 import Control.Lens (over, _last, preview)
@@ -39,22 +40,39 @@ import Servant.Server.Experimental.Auth
 import Servant.Server.Internal.Delayed
 import Servant.Server.Internal.Router
 import System.FilePath (dropExtensions)
+import Servant.Server.Internal (delayedFail, mkContextWithErrorFormatter, MkContextWithErrorFormatter)
+import Data.Typeable (Typeable, typeRep)
+import Servant.Server.Internal.DelayedIO (withRequest)
 
 
 -- | A 'Capture'-able segment corresponding to hackage v2's
 -- @:something.:format@. The @:format@ is given and enforced statically.
-type WithFormat :: Type -> Symbol -> Type
-newtype WithFormat a b = WithFormat {unWithFormat :: a}
+type CaptureExt :: Symbol -> Type -> Symbol -> Type
+data CaptureExt hint a ext
 
-instance (FromHttpApiData a, KnownSymbol b) => FromHttpApiData (WithFormat a b) where
-  parseUrlPiece t = do
-    let ext = "." <> T.pack (symbolVal (Proxy @b))
-    case T.isSuffixOf ext t of
-      True -> parseUrlPiece $ T.dropEnd (T.length ext) t
-      False -> Left $ "Non-matching format"
-
-instance (ToHttpApiData a, KnownSymbol b) => ToHttpApiData (WithFormat a b) where
-  toUrlPiece (WithFormat x) = toUrlPiece x <> "." <> T.pack (symbolVal (Proxy @b))
+instance ( Typeable a
+         , HasServer api ctx
+         , KnownSymbol hint
+         , KnownSymbol ext
+         , FromHttpApiData a
+         , HasContextEntry (MkContextWithErrorFormatter ctx) ErrorFormatters
+         ) => HasServer (CaptureExt hint a ext :> api) ctx where
+  type ServerT (CaptureExt hint a ext :> api) m = a -> ServerT api m
+  hoistServerWithContext _ b c k = hoistServerWithContext (Proxy @api) b c . k
+  route _ context d =
+    CaptureRouter [hint] $
+        route (Proxy @api) context $ addCapture d $ \txt -> withRequest $ \request -> do
+          let ext = T.pack $ "." <> symbolVal (Proxy @ext)
+          case T.isSuffixOf ext txt of
+            True ->
+              case parseUrlPiece (T.dropEnd (T.length ext) txt) of
+                Right val -> pure val
+                Left e  -> delayedFail $ formatError rep request $ T.unpack e
+            False -> delayedFail err404
+    where
+      rep = typeRep (Proxy :: Proxy Capture')
+      formatError = urlParseErrorFormatter $ getContextEntry (mkContextWithErrorFormatter context)
+      hint = CaptureHint (T.pack $ symbolVal $ Proxy @hint) (typeRep (Proxy :: Proxy a))
 
 
 -- | A permanent redirect (HTTP 308) to somewhere else in the app. Hackage v2's
