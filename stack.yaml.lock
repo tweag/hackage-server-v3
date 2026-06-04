@@ -14,14 +14,14 @@ packages:
 - completed:
     name: servant-ede
     pantry-tree:
-      sha256: ba98fb64a55d2126420f096917c9c02352d70aede2b30ee4907b77f4303aacbe
-      size: 881
-    sha256: d945f1c9ea4e938715b5aa9a8d3d83f898bfa0a696c0a501610f2f5ae65864ae
-    size: 9542
-    url: https://github.com/isovector/servant-ede/archive/bbbd3bf21c62fd828368506c865776d5ad0af018.tar.gz
+      sha256: 8d99b2ced8636e4022923f009f27c5f776d641660c2f2f87ebc5fc1972dad9c4
+      size: 863
+    sha256: 0d7e66a1fff75c1e4acc0aa1506e2125281fe85a03c5e3f19ad0c42be2073909
+    size: 9683
+    url: https://github.com/isovector/servant-ede/archive/b80e896e2faae2f6f946f3fefa71274dd11b95d5.tar.gz
     version: '0.6'
   original:
-    url: https://github.com/isovector/servant-ede/archive/bbbd3bf21c62fd828368506c865776d5ad0af018.tar.gz
+    url: https://github.com/isovector/servant-ede/archive/b80e896e2faae2f6f946f3fefa71274dd11b95d5.tar.gz
 snapshots:
 - completed:
     sha256: 6406d8039dd538f18fc0d242f01c7066ee386d81ba3c8751b914ac1ae193ec5d

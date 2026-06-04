@@ -71,6 +71,10 @@ instance HasServer PermanentRedirect context where
       responseLBS permanentRedirect308 [(hLocation, "/" <> toHeader link)] mempty
 
 
+instance TemplateFiles PermanentRedirect where
+  templateFiles = mempty
+
+
 -- | Custom combinator for doing the same auth checks as Hackage v2.
 type HackageAuth = AuthProtect "hackage-auth"
 type instance AuthServerData HackageAuth = UserId
@@ -111,10 +115,8 @@ instance HasContextEntry context Manager => HasServer NotYetPorted context where
                 }
           $ ProxyDest "hackage.haskell.org" 443
 
-
-type instance TemplateFiles NotYetPorted = '[]
-type instance TemplateFiles PermanentRedirect = '[]
-
+instance TemplateFiles NotYetPorted where
+  templateFiles = mempty
 
 --------------------------------------------------------------------------------
 
@@ -126,7 +128,6 @@ type instance TemplateFiles PermanentRedirect = '[]
 -- will match routes @/resource@, @/resource.html@, and @/resource.json@. It
 -- will use standard content negotiation for the @/resource@ route.
 data NegotiableContent
-type instance TemplateFiles NegotiableContent = '[]
 
 instance HasServer api context => HasServer (NegotiableContent :> api) context where
   type ServerT (NegotiableContent :> api) m = ServerT api m
