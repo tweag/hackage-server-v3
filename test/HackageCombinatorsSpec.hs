@@ -12,13 +12,15 @@ import Servant.HackageAuth (hackageRealm)
 
 type API = "redirect" :> PermanentRedirect
       :<|> "format" :> CaptureExt "something" String "json" :> Get '[JSON] String
+      :<|> "format" :> CaptureExt "something" String "tar.gz" :> Get '[JSON] String
       :<|> "auth" :> HackageAuth :> Get '[JSON] ()
       :<|> NegotiableContent :> "negotiable" :> Capture "something" String :> Get '[PlainText, JSON] String
 
-      -- get "/" `shouldRespondWith` 200 {matchHeaders = ["Content-Type" <:> "text/plain; charset=utf-8"]}
+
 spec :: Spec
 spec = with (pure $ serveWithContext (Proxy @API) (hackageAuthHandler hackageRealm undefined :. EmptyContext)
     (undefined
+      :<|> pure
       :<|> pure
       :<|> const (pure ())
       :<|> pure
@@ -27,6 +29,8 @@ spec = with (pure $ serveWithContext (Proxy @API) (hackageAuthHandler hackageRea
   describe "format" $ do
     it "should match when capturing the format" $ do
       get "/format/hello.json" `shouldRespondWith` "\"hello\""
+    it "should match when capturing the format with two dots" $ do
+      get "/format/hello.tar.gz" `shouldRespondWith` "\"hello\""
     it "should not match when on other formats" $ do
       get "/format/hello.txt" `shouldRespondWith` 404
 
