@@ -10,10 +10,13 @@ module Servant.HackageCombinators
   , NotYetPorted(..)
   , NegotiableContent
   , CaptureExt
+  , CacheControl
+  , ETag(..)
   ) where
 
+import Data.Hashable (Hashable(..))
 import Control.Lens (over, _last, preview)
-import Control.Monad.Except (ExceptT(..), runExceptT)
+import Control.Monad.Except (ExceptT(..), runExceptT, throwError)
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Resource (runResourceT)
 import Data.Functor ((<&>))
@@ -22,7 +25,7 @@ import Data.Maybe (fromMaybe)
 import Data.Proxy (Proxy (..))
 import Data.Text qualified as T
 import Data.Text.Lens (unpacked)
-import GHC.TypeLits
+import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import Hackage.Types
 import Hackage.Utils (Connection)
 import Network.HTTP.Client (Manager)
@@ -43,6 +46,7 @@ import System.FilePath (dropExtensions)
 import Servant.Server.Internal (delayedFail, mkContextWithErrorFormatter, MkContextWithErrorFormatter)
 import Data.Typeable (Typeable, typeRep)
 import Servant.Server.Internal.DelayedIO (withRequest)
+import Text.Read (readMaybe)
 
 
 -- | A 'Capture'-able segment corresponding to hackage v2's
@@ -183,3 +187,63 @@ negotiateContentFromExtension req = fromMaybe req $ do
       , pathInfo
           = over (_last . unpacked) dropExtensions $ pathInfo req
       }
+
+
+-- | Automatically perform etag-based caching. This combinator /must/ be used
+-- as the penultimate segment, just before a final 'Get', eg:
+--
+-- @... :> 'CacheControl' :> 'Get' cs a@
+--
+-- This constraint is required so that we can get our hands on the type @a@,
+-- and use its 'Hashable' instance, rather than hash its projections (eg,
+-- html), which are likely significantly more expensive.
+--
+-- For now, the cache-control header is always set to @public, no-cache@.
+data CacheControl
+
+newtype ETag = ETag { getETag :: Int }
+  deriving newtype (Eq, Show)
+
+instance ToHttpApiData ETag where
+  toUrlPiece = T.pack . show . show . getETag
+
+instance FromHttpApiData ETag where
+  parseUrlPiece t =
+    maybe (Left "Not an ETag") Right $ do
+      let s = T.unpack t
+      s' <- readMaybe s
+      i <- readMaybe s'
+      pure $ ETag i
+
+
+-- | This combinator is implemented by rewriting your API as if you had written
+-- @rewrite@ instead of @CacheControl :> Get cs a@ (where @rewrite@ comes from
+-- a constraint below.) This gives us a convenient means of getting our hands
+-- on the relevant headers.
+instance ( Hashable a
+         , HasServer (Get cs a) ctx
+         , rewrite ~
+            ( Header "If-None-Match" ETag
+              :> Get cs
+                    (Headers '[ Header "Cache-Control" String
+                              , Header "ETag" ETag
+                              ] a)
+            )
+         , HasServer rewrite ctx
+         ) => HasServer (CacheControl :> Get cs a) ctx where
+  type ServerT (CacheControl :> Get cs a) m = ServerT (Get cs a) m
+  hoistServerWithContext _ = hoistServerWithContext $ Proxy @(Get cs a)
+  route _ ctx app =
+    route (Proxy @rewrite) ctx $
+      app <&> \handler ifnomatch -> do
+        a <- handler
+        let etag = ETag $ hash a
+        case Just etag == ifnomatch of
+          True ->
+            -- Return @304 Not Modified@ when the etag matches
+            throwError err304
+          False ->
+            pure $
+              addHeader "no-cache, public" $
+                addHeader etag a
+

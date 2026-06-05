@@ -4,6 +4,8 @@
 
 module Hackage.Features.Upload where
 
+import GHC.Generics
+import Data.Hashable
 import Data.Aeson hiding (Result(..))
 import Data.Functor
 import Data.Map (Map)
@@ -17,6 +19,8 @@ import qualified Data.Map as M
 
 
 data TrusteesObject = TrusteesObject (Map UserId UserName)
+  deriving stock (Eq, Generic)
+  deriving anyclass Hashable
 
 instance ToJSON TrusteesObject where
   toJSON ts = Object $ toObject ts <>

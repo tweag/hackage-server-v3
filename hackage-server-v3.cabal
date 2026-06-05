@@ -59,6 +59,7 @@ library
     , ede
     , filepath
     , gdp
+    , hashable
     , hasql
     , http-client
     , http-client-tls
@@ -107,6 +108,7 @@ test-suite tests
     , filepath
     , gdp
     , hackage-server-v3
+    , hashable
     , hasql
     , hspec
     , hspec-discover

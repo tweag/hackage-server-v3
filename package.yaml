@@ -50,6 +50,7 @@ dependencies:
 - mime-types
 - lens
 - filepath
+- hashable
 
 ghc-options:
 - -Wall

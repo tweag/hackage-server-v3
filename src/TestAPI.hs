@@ -25,6 +25,7 @@ type API = "test"
       :<|> NegotiableContent
               :> "test"
               :> Capture "ok" String
+              :> CacheControl
               :> Get '[JSON, HTML ] TrusteesObject
       :<|> NotYetPorted
 

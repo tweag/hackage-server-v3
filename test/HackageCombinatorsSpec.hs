@@ -14,6 +14,7 @@ type API = "redirect" :> PermanentRedirect
       :<|> "format" :> CaptureExt "something" String "json" :> Get '[JSON] String
       :<|> "format" :> CaptureExt "something" String "tar.gz" :> Get '[JSON] String
       :<|> "auth" :> HackageAuth :> Get '[JSON] ()
+      :<|> "cache" :> CacheControl :> Get '[JSON] ()
       :<|> NegotiableContent :> "negotiable" :> Capture "something" String :> Get '[PlainText, JSON] String
 
 
@@ -23,6 +24,7 @@ spec = with (pure $ serveWithContext (Proxy @API) (hackageAuthHandler hackageRea
       :<|> pure
       :<|> pure
       :<|> const (pure ())
+      :<|> pure ()
       :<|> pure
     )) $ do
 
@@ -46,5 +48,17 @@ spec = with (pure $ serveWithContext (Proxy @API) (hackageAuthHandler hackageRea
     it "should not dispatch html based on extension" $ do
       get "/negotiable/hello.html" `shouldRespondWith` 406
 
+  describe "cache control" $ do
+    it "should return etags" $ do
+      get "/cache" `shouldRespondWith` 200
+        { matchHeaders =
+            [ "ETag" <:> "\"0\""
+            , "Cache-Control" <:> "no-cache, public"
+            ]
+        }
+    it "should return 304 when Etag matches" $ do
+      request "GET" "/cache" [("If-None-Match", "\"0\"")] "" `shouldRespondWith` 304
 
-main = hspec spec
+    it "should return 200 when Etag doesn't match" $ do
+      request "GET" "/cache" [("If-None-Match", "\"1\"")] "" `shouldRespondWith` 200
+

@@ -15,9 +15,10 @@ import Distribution.Package (PackageName, mkPackageName)
 import Distribution.Types.Version (Version, mkVersion, versionNumbers)
 import qualified Data.Text as T
 import qualified Distribution.Package as Pkg
+import Data.Hashable (Hashable)
 
 newtype UserId = UserId Int64
-  deriving newtype (Eq, Ord, Show, DBType, DBEq, DBOrd, DBAutoInc, ToJSON, FromJSON)
+  deriving newtype (Eq, Ord, Show, DBType, DBEq, DBOrd, DBAutoInc, ToJSON, FromJSON, Hashable)
 
 
 data UserStatus = Enabled | Disabled | Deleted
