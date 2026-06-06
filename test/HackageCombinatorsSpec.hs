@@ -24,7 +24,7 @@ spec = with (pure $ serveWithContext (Proxy @API) (hackageAuthHandler hackageRea
       :<|> pure
       :<|> pure
       :<|> const (pure ())
-      :<|> pure ()
+      :<|> WithCacheControl [MaxAge 1234, SharedMaxAge 4321] (pure ())
       :<|> pure
     )) $ do
 
@@ -49,11 +49,11 @@ spec = with (pure $ serveWithContext (Proxy @API) (hackageAuthHandler hackageRea
       get "/negotiable/hello.html" `shouldRespondWith` 406
 
   describe "cache control" $ do
-    it "should return etags" $ do
+    it "should return etags and cache control settings" $ do
       get "/cache" `shouldRespondWith` 200
         { matchHeaders =
             [ "ETag" <:> "\"0\""
-            , "Cache-Control" <:> "no-cache, public"
+            , "Cache-Control" <:> "max-age=1234, s-maxage=4321"
             ]
         }
     it "should return 304 when Etag matches" $ do

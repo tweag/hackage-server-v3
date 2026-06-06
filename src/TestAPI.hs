@@ -48,7 +48,8 @@ main = do
               :. hackageAuthHandler hackageRealm conn
               :. EmptyContext
             ) $ pure
-          :<|> const
-                  (pure $ TrusteesObject $ M.fromList [ (UserId 0, "isovector") ])
+          :<|>
+            const
+                  (WithCacheControl [Public, NoCache] $ pure $ TrusteesObject $ M.fromList [ (UserId 0, "isovector") ])
           :<|> NotYetPorted
   either print pure eerrs
