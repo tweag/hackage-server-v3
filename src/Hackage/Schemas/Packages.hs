@@ -162,7 +162,6 @@ data PackageVersionRow f = PackageVersionRow
   , pvTarballBlob :: Column f BlobId
   , pvCabalBlob :: Column f BlobId
   , pvIsCandidate :: Column f Bool
-  , pvMigrationFlag :: Column f Bool  -- candidateMigratedPkgTarball equivalent?
   }
   deriving stock (Generic)
   deriving anyclass (Rel8able)
@@ -179,7 +178,6 @@ packageVersionsSchema = TableSchema
       , pvTarballBlob = "tarball_blob"
       , pvCabalBlob = "cabal_blob"
       , pvIsCandidate = "is_candidate"
-      , pvMigrationFlag = "migration_flag"
       }
   }
 
