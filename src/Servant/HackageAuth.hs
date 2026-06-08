@@ -6,6 +6,7 @@
 -- servant types, and to hook into our own database logic.
 module Servant.HackageAuth where
 
+import Hackage.Auth.AuthToken
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.IO.Class (liftIO)
@@ -22,7 +23,7 @@ import Hackage.Utils
 import Hasql.Session (SessionError)
 import Network.HTTP.Types.Header (Header)
 import Network.Wai
-import Rel8 (where_, (==.), lit, optional)
+import Rel8 (where_, (==.), lit, optional, each)
 import Servant.Server (ServerError(..), err400, err401, err500)
 import System.Random (randomRs, newStdGen)
 import qualified Data.ByteString.Base64 as Base64
@@ -30,6 +31,7 @@ import qualified Data.ByteString.Char8 as BS -- Only used for Digest headers
 import qualified Data.ByteString.Lazy.Char8 as BS.Lazy -- Only used for ASCII data
 import qualified Data.Map as Map
 import qualified Data.Text as T
+import Data.Text.Encoding (decodeUtf8)
 import qualified Text.ParserCombinators.ReadP as Parse
 
 
@@ -61,7 +63,7 @@ checkAuthenticated realm conn req = goCheck
            Just (DigestAuth, ahdr) -> checkDigestAuth conn ahdr req
            -- Just _ | plainHttp req  -> Left InsecureAuthError
            Just (BasicAuth,  ahdr) -> checkBasicAuth  conn realm ahdr
-           -- Just (AuthToken,  ahdr) -> checkTokenAuth  users       ahdr
+           Just (AuthToken,  ahdr) -> checkTokenAuth  conn ahdr
            Nothing                 -> throwError NoAuthError
 
 -- | Authentication methods supported by hackage-server.
@@ -86,25 +88,30 @@ getHeaderAuth req =
     _ -> Nothing
 
 
--- ------------------------------------------------------------------------
--- -- Auth token method
--- --
+------------------------------------------------------------------------
+-- Auth token method
+--
 
--- -- | Handle a auth request using an access token
--- checkTokenAuth :: Users.Users -> BS.ByteString
---                -> Either AuthError UserId
--- checkTokenAuth users ahdr = do
---     parsedToken <-
---       case Users.parseOriginalToken (T.decodeUtf8 ahdr) of
---         Left _    -> Left BadApiKeyError
---         Right tok -> Right (Users.convertToken tok)
---     (uid, uinfo) <- Users.lookupAuthToken parsedToken users ?! BadApiKeyError
---     _ <- getUserAuth uinfo ?! UserStatusError uid uinfo
---     return uid
+-- | Handle a auth request using an access token
+checkTokenAuth :: Connection -> BS.ByteString
+               -> ExceptT AuthError IO UserId
+checkTokenAuth conn ahdr = do
+  parsedToken <- liftEither $
+    case parseOriginalToken (decodeUtf8 ahdr) of
+      Left _    -> Left BadApiKeyError
+      Right tok -> Right (convertToken tok)
+  eres <- liftIO $ doSelect1 conn $ optional $ do
+    t <- each userAuthTokensSchema
+    where_ $ authTokenToken t ==. lit parsedToken
+    u <- activeUsers
+    where_ $ userId u ==. authTokenUserId t
+    pure $ userId u
+  mres <- liftEither $ first DatabaseError eres
+  liftEither $ mres ?! BadApiKeyError
 
--- ------------------------------------------------------------------------
--- -- Basic auth method
--- --
+------------------------------------------------------------------------
+-- Basic auth method
+--
 
 checkBasicAuthInfo :: PasswdHash -> BasicAuthInfo -> Bool
 checkBasicAuthInfo hash (BasicAuthInfo realmName userName pass) =
