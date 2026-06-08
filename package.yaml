@@ -51,6 +51,9 @@ dependencies:
 - lens
 - filepath
 - hashable
+- crypton
+- base16-bytestring
+- memory
 
 ghc-options:
 - -Wall
