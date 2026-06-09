@@ -8,4 +8,5 @@ import Servant.HackageCombinators.HackageAuth as X
 import Servant.HackageCombinators.NegotiableContent as X
 import Servant.HackageCombinators.NotYetPorted as X
 import Servant.HackageCombinators.PermanentRedirect as X
+import Servant.HackageCombinators.UserDomain as X
 

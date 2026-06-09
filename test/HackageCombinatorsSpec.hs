@@ -15,18 +15,27 @@ type API = "redirect" :> PermanentRedirect
       :<|> "format" :> CaptureExt "something" String "tar.gz" :> Get '[JSON] String
       :<|> "auth" :> HackageAuth :> Get '[JSON] ()
       :<|> "cache" :> CacheControl :> Get '[JSON] ()
+      :<|> "user" :> UserDomain :> Get '[JSON] ()
       :<|> NegotiableContent :> "negotiable" :> Capture "something" String :> Get '[PlainText, JSON] String
 
 
 spec :: Spec
-spec = with (pure $ serveWithContext (Proxy @API) (hackageAuthHandler hackageRealm undefined :. EmptyContext)
-    (undefined
-      :<|> pure
-      :<|> pure
-      :<|> const (pure ())
-      :<|> WithCacheControl [MaxAge 1234, SharedMaxAge 4321] (pure ())
-      :<|> pure
-    )) $ do
+spec =
+  with (pure $
+    serveWithContext
+      (Proxy @API)
+      (UserDomain "my.user.domain"
+        :. hackageAuthHandler hackageRealm undefined
+        :. EmptyContext
+      )
+      (undefined
+        :<|> pure
+        :<|> pure
+        :<|> const (pure ())
+        :<|> WithCacheControl [MaxAge 1234, SharedMaxAge 4321] (pure ())
+        :<|> pure ()
+        :<|> pure
+      )) $ do
 
   describe "format" $ do
     it "should match when capturing the format" $ do
@@ -61,4 +70,14 @@ spec = with (pure $ serveWithContext (Proxy @API) (hackageAuthHandler hackageRea
 
     it "should return 200 when Etag doesn't match" $ do
       request "GET" "/cache" [("If-None-Match", "\"1\"")] "" `shouldRespondWith` 200
+
+  describe "user domain" $ do
+    it "should 301 when running on the wrong domain" $ do
+      request "GET" "/user" [("Host", "some.domain")] "" `shouldRespondWith` 301
+        { matchHeaders =
+            [ "Location" <:> "my.user.domain/user"
+            ]
+        }
+    it "should 200 when running on the user domain" $ do
+      request "GET" "/user" [("Host", "my.user.domain")] "" `shouldRespondWith` 200
 

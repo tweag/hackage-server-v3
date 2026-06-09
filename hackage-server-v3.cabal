@@ -39,6 +39,13 @@ library
       Rel8.CreateTable
       Servant.HackageAuth
       Servant.HackageCombinators
+      Servant.HackageCombinators.CacheControl
+      Servant.HackageCombinators.CaptureExt
+      Servant.HackageCombinators.HackageAuth
+      Servant.HackageCombinators.NegotiableContent
+      Servant.HackageCombinators.NotYetPorted
+      Servant.HackageCombinators.PermanentRedirect
+      Servant.HackageCombinators.UserDomain
       TestAPI
   other-modules:
       Paths_hackage_server_v3
