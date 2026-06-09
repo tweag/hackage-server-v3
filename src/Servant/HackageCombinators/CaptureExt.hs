@@ -6,7 +6,7 @@ module Servant.HackageCombinators.CaptureExt where
 import Data.Kind (Type)
 import Data.Proxy (Proxy (..))
 import Data.Text qualified as T
-import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
+import GHC.TypeLits (KnownSymbol, Symbol, symbolVal, ErrorMessage(..), TypeError)
 import Servant.API
 import Servant.Server hiding (respond)
 import Servant.Server.Internal.Delayed
@@ -44,4 +44,11 @@ instance ( Typeable a
       rep = typeRep (Proxy :: Proxy Capture')
       formatError = urlParseErrorFormatter $ getContextEntry (mkContextWithErrorFormatter context)
       hint = CaptureHint (T.pack $ symbolVal $ Proxy @hint) (typeRep (Proxy :: Proxy a))
+
+
+instance (TypeError ('Text "Due to servant#1887, we can't yet implement this instance"))
+    => HasLink (CaptureExt sym v ext :> sub)
+  where
+    type MkLink (CaptureExt sym v ext :> sub) a = v -> MkLink sub a
+    toLink = undefined
 
