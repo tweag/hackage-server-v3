@@ -1,7 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies      #-}
 
 module HackageCombinatorsSpec where
 
+import GHC.Generics
 import Data.Proxy (Proxy(..))
 import Test.Hspec
 import Test.Hspec.Wai
@@ -9,33 +11,48 @@ import Servant.API
 import Servant.Server
 import Servant.HackageCombinators
 import Servant.HackageAuth (hackageRealm)
+import Servant.Links (fieldLink)
 
-type API = "redirect" :> PermanentRedirect
-      :<|> "format" :> CaptureExt "something" String "json" :> Get '[JSON] String
-      :<|> "format" :> CaptureExt "something" String "tar.gz" :> Get '[JSON] String
-      :<|> "auth" :> HackageAuth :> Get '[JSON] ()
-      :<|> "cache" :> CacheControl :> Get '[JSON] ()
-      :<|> "user" :> UserDomain :> Get '[JSON] ()
-      :<|> NegotiableContent :> "negotiable" :> Capture "something" String :> Get '[PlainText, JSON] String
-
+data API mode = API
+  { redirect          :: mode :- "redirect" :> "in" :> Capture "capture" String :> PermanentRedirect
+  , redirectTarget    :: mode :- "redirect" :> "out" :> Capture "capture" String :> Get '[JSON] String
+  , formatJson        :: mode :- "format" :> CaptureExt "something" String "json" :> Get '[JSON] String
+  , formatTarGz       :: mode :- "format" :> CaptureExt "something" String "tar.gz" :> Get '[JSON] String
+  , auth              :: mode :- "auth" :> HackageAuth :> Get '[JSON] ()
+  , cacheControl      :: mode :- "cache" :> CacheControl :> Get '[JSON] ()
+  , userDomain        :: mode :- "user" :> UserDomain :> Get '[JSON] ()
+  , negotiableContent :: mode :- NegotiableContent :> "negotiable" :> Capture "something" String :> Get '[PlainText, JSON] String
+  }
+  deriving stock Generic
 
 spec :: Spec
 spec =
   with (pure $
     serveWithContext
-      (Proxy @API)
+      (Proxy @(NamedRoutes API))
       (UserDomain "my.user.domain"
         :. hackageAuthHandler hackageRealm undefined
         :. EmptyContext
       )
-      (undefined
-        :<|> pure
-        :<|> pure
-        :<|> const (pure ())
-        :<|> WithCacheControl [MaxAge 1234, SharedMaxAge 4321] (pure ())
-        :<|> pure ()
-        :<|> pure
+      (API
+        { redirect = fieldLink redirectTarget
+        , redirectTarget = pure
+        , formatJson = pure
+        , formatTarGz = pure
+        , auth = const $ pure ()
+        , cacheControl = WithCacheControl [MaxAge 1234, SharedMaxAge 4321] $ pure ()
+        , userDomain = pure ()
+        , negotiableContent = pure
+        }
       )) $ do
+
+  describe "redirect" $ do
+    it "should redirect" $ do
+      get "/redirect/in/field" `shouldRespondWith` 308
+        { matchHeaders =
+            [ "Location" <:> "/redirect/out/field"
+            ]
+        }
 
   describe "format" $ do
     it "should match when capturing the format" $ do
@@ -67,7 +84,6 @@ spec =
         }
     it "should return 304 when Etag matches" $ do
       request "GET" "/cache" [("If-None-Match", "\"0\"")] "" `shouldRespondWith` 304
-
     it "should return 200 when Etag doesn't match" $ do
       request "GET" "/cache" [("If-None-Match", "\"1\"")] "" `shouldRespondWith` 200
 
