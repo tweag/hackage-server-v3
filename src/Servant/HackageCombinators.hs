@@ -9,4 +9,5 @@ import Servant.HackageCombinators.NegotiableContent as X
 import Servant.HackageCombinators.NotYetPorted as X
 import Servant.HackageCombinators.PermanentRedirect as X
 import Servant.HackageCombinators.UserDomain as X
+import Servant.HackageCombinators.WhitelistDigest as X
 

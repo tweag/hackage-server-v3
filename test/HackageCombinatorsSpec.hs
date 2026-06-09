@@ -3,15 +3,19 @@
 
 module HackageCombinatorsSpec where
 
-import GHC.Generics
+import Data.ByteString (ByteString)
 import Data.Proxy (Proxy(..))
+import Data.Set qualified as S
+import GHC.Generics
+import Servant.API
+import Servant.HackageAuth (hackageRealm)
+import Servant.HackageCombinators
+import Servant.Links (fieldLink)
+import Servant.Server
 import Test.Hspec
 import Test.Hspec.Wai
-import Servant.API
-import Servant.Server
-import Servant.HackageCombinators
-import Servant.HackageAuth (hackageRealm)
-import Servant.Links (fieldLink)
+import qualified Crypto.Hash as Crypto
+
 
 data API mode = API
   { redirect          :: mode :- "redirect" :> "in" :> Capture "capture" String :> PermanentRedirect
@@ -22,6 +26,7 @@ data API mode = API
   , cacheControl      :: mode :- "cache" :> CacheControl :> Get '[JSON] ()
   , userDomain        :: mode :- "user" :> UserDomain :> Get '[JSON] ()
   , negotiableContent :: mode :- NegotiableContent :> "negotiable" :> Capture "something" String :> Get '[PlainText, JSON] String
+  , whitelistDigest   :: mode :- "whitelist" :> Capture "something" String :> WhitelistDigest '[JSON] String
   }
   deriving stock Generic
 
@@ -43,6 +48,10 @@ spec =
         , cacheControl = WithCacheControl [MaxAge 1234, SharedMaxAge 4321] $ pure ()
         , userDomain = pure ()
         , negotiableContent = pure
+        , whitelistDigest = \str ->
+            WithWhitelistDigest
+              (S.singleton $ Crypto.hashWith @ByteString Crypto.SHA256 $ "\"acceptable\"")
+              (pure str)
         }
       )) $ do
 
@@ -96,4 +105,10 @@ spec =
         }
     it "should 200 when running on the user domain" $ do
       request "GET" "/user" [("Host", "my.user.domain")] "" `shouldRespondWith` 200
+
+  describe "whitelist digest" $ do
+    it "should return 200 for \"acceptable\"" $ do
+      get "/whitelist/acceptable" `shouldRespondWith` 200
+    it "should return 403 for \"unacceptable\"" $ do
+      get "/whitelist/unacceptable" `shouldRespondWith` 403
 
