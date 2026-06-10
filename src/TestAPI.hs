@@ -2,6 +2,7 @@
 
 module TestAPI where
 
+import Data.BlobStorage qualified as Blob
 import Servant.Server.Generic (AsServerT)
 import GHC.Generics
 import Hackage.Types.PrimaryKey
@@ -50,6 +51,7 @@ main :: IO ()
 main = do
   client <- newTlsManager
   pool <- newPool connPool
+  blobStore <- Blob.open "blobs"
   app <-
     runServerM
       (Proxy @(
@@ -60,7 +62,7 @@ main = do
         :. hackageAuthHandler hackageRealm pool
         :. EmptyContext
       )
-      (ServerCtx pool)
+      (ServerCtx pool blobStore)
       $ packagesHtmlServer
         :<|> bootstrap
         :<|> NotYetPorted

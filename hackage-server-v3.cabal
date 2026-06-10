@@ -25,6 +25,7 @@ source-repository head
 
 library
   exposed-modules:
+      Data.BlobStorage
       Data.TarIndex
       Hackage.API
       Hackage.API.PackagesHTML

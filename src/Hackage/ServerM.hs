@@ -10,10 +10,12 @@ import Control.Monad.Except
 import Servant
 import Data.Pool
 import Servant.EDE
+import Data.BlobStorage (BlobStorage)
 
 
 data ServerCtx = ServerCtx
   { serverPool :: Pool Connection
+  , serverBlobStore :: BlobStorage
   }
 
 
