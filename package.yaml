@@ -54,6 +54,9 @@ dependencies:
 - crypton
 - base16-bytestring
 - memory
+- tar
+- cereal
+- directory
 
 ghc-options:
 - -Wall

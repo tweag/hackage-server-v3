@@ -25,6 +25,7 @@ source-repository head
 
 library
   exposed-modules:
+      Data.TarIndex
       Hackage.API
       Hackage.Auth.Admin
       Hackage.Auth.AuthToken
@@ -33,6 +34,7 @@ library
       Hackage.Features.Upload
       Hackage.Schemas.Packages
       Hackage.Schemas.Users
+      Hackage.TarBalls
       Hackage.Types
       Hackage.Utils
       Lib
@@ -66,8 +68,10 @@ library
     , base16-bytestring
     , base64-bytestring
     , bytestring
+    , cereal
     , containers
     , crypton
+    , directory
     , ede
     , filepath
     , gdp
@@ -88,6 +92,7 @@ library
     , servant-ede
     , servant-server
     , tagged
+    , tar
     , text
     , time
     , unordered-containers
@@ -117,8 +122,10 @@ test-suite tests
     , base16-bytestring
     , base64-bytestring
     , bytestring
+    , cereal
     , containers
     , crypton
+    , directory
     , ede
     , filepath
     , gdp
@@ -143,6 +150,7 @@ test-suite tests
     , servant-ede
     , servant-server
     , tagged
+    , tar
     , text
     , time
     , unordered-containers

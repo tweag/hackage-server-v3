@@ -1,57 +1,7 @@
-{-# LANGUAGE DeriveAnyClass             #-}
-{-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE DeriveTraversable          #-}
-{-# LANGUAGE DerivingStrategies         #-}
-{-# LANGUAGE DerivingVia                #-}
-{-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
-{-# LANGUAGE NamedFieldPuns             #-}
 {-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE StandaloneDeriving         #-}
-{-# LANGUAGE TypeApplications           #-}
-{-# LANGUAGE TypeFamilies               #-}
 
--- | Schema definitions for package-related tables
-module Hackage.Schemas.Packages
-  ( -- * Packages table
-    PkgInfoId(..)
-  , PkgInfoRow(..)
-  , pkgInfoSchema
-
-  , MetadataRevisionRow(..)
-  , metadataRevisionsSchema
-
-  , TarballRevisionRow(..)
-  , packageTarballRevisionsSchema
-
-    -- * Package versions table
-  , PackageVersionRow(..)
-  , packageVersionsSchema
-
-    -- * Package maintainers table
-  , PackageMaintainerRow(..)
-  , packageMaintainersSchema
-
-    -- * Package tags table
-  , PackageTagRow(..)
-  , packageTagsSchema
-
-    -- * Tag aliases table
-  , TagAliasRow(..)
-  , tagAliasesSchema
-
-    -- * Deprecated package versions table
-  , DeprecatedVersionRow(..)
-  , deprecatedVersionsSchema
-
-    -- * Package documentation table
-  , DocumentationRow(..)
-  , documentationSchema
-
-    -- * Package maintenance role type
-  , PackageRole(..)
-  ) where
+module Hackage.Schemas.Packages where
 
 import Data.Int (Int32, Int64)
 import Data.Text (Text)
@@ -304,3 +254,25 @@ documentationSchema = TableSchema
       , docStoredTime = "stored_time"
       }
   }
+
+
+data TarIndexRow f = TarIndexRow
+  { tarIndexId :: Column f Int64
+  , tarIndexBlob :: Column f BlobId
+  , tarIndexPath :: Column f Text
+  , tarIndexOffset :: Column f Int64
+  }
+  deriving stock (Generic)
+  deriving anyclass (Rel8able)
+
+tarIndexSchema :: TableSchema (TarIndexRow Name)
+tarIndexSchema = TableSchema
+  { name = "tarindex"
+  , columns = TarIndexRow
+      { tarIndexId = "id"
+      , tarIndexBlob = "blob"
+      , tarIndexPath = "path"
+      , tarIndexOffset = "offset"
+      }
+  }
+
