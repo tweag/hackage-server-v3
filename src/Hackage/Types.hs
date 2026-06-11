@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Hackage.Types
   ( module Hackage.Types
   , PackageName

@@ -12,7 +12,6 @@ import Control.Monad.IO.Class
 import Control.Monad.Except
 import Rel8 hiding (null, run, Enum)
 import qualified Rel8 as Rel8
-import Data.Aeson (Value, ToJSON(..))
 
 
 toE :: IO (Either SessionError a) -> Handler a

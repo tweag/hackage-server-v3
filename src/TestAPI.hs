@@ -29,11 +29,10 @@ type API = "test"
               :> Get '[JSON, HTML ] TrusteesObject
       :<|> NotYetPorted
 
-instance HasTemplate HTML TrusteesObject where
-  templateFor _ _ = "upload/trustees.html"
 
 withConn :: [DB.Setting] -> (Connection -> IO a) ->  IO a
 withConn ss = bracket (acquire ss >>= either (error . show) pure) release
+
 
 main :: IO ()
 main = do

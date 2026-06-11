@@ -38,6 +38,9 @@ instance ToObject TrusteesObject where
       )
     ]
 
+instance HasTemplate HTML TrusteesObject where
+  templateFor _ _ = "upload/trustees.html"
+
 
 trusteesEndpoint :: Connection -> Handler TrusteesObject
 trusteesEndpoint conn = do
