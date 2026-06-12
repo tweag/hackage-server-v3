@@ -6,7 +6,7 @@ packages:
 extra-deps:
   - rel8-1.7.0.0
   - github: isovector/servant-ede
-    commit: 101ec739ba4060aa7d9a936036a3ab6f2e93cef9
+    commit: 098dbc1eb15f944ad9728a40f578aac582a2bdde
 
 nix:
   packages:

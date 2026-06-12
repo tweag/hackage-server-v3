@@ -1,3 +1,5 @@
+{-# LANGUAGE QuantifiedConstraints #-}
+
 module Hackage.ServerM where
 
 import Control.Monad.IO.Class
@@ -7,6 +9,7 @@ import Control.Monad.Trans.Reader (ReaderT(..))
 import Control.Monad.Except
 import Servant
 import Data.Pool
+import Servant.EDE
 
 
 data ServerCtx = ServerCtx
@@ -34,19 +37,24 @@ withConnection k =
       withResource (serverPool ctx) $
         runExceptT . flip runReaderT ctx . unServerM . k
 
-
 runServerM
     :: forall api ctx
-     . (HasServer api ctx, ServerContext ctx)
+     . ( LoadedTemplates => HasServer api ctx
+       , ServerContext ctx
+       , TemplateFiles api
+       )
     => Proxy api
     -> Context ctx
     -> ServerCtx
     -> ServerT api ServerM
-    -> Application
-runServerM api ctx serverCtx
-  = serveWithContext api ctx
-  . hoistServerWithContext
-      api
-      (Proxy @ctx)
-      (Handler . flip runReaderT serverCtx . unServerM)
+    -> IO (Application)
+runServerM api ctx serverCtx server = either (fail . show) pure =<< do
+  loadTemplates (Proxy @api) [] "templates"
+    $ pure
+    $ serveWithContext api ctx
+    $ hoistServerWithContext
+        api
+        (Proxy @ctx)
+        (Handler . flip runReaderT serverCtx . unServerM)
+        server
 

@@ -37,16 +37,14 @@ withConn ss = bracket (acquire ss >>= either (error . show) pure) release
 
 main :: IO ()
 main = do
-  eerrs <-
-    loadTemplates (Proxy @(ToServantApi PackagesHtmlAPI)) [] "templates" $ do
-      client <- newTlsManager
-      withConn (pure $ DB.connection $ DB.string "postgresql://sandy@/sandy") $ \conn -> do
-        run 8000 $
-          runServerM
-            (Proxy @(NamedRoutes PackagesHtmlAPI :<|> NotYetPorted))
-            (client
-              :. hackageAuthHandler hackageRealm conn
-              :. EmptyContext
-            ) undefined $ packagesHtmlServer :<|> NotYetPorted
-  either print pure eerrs
+  client <- newTlsManager
+  withConn (pure $ DB.connection $ DB.string "postgresql://sandy@/sandy") $ \conn -> do
+    app <-
+      runServerM
+        (Proxy @(NamedRoutes PackagesHtmlAPI :<|> NotYetPorted))
+        (client
+          :. hackageAuthHandler hackageRealm conn
+          :. EmptyContext
+        ) undefined $ packagesHtmlServer :<|> NotYetPorted
+    run 8000 app
 
