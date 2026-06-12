@@ -46,7 +46,8 @@ type TarballRevIx = Int64
 type MetadataRevIx = Int64
 
 
-newtype BlobId = BlobId
+type role BlobId nominal
+newtype BlobId a = BlobId
   { getBlobId :: MD5
   }
   deriving newtype (Eq, Ord, Show)
@@ -59,7 +60,7 @@ parseMD5 s = maybe (Left "Can't parse md5") Right $ do
   b <- fmap fst $ listToMaybe $ readHex hi
   pure $ Fingerprint a b
 
-instance DBType BlobId where
+instance DBType (BlobId a) where
   typeInformation = do
     let ti = typeInformation @Text
     ti

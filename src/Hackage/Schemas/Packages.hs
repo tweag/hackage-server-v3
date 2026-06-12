@@ -21,6 +21,8 @@ import Rel8
   , Rel8able
   )
 
+data Tarball
+
 newtype PkgInfoId = PkgInfoId { getPkgInfoId :: Int64 }
   deriving newtype (Eq, Ord, Show, Read, DBEq, DBOrd, DBType)
 
@@ -76,8 +78,8 @@ data TarballRevisionRow f = TarballRevisionRow
   , tarballRevId :: Column f TarballRevIx
   , tarballTime :: Column f UTCTime
   , tarballUploader :: Column f UserId
-  , tarballBlobGz   :: Column f BlobId
-  , tarballBlobNoGz :: Column f BlobId
+  , tarballBlobGz   :: Column f (BlobId Tarball)
+  , tarballBlobNoGz :: Column f (BlobId Tarball)
   , tarballLength :: Column f Int64
   , tarballHash :: Column f SHA256Digest
   }
@@ -109,8 +111,9 @@ data PackageVersionRow f = PackageVersionRow
   , pvVersion :: Column f Version
   , pvUploadedBy :: Column f UserId
   , pvUploadTime :: Column f UTCTime
-  , pvTarballBlob :: Column f BlobId
-  , pvCabalBlob :: Column f BlobId
+  , pvTarballBlob :: Column f (BlobId Tarball)
+  , pvCabalBlob :: Column f (BlobId ())
+    -- ^ unclear what this is?
   , pvIsCandidate :: Column f Bool
   }
   deriving stock (Generic)
@@ -238,7 +241,7 @@ deprecatedVersionsSchema = TableSchema
 data DocumentationRow f = DocumentationRow
   { docId :: Column f Int64
   , docPackageId :: Column f Int32
-  , docBlobId :: Column f BlobId
+  , docBlobId :: Column f (BlobId Tarball)
   , docStoredTime :: Column f UTCTime
   }
   deriving stock (Generic)
@@ -258,7 +261,7 @@ documentationSchema = TableSchema
 
 data TarIndexRow f = TarIndexRow
   { tarIndexId :: Column f Int64
-  , tarIndexBlob :: Column f BlobId
+  , tarIndexBlob :: Column f (BlobId Tarball)
   , tarIndexPath :: Column f Text
   , tarIndexOffset :: Column f Int64
   }

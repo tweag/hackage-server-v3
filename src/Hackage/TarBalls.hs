@@ -19,7 +19,7 @@ data InsertTarEntriesError e
 
 insertTarEntries
   :: Connection
-  -> BlobId
+  -> BlobId Tarball
   -> Entries e
   -> IO (Either (InsertTarEntriesError e) ())
 insertTarEntries conn bid es = runExceptT $ do
