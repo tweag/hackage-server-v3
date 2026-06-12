@@ -23,15 +23,35 @@ import Rel8
 
 data Tarball
 
+newtype PkgId = PkgId { getPkgId :: Int64 }
+  deriving newtype (Eq, Ord, Show, Read, DBEq, DBOrd, DBType)
+
 newtype PkgInfoId = PkgInfoId { getPkgInfoId :: Int64 }
   deriving newtype (Eq, Ord, Show, Read, DBEq, DBOrd, DBType)
+
+data PackageNameRow f = PackageNameRow
+  { packageNameId :: Column f PkgId
+  , packageName :: Column f Text
+  }
+  deriving stock (Generic)
+  deriving anyclass (Rel8able)
+
+packageNameSchema :: TableSchema (PackageNameRow Name)
+packageNameSchema = TableSchema
+  { name = "packages"
+  , columns = PackageNameRow
+      { packageNameId = "id"
+      , packageName = "name"
+      }
+  }
+
 
 -- | Packages metadata table
 --
 -- PRIMARY KEY (natural): packageId
 data PkgInfoRow f = PkgInfoRow
-  { packageId :: Column f PkgInfoId
-  , packageName :: Column f PackageName
+  { pkgInfoId :: Column f PkgInfoId
+  , pkgId :: Column f PkgId
   , packageVersion :: Column f Version
   }
   deriving stock (Generic)
@@ -41,8 +61,8 @@ pkgInfoSchema :: TableSchema (PkgInfoRow Name)
 pkgInfoSchema = TableSchema
   { name = "pkginfos"
   , columns = PkgInfoRow
-      { packageId = "id"
-      , packageName = "name"
+      { pkgInfoId = "id"
+      , pkgId = "package"
       , packageVersion = "version"
       }
   }
