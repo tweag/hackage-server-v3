@@ -100,7 +100,7 @@ checkTokenAuth conn ahdr = do
     case parseOriginalToken (decodeUtf8 ahdr) of
       Left _    -> Left BadApiKeyError
       Right tok -> Right (convertToken tok)
-  eres <- liftIO $ doSelect1 conn $ optional $ do
+  eres <- liftIO $ flip doSelect1 conn $ optional $ do
     t <- each userAuthTokensSchema
     where_ $ authTokenToken t ==. lit parsedToken
     u <- activeUsers
@@ -124,7 +124,7 @@ checkBasicAuth :: Connection -> RealmName -> BS.ByteString
 checkBasicAuth conn realm ahdr = do
     authInfo <- liftEither $ getBasicAuthInfo realm ahdr       ?! UnrecognizedAuthError
     let uname = basicUsername authInfo
-    mres <- liftIO $ doSelect1 conn $ do
+    mres <- liftIO $ flip doSelect1 conn $ do
       u <- activeUsers
       where_ $ userName u ==. lit uname
       pure (userId u, userAuth u)
@@ -190,7 +190,7 @@ checkDigestAuth
 checkDigestAuth conn ahdr req = do
     authInfo <- liftEither $ getDigestAuthInfo ahdr req ?! UnrecognizedAuthError
     let uname = digestUsername authInfo
-    eres <- liftIO $ doSelect1 conn $ optional $ do
+    eres <- liftIO $ flip doSelect1 conn $ optional $ do
       u <- activeUsers
       where_ $ userName u ==. lit uname
       pure (userId u, userAuth u)

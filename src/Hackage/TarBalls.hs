@@ -24,7 +24,7 @@ insertTarEntries
   -> IO (Either (InsertTarEntriesError e) ())
 insertTarEntries conn bid es = runExceptT $ do
   m <- withExceptT TarDecodingError $ liftEither $ construct es
-  withExceptT DatabaseError $ ExceptT $ doInsert_ conn $
+  withExceptT DatabaseError $ ExceptT $ flip doInsert_ conn $
     Insert
       { into = tarIndexSchema
       , rows = do

@@ -15,7 +15,6 @@ import Hackage.Schemas.Users
 import Hackage.Types
 import Hackage.Utils
 import Rel8 ((==.), (&&.), each, where_, Result, lit, optional)
-import Servant.Server (Handler)
 import Theory.Named
 
 
@@ -48,9 +47,9 @@ roleWitness (HasRole x) = x
 
 
 -- | Common implementation of 'checkIsAdmin' and 'checkIsTrustee'
-checkIsImpl :: UserRole -> Connection -> Named user UserId -> Handler (Maybe (HasRole userRole user))
-checkIsImpl urole conn uid = do
-  fmap (fmap HasRole) $ doSelect1E conn $ optional $ do
+checkIsImpl :: UserRole -> Named user UserId -> ServerM (Maybe (HasRole userRole user))
+checkIsImpl urole uid = do
+  fmap (fmap HasRole) $ liftDB $ doSelect1 $ optional $ do
     role <- each userRolesSchema
     where_ $ userRoleRole role ==. lit urole
          &&. userRoleUserId role ==. lit (the uid)
@@ -58,16 +57,16 @@ checkIsImpl urole conn uid = do
 
 
 -- | Attempt to summon up a proof that the given user is an admin.
-checkIsAdmin :: Connection -> Named user UserId -> Handler (Maybe (IsAdmin user))
+checkIsAdmin :: Named user UserId -> ServerM (Maybe (IsAdmin user))
 checkIsAdmin = checkIsImpl Admin
 
 
 -- | Attempt to summon up a proof that the given user is a trustee.
-checkIsTrustee :: Connection -> Named user UserId -> Handler (Maybe (IsTrustee user))
+checkIsTrustee :: Named user UserId -> ServerM (Maybe (IsTrustee user))
 checkIsTrustee = checkIsImpl Trustee
 
 
 -- | Attempt to summon up a proof that the given user is an uploader.
-checkIsUploader :: Connection -> Named user UserId -> Handler (Maybe (IsUploader user))
+checkIsUploader :: Named user UserId -> ServerM (Maybe (IsUploader user))
 checkIsUploader = checkIsImpl Uploader
 

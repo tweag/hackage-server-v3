@@ -14,7 +14,6 @@ import Hackage.Types
 import Hackage.Utils
 import Rel8 hiding (Lift)
 import Servant.EDE
-import Servant.Server
 import qualified Data.Map as M
 
 
@@ -42,9 +41,9 @@ instance HasTemplate HTML TrusteesObject where
   templateFor _ _ = "upload/trustees.html"
 
 
-trusteesEndpoint :: Connection -> Handler TrusteesObject
-trusteesEndpoint conn = do
-  ts <- doSelectE conn $ do
+trusteesEndpoint :: ServerM TrusteesObject
+trusteesEndpoint = do
+  ts <- liftDB $ doSelect $ do
     r <- each userRolesSchema
     where_ $ userRoleRole r ==. lit Trustee
     u <- activeUsers

@@ -10,7 +10,6 @@ import Hackage.Schemas.Packages
 import Hackage.Types
 import Hackage.Utils
 import Rel8 ((==.), (&&.), each, where_, Result, lit, optional)
-import Servant.Server (Handler)
 import Theory.Named
 
 
@@ -31,12 +30,11 @@ maintainerWitness (IsMaintainer x) = x
 
 -- | Determine whether the named user is a maintainer of the named package.
 checkIsMaintainer
-    :: Connection
-    -> Named user UserId
+    :: Named user UserId
     -> Named package PkgInfoId
-    -> Handler (Maybe (IsMaintainer user package))
-checkIsMaintainer conn uid pkgid = do
-  fmap (fmap IsMaintainer) $ doSelect1E conn $ optional $ do
+    -> ServerM (Maybe (IsMaintainer user package))
+checkIsMaintainer uid pkgid = do
+  fmap (fmap IsMaintainer) $ liftDB $ doSelect1 $ optional $ do
     role <- each packageMaintainersSchema
     where_ $ pmUserId role    ==. lit (the uid)
          &&. pmPackageId role ==. lit (the pkgid)

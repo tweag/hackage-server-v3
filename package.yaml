@@ -57,6 +57,8 @@ dependencies:
 - tar
 - cereal
 - directory
+- resource-pool
+- transformers
 
 ghc-options:
 - -Wall

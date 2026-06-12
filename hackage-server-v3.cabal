@@ -34,6 +34,7 @@ library
       Hackage.Features.Upload
       Hackage.Schemas.Packages
       Hackage.Schemas.Users
+      Hackage.ServerM
       Hackage.TarBalls
       Hackage.Types
       Hackage.Utils
@@ -87,6 +88,7 @@ library
     , mtl
     , random
     , rel8
+    , resource-pool
     , resourcet
     , servant
     , servant-ede
@@ -95,6 +97,7 @@ library
     , tar
     , text
     , time
+    , transformers
     , unordered-containers
     , wai
     , warp
@@ -146,6 +149,7 @@ test-suite tests
     , mtl
     , random
     , rel8
+    , resource-pool
     , resourcet
     , servant
     , servant-ede
@@ -154,6 +158,7 @@ test-suite tests
     , tar
     , text
     , time
+    , transformers
     , unordered-containers
     , wai
     , warp
