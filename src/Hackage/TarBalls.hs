@@ -30,7 +30,7 @@ insertTarEntries conn bid es = runExceptT $ do
       , rows = do
           (path, offset) <- values $ do
             (k, v) <- M.toList m
-            pure (lit $ T.pack k, lit v)
+            pure $ lit (T.pack k, v)
           pure $ TarIndexRow
             { tarIndexId = unsafeDefault
             , tarIndexBlob = lit bid
