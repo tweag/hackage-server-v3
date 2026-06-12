@@ -7,17 +7,24 @@ module Hackage.Types
   ) where
 
 import Data.Aeson (ToJSON, FromJSON)
-import Data.Functor.Contravariant
-import Data.Text (Text)
-import Rel8 hiding (Enum)
-import Data.Int (Int64)
 import Data.ByteString (ByteString)
-import Rel8.CreateTable
-import Distribution.Package (PackageName, mkPackageName)
-import Distribution.Types.Version (Version, mkVersion, versionNumbers)
-import qualified Data.Text as T
-import qualified Distribution.Package as Pkg
+import Data.Coerce (coerce)
+import Data.Functor.Contravariant
 import Data.Hashable (Hashable)
+import Data.Int (Int64)
+import Data.Maybe (listToMaybe)
+import Data.Text (Text)
+import Data.Text qualified as T
+import Distribution.Package (PackageName, mkPackageName)
+import Distribution.Package qualified as Pkg
+import Distribution.Types.Version (Version, mkVersion, versionNumbers)
+import Distribution.Utils.MD5 (MD5, showMD5)
+import GHC.Fingerprint (Fingerprint(..))
+import Numeric (readHex)
+import Rel8 hiding (Enum)
+import Rel8.CreateTable
+import Rel8.Decoder (parseDecoder)
+
 
 newtype UserId = UserId Int64
   deriving newtype (Eq, Ord, Show, DBType, DBEq, DBOrd, DBAutoInc, ToJSON, FromJSON, Hashable)
@@ -34,10 +41,31 @@ type Nonce = Text
 type Tag = Text
 type ReportId = Text
 type Revision = Text
-type BlobId = Text
 type SHA256Digest = Text
 type TarballRevIx = Int64
 type MetadataRevIx = Int64
+
+
+newtype BlobId = BlobId
+  { getBlobId :: MD5
+  }
+  deriving newtype (Eq, Ord, Show)
+  deriving anyclass (DBEq, DBOrd)
+
+parseMD5 :: String -> Either String MD5
+parseMD5 s = maybe (Left "Can't parse md5") Right $ do
+  let (lo, hi) = splitAt 16 s
+  a <- fmap fst $ listToMaybe $ readHex lo
+  b <- fmap fst $ listToMaybe $ readHex hi
+  pure $ Fingerprint a b
+
+instance DBType BlobId where
+  typeInformation = do
+    let ti = typeInformation @Text
+    ti
+      { encode = contramap (T.pack . showMD5 . getBlobId) $ encode ti
+      , decode = parseDecoder (coerce . parseMD5 . T.unpack) $ decode ti
+      }
 
 
 -- | A password hash. It actually contains the hash of the username, passowrd

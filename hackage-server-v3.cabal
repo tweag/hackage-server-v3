@@ -105,6 +105,7 @@ test-suite tests
   main-is: Spec.hs
   other-modules:
       HackageCombinatorsSpec
+      MD5Spec
       Paths_hackage_server_v3
   autogen-modules:
       Paths_hackage_server_v3
