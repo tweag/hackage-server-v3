@@ -1,0 +1,19 @@
+{% include "../header.html" with title = "All packages by name" %}
+
+<h2>All packages by name</h2>
+
+<ul class="packages">
+{% for package in packages %}
+<li>
+  <a href="/package/{{ package.key }}">{{ package.key }}</a> library: {{ package.value.pkgDesc }}
+  (<ul class="comma-sep">
+  {% for tag in package.value.pkgTags %}
+    <li><a href="/package/{{ tag.value }}">{{ tag.value }}</a></li>
+  {% endfor %}
+  </ul>)
+</li>
+{% endfor %}
+</ul>
+
+{% include "../footer.html" %}
+

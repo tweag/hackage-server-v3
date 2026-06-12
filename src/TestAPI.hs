@@ -2,21 +2,22 @@
 
 module TestAPI where
 
-import Data.Map qualified as M
-import Hackage.Features.Upload
-import Servant.HackageAuth (hackageRealm)
+import Control.Exception (bracket)
 import Data.Proxy
+import Hackage.API.PackagesHTML
+import Hackage.Features.Upload
+import Hackage.ServerM
+import Hackage.Types
+import Hasql.Connection
+import Hasql.Connection.Setting qualified as DB
+import Hasql.Connection.Setting.Connection qualified as DB
+import Network.HTTP.Client.TLS
 import Network.Wai.Handler.Warp
 import Servant.API
-import Servant.Server
-import Servant.HackageCombinators
-import Hasql.Connection
-import Control.Exception (bracket)
-import qualified Hasql.Connection.Setting as DB
-import qualified Hasql.Connection.Setting.Connection as DB
-import Hackage.Types
 import Servant.EDE
-import Network.HTTP.Client.TLS
+import Servant.HackageAuth (hackageRealm)
+import Servant.HackageCombinators
+import Servant.Server
 
 
 type API = "test"
@@ -37,18 +38,15 @@ withConn ss = bracket (acquire ss >>= either (error . show) pure) release
 main :: IO ()
 main = do
   eerrs <-
-    loadTemplates (Proxy @API) [] "templates" $ do
+    loadTemplates (Proxy @(ToServantApi PackagesHtmlAPI)) [] "templates" $ do
       client <- newTlsManager
       withConn (pure $ DB.connection $ DB.string "postgresql://sandy@/sandy") $ \conn -> do
         run 8000 $
-          serveWithContext
-            (Proxy @API)
+          runServerM
+            (Proxy @(NamedRoutes PackagesHtmlAPI :<|> NotYetPorted))
             (client
               :. hackageAuthHandler hackageRealm conn
               :. EmptyContext
-            ) $ pure
-          :<|>
-            const
-                  (WithCacheControl [Public, NoCache] $ pure $ TrusteesObject $ M.fromList [ (UserId 0, "isovector") ])
-          :<|> NotYetPorted
+            ) undefined $ packagesHtmlServer :<|> NotYetPorted
   either print pure eerrs
+

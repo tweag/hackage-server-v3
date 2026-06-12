@@ -27,6 +27,7 @@ library
   exposed-modules:
       Data.TarIndex
       Hackage.API
+      Hackage.API.PackagesHTML
       Hackage.Auth.Admin
       Hackage.Auth.AuthToken
       Hackage.Auth.Maintainer

@@ -6,6 +6,28 @@
 <link rel="icon" type="image/png" href="/static/favicon.png" />
 <link rel="search" type="application/opensearchdescription+xml" title="Hackage" href="/packages/opensearch.xml" />
 <title>{{ title }} | Hackage</title>
+<style type="text/css">
+.comma-sep {
+  display: inline-flex;
+  align-items: baseline;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.comma-sep li {
+  display: inline;
+}
+
+.comma-sep li:after {
+  content: ", ";
+}
+
+.comma-sep li:last-child:after {
+    content: "";
+}
+
+</style>
 </head>
 
 <body>
