@@ -12,6 +12,8 @@ import Hackage.Utils
 import Servant.API
 import Servant.EDE
 import Servant.Server.Generic (AsServerT)
+import Test.QuickCheck
+import Data.Text.Arbitrary ()
 
 -- `/packages/.:format`                                   | GET    | html    | html                     |
 -- `/packages/.:format`                                   | POST   | html    | html                     |
@@ -71,16 +73,22 @@ instance HasTemplate HTML PackageNames where
 data PackageNames = PackageNames
   { packages :: Map Text PackageNameData
   }
-  deriving stock Generic
+  deriving stock (Show, Generic)
   deriving anyclass ToObject
+
+instance Arbitrary PackageNames where
+  arbitrary = fmap PackageNames arbitrary
 
 
 data PackageNameData = PackageNameData
   { pkgDesc :: Text
   , pkgTags :: [Tag]
   }
-  deriving stock Generic
+  deriving stock (Show, Generic)
   deriving anyclass ToJSON
+
+instance Arbitrary PackageNameData where
+  arbitrary = PackageNameData <$> arbitrary <*> arbitrary
 
 
 namesStub :: ServerM PackageNames

@@ -59,6 +59,8 @@ dependencies:
 - directory
 - resource-pool
 - transformers
+- QuickCheck
+- quickcheck-text
 
 ghc-options:
 - -Wall

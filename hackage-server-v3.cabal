@@ -65,6 +65,7 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
   build-depends:
       Cabal-syntax
+    , QuickCheck
     , aeson
     , base >=4.7 && <5
     , base16-bytestring
@@ -87,6 +88,7 @@ library
     , memory
     , mime-types
     , mtl
+    , quickcheck-text
     , random
     , rel8
     , resource-pool
@@ -110,6 +112,7 @@ test-suite tests
   other-modules:
       HackageCombinatorsSpec
       MD5Spec
+      TemplatesSpec
       Paths_hackage_server_v3
   autogen-modules:
       Paths_hackage_server_v3
@@ -122,6 +125,7 @@ test-suite tests
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Cabal-syntax
+    , QuickCheck
     , aeson
     , base >=4.7 && <5
     , base16-bytestring
@@ -148,6 +152,7 @@ test-suite tests
     , memory
     , mime-types
     , mtl
+    , quickcheck-text
     , random
     , rel8
     , resource-pool
