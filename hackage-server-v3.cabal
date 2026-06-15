@@ -51,6 +51,7 @@ library
       Servant.HackageCombinators.PermanentRedirect
       Servant.HackageCombinators.UserDomain
       Servant.HackageCombinators.WhitelistDigest
+      SetupDB
       TestAPI
   other-modules:
       Paths_hackage_server_v3

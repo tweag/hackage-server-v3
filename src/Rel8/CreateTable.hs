@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs                    #-}
+{-# LANGUAGE OverloadedStrings        #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
 
 module Rel8.CreateTable
@@ -8,15 +9,16 @@ module Rel8.CreateTable
   , makeTable
   ) where
 
+import Data.ByteString.Char8 qualified as BS8
+import Data.Foldable
 import Data.Int (Int16, Int32, Int64)
-import qualified Data.ByteString.Char8 as BS8
-import           Data.Foldable
-import           Data.Kind (Type)
-import           Hasql.Session (sql, Session)
-import           Rel8 (QualifiedName(QualifiedName), TableSchema(..), Name)
-import qualified Rel8 as Rel8
-import           Rel8.Table.Verify (showCreateTable)
-import           Unsafe.Coerce (unsafeCoerce)
+import Data.Kind (Type)
+import Data.Text qualified as T
+import Hasql.Session (sql, Session)
+import Rel8 (QualifiedName(QualifiedName), TableSchema(..), Name)
+import Rel8 qualified as Rel8
+import Rel8.Table.Verify (showCreateTable)
+import Unsafe.Coerce (unsafeCoerce)
 
 
 -- | Whenever you see this type, you should think "a record field selector from
@@ -62,7 +64,7 @@ data DbTable table where
 
 makeTable :: Rel8.Rel8able table => DbTable table -> Session ()
 makeTable (DbTable schema constraints) = do
-  sql $ BS8.pack $ showCreateTable schema
+  sql $ BS8.pack $ T.unpack $ T.replace "CREATE TABLE" "CREATE TABLE IF NOT EXISTS" $ T.pack $ showCreateTable schema
   for_ constraints $ mkConstraints schema
 
 

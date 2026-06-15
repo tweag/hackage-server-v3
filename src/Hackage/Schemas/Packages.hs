@@ -3,12 +3,14 @@
 
 module Hackage.Schemas.Packages where
 
+import Hackage.Schemas.Users
 import Hackage.Types.PrimaryKey
-import Data.Int (Int32, Int64)
+import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 import Hackage.Types
+import Rel8.CreateTable
 
 import Rel8
   ( Rel8able
@@ -42,6 +44,13 @@ packageNameSchema = TableSchema
   }
 
 
+packageNameTable :: DbTable PackageNameRow
+packageNameTable = DbTable packageNameSchema
+  [ PK packageNameId
+  , AutoInc packageNameId
+  ]
+
+
 -- | Packages metadata table
 
 type PkgInfoId = PrimaryKey PkgInfoRow
@@ -66,6 +75,14 @@ pkgInfoSchema = TableSchema
       }
   }
 
+pkgInfoTable :: DbTable PkgInfoRow
+pkgInfoTable = DbTable pkgInfoSchema
+  [ PK pkgInfoId
+  , AutoInc pkgInfoId
+  , FK pkgId packageNameSchema packageNameId
+  ]
+
+
 type PkgRevId = PrimaryKey MetadataRevisionRow
 
 data MetadataRevisionRow f = MetadataRevisionRow
@@ -78,6 +95,7 @@ data MetadataRevisionRow f = MetadataRevisionRow
   }
   deriving stock (Generic)
   deriving anyclass (Rel8able)
+
 
 
 metadataRevisionsSchema :: TableSchema (MetadataRevisionRow Name)
@@ -93,6 +111,12 @@ metadataRevisionsSchema = TableSchema
       }
   }
 
+metadataRevisionsTable :: DbTable MetadataRevisionRow
+metadataRevisionsTable = DbTable metadataRevisionsSchema
+  [ PK metadataId
+  , AutoInc metadataId
+  , FK metadataPkgId pkgInfoSchema pkgInfoId
+  ]
 
 
 data TarballRevisionRow f = TarballRevisionRow
@@ -124,37 +148,12 @@ packageTarballRevisionsSchema = TableSchema
       }
   }
 
--- | Package versions and tarballs
--- PRIMARY KEY (synthetic): pvId
--- The (package_id, version) pair should be unique to prevent duplicate versions.
-data PackageVersionRow f = PackageVersionRow
-  { pvId :: Column f Int64
-  , pvPackageId :: Column f Int32
-  , pvVersion :: Column f Version
-  , pvUploadedBy :: Column f UserId
-  , pvUploadTime :: Column f UTCTime
-  , pvTarballBlob :: Column f (BlobId Tarball)
-  , pvCabalBlob :: Column f (BlobId ())
-    -- ^ unclear what this is?
-  , pvIsCandidate :: Column f Bool
-  }
-  deriving stock (Generic)
-  deriving anyclass (Rel8able)
-
-packageVersionsSchema :: TableSchema (PackageVersionRow Name)
-packageVersionsSchema = TableSchema
-  { name = "package_versions"
-  , columns = PackageVersionRow
-      { pvId = "package_version_id"
-      , pvPackageId = "package_id"
-      , pvVersion = "version"
-      , pvUploadedBy = "uploaded_by"
-      , pvUploadTime = "upload_time"
-      , pvTarballBlob = "tarball_blob"
-      , pvCabalBlob = "cabal_blob"
-      , pvIsCandidate = "is_candidate"
-      }
-  }
+packageTarballRevisionsTable :: DbTable TarballRevisionRow
+packageTarballRevisionsTable = DbTable packageTarballRevisionsSchema
+  [ PK tarballPkgId
+  , AutoInc tarballPkgId
+  , FK tarballPkgId pkgInfoSchema pkgInfoId
+  ]
 
 -- | Package maintainers
 -- PRIMARY KEY (synthetic): pmId
@@ -187,6 +186,14 @@ packageMaintainersSchema = TableSchema
       }
   }
 
+packageMaintainerTable :: DbTable PackageMaintainerRow
+packageMaintainerTable = DbTable packageMaintainersSchema
+  [ PK pmId
+  , AutoInc pmId
+  , FK pmPackageId pkgInfoSchema pkgInfoId
+  , FK pmUserId usersSchema userId
+  ]
+
 
 type TagId = PrimaryKey TagRow
 
@@ -211,6 +218,12 @@ tagsSchema = TableSchema
       , tagTag = "tag"
       }
   }
+
+tagTable :: DbTable TagRow
+tagTable = DbTable tagsSchema
+  [ PK tagId
+  , AutoInc tagId
+  ]
 
 -- | Package tags for categorization
 --
@@ -239,6 +252,13 @@ packageTagsSchema = TableSchema
       }
   }
 
+packageTagTable :: DbTable PackageTagRow
+packageTagTable = DbTable packageTagsSchema
+  [ PK ptId
+  , AutoInc ptId
+  , FK ptPackageRevId metadataRevisionsSchema metadataId
+  ]
+
 type TarIndexId = PrimaryKey TarIndexRow
 
 data TarIndexRow f = TarIndexRow
@@ -260,4 +280,11 @@ tarIndexSchema = TableSchema
       , tarIndexOffset = "offset"
       }
   }
+
+
+tarIndexTable :: DbTable TarIndexRow
+tarIndexTable = DbTable tarIndexSchema
+  [ PK tarIndexId
+  , AutoInc tarIndexId
+  ]
 

@@ -34,10 +34,14 @@ withConn :: [DB.Setting] -> (Connection -> IO a) ->  IO a
 withConn ss = bracket (acquire ss >>= either (error . show) pure) release
 
 
+mkConn :: (Connection -> IO r) -> IO r
+mkConn = withConn $ pure $ DB.connection $ DB.string "postgresql://sandy@/sandy"
+
+
 main :: IO ()
 main = do
   client <- newTlsManager
-  withConn (pure $ DB.connection $ DB.string "postgresql://sandy@/sandy") $ \conn -> do
+  mkConn $ \conn -> do
     app <-
       runServerM
         (Proxy @(NamedRoutes PackagesHtmlAPI :<|> NotYetPorted))
