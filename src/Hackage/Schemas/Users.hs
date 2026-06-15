@@ -38,8 +38,9 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
-import Hackage.Types
 import Hackage.Auth.AuthToken
+import Hackage.Types
+import Hackage.Types.PrimaryKey
 
 import Rel8
   ( Rel8able
@@ -137,8 +138,11 @@ userRolesTable = DbTable userRolesSchema
   , FK userRoleUserId usersSchema userId
   ]
 
+type AuthTokenId = PrimaryKey UserAuthTokenRow
+
 data UserAuthTokenRow f = UserAuthTokenRow
-  { authTokenUserId :: Column f UserId
+  { authTokenId :: Column f AuthTokenId
+  , authTokenUserId :: Column f UserId
   , authTokenToken :: Column f AuthToken
   , authTokenDescription :: Column f (Maybe Text)
   , authTokenCreatedTime :: Column f UTCTime
@@ -150,7 +154,8 @@ userAuthTokensSchema :: TableSchema (UserAuthTokenRow Name)
 userAuthTokensSchema = TableSchema
   { name = "user_auth_tokens"
   , columns = UserAuthTokenRow
-      { authTokenUserId = "user_id"
+      { authTokenId = "id"
+      , authTokenUserId = "user_id"
       , authTokenToken = "token"
       , authTokenDescription = "description"
       , authTokenCreatedTime = "created_time"

@@ -38,6 +38,7 @@ library
       Hackage.ServerM
       Hackage.TarBalls
       Hackage.Types
+      Hackage.Types.PrimaryKey
       Hackage.Utils
       Lib
       Rel8.CreateTable

@@ -3,6 +3,7 @@
 
 module Hackage.Schemas.Packages where
 
+import Hackage.Types.PrimaryKey
 import Data.Int (Int32, Int64)
 import Data.Text (Text)
 import Data.Time (UTCTime)
@@ -15,7 +16,6 @@ import Rel8
   , Column
   , Name
   , DBEq
-  , DBOrd
   , ReadShow(..)
   , DBType
   , Rel8able
@@ -23,11 +23,7 @@ import Rel8
 
 data Tarball
 
-newtype PkgId = PkgId { getPkgId :: Int64 }
-  deriving newtype (Eq, Ord, Show, Read, DBEq, DBOrd, DBType)
-
-newtype PkgInfoId = PkgInfoId { getPkgInfoId :: Int64 }
-  deriving newtype (Eq, Ord, Show, Read, DBEq, DBOrd, DBType)
+type PkgId = PrimaryKey PackageNameRow
 
 data PackageNameRow f = PackageNameRow
   { packageNameId :: Column f PkgId
@@ -47,12 +43,14 @@ packageNameSchema = TableSchema
 
 
 -- | Packages metadata table
---
--- PRIMARY KEY (natural): packageId
+
+type PkgInfoId = PrimaryKey PkgInfoRow
+
 data PkgInfoRow f = PkgInfoRow
   { pkgInfoId :: Column f PkgInfoId
   , pkgId :: Column f PkgId
   , packageVersion :: Column f Version
+  , pkgInfoDeprecated :: Column f Bool
   }
   deriving stock (Generic)
   deriving anyclass (Rel8able)
@@ -64,12 +62,11 @@ pkgInfoSchema = TableSchema
       { pkgInfoId = "id"
       , pkgId = "package"
       , packageVersion = "version"
+      , pkgInfoDeprecated = "deprecated"
       }
   }
 
-newtype PkgRevId = PkgRevId { getPkgRevId :: Int64 }
-  deriving newtype (Eq, Ord, Show, Read, DBEq, DBOrd, DBType)
-
+type PkgRevId = PrimaryKey MetadataRevisionRow
 
 data MetadataRevisionRow f = MetadataRevisionRow
   { metadataId :: Column f PkgRevId
@@ -191,8 +188,7 @@ packageMaintainersSchema = TableSchema
   }
 
 
-newtype TagId = TagId { getTagId :: Int64 }
-  deriving newtype (Eq, Ord, Show, Read, DBEq, DBOrd, DBType)
+type TagId = PrimaryKey TagRow
 
 -- | Package tags for categorization
 --
@@ -221,8 +217,10 @@ tagsSchema = TableSchema
 -- PRIMARY KEY (synthetic): ptId
 -- Each (package_name, tag) pair is stored as a separate row. The pair
 -- should be unique to prevent assigning the same tag twice to a package.
+type PackageTagId = PrimaryKey PackageTagRow
+
 data PackageTagRow f = PackageTagRow
-  { ptId :: Column f Int64
+  { ptId :: Column f PackageTagId
   , ptPackageRevId :: Column f PkgRevId
   , ptTagId :: Column f TagId
   , ptAssignedTime :: Column f UTCTime
@@ -241,55 +239,10 @@ packageTagsSchema = TableSchema
       }
   }
 
--- | Deprecated package versions.
---
--- PRIMARY KEY (synthetic): depId
--- A package can have many deprecated versions, so each deprecated version
--- is a separate row. The (package_name, version) pair should be unique.
-data DeprecatedVersionRow f = DeprecatedVersionRow
-  { depId :: Column f Int64
-  , depPackageName :: Column f PackageName
-  , depVersion :: Column f Version
-  }
-  deriving stock (Generic)
-  deriving anyclass (Rel8able)
-
-deprecatedVersionsSchema :: TableSchema (DeprecatedVersionRow Name)
-deprecatedVersionsSchema = TableSchema
-  { name = "deprecated_versions"
-  , columns = DeprecatedVersionRow
-      { depId = "deprecated_version_id"
-      , depPackageName = "package_name"
-      , depVersion = "version"
-      }
-  }
-
--- | Package documentation storage
---
--- PRIMARY KEY (synthetic): docId
-data DocumentationRow f = DocumentationRow
-  { docId :: Column f Int64
-  , docPackageId :: Column f Int32
-  , docBlobId :: Column f (BlobId Tarball)
-  , docStoredTime :: Column f UTCTime
-  }
-  deriving stock (Generic)
-  deriving anyclass (Rel8able)
-
-documentationSchema :: TableSchema (DocumentationRow Name)
-documentationSchema = TableSchema
-  { name = "documentation"
-  , columns = DocumentationRow
-      { docId = "documentation_id"
-      , docPackageId = "package_id"
-      , docBlobId = "blob_id"
-      , docStoredTime = "stored_time"
-      }
-  }
-
+type TarIndexId = PrimaryKey TarIndexRow
 
 data TarIndexRow f = TarIndexRow
-  { tarIndexId :: Column f Int64
+  { tarIndexId :: Column f TarIndexId
   , tarIndexBlob :: Column f (BlobId Tarball)
   , tarIndexPath :: Column f Text
   , tarIndexOffset :: Column f Int64
