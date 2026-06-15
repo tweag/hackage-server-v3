@@ -1,0 +1,14 @@
+{% include "../header.html" with title = "Upload package" %}
+
+<h2>Upload package</h2>
+
+<p>See also the <a href="/upload">upload help page</a></p>
+
+<form class="box" method="post" action="/packages/" enctype="multipart/form-data">
+  <input type="file" name="package">
+  <input type="submit" name="Upload package">
+</form>
+
+<p>If you want to deauthenticate first, <a href="/packages/deauth">click here</a>.</p>
+
+{% include "../footer.html" %}

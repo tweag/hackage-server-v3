@@ -3,11 +3,14 @@
 
 module Hackage.API.PackagesHTML where
 
+import GHC.TypeLits
+import Data.Kind (Type)
 import Data.Aeson hiding (Result(..))
 import Data.Functor
 import Data.Hashable
 import Data.Map (Map)
 import Data.Map qualified as M
+import Data.Coerce
 import Data.Text (Text)
 import Data.Text.Arbitrary ()
 import GHC.Generics
@@ -48,6 +51,8 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
     -- , htmlPackagesGraphJson :: mode :- "packages" :> "graph.json" :> Get '[JSON] ()
     { htmlPackagesNames :: mode :- "packages" :> "names" :> Get '[HTML] PackageNames
     , htmlPackagesTrustees :: mode :- "packages" :> "trustees" :> Get '[HTML] TrusteesObject
+    , htmlPackagesHelp :: mode :- "upload" :> Get '[HTML] UploadHelp
+    , htmlPackagesUploadForm :: mode :- "packages" :> "upload" :> Get '[HTML] PackageUpload
     -- , htmlPackagesPreferred :: mode :- "packages" :> "preferred.html" :> Get '[HTML] ()
     -- , htmlPackagesRecentHtml :: mode :- "packages" :> "recent.html" :> Get '[HTML] ()
     -- , htmlPackagesRecentRss :: mode :- "packages" :> "recent.rss" :> Get '[RSS] ()
@@ -68,6 +73,8 @@ packagesHtmlServer :: PackagesHtmlAPI (AsServerT ServerM)
 packagesHtmlServer = PackagesHtmlAPI
   { htmlPackagesNames = namesStub
   , htmlPackagesTrustees = trusteesEndpoint
+  , htmlPackagesHelp = pure staticHTML
+  , htmlPackagesUploadForm = pure staticHTML
   }
 
 --------------------------------------------------------------------------------
@@ -144,3 +151,32 @@ trusteesEndpoint = do
   pure $ TrusteesObject $ M.fromList ts
 
 
+--------------------------------------------------------------------------------
+-- /upload
+
+type StaticHTML :: Symbol -> Type
+data StaticHTML template = StaticHTML
+  deriving stock (Eq, Show, Generic)
+  deriving anyclass Hashable
+
+staticHTML :: Coercible (StaticHTML a) b => b
+staticHTML = coerce StaticHTML
+
+instance Arbitrary (StaticHTML a) where
+  arbitrary = pure StaticHTML
+
+instance ToObject (StaticHTML a) where
+  toObject _ = mempty
+
+instance KnownSymbol a => HasTemplate HTML (StaticHTML a) where
+  templateFor _ _ = symbolVal @a undefined
+
+
+newtype UploadHelp = UploadHelp (StaticHTML "upload/help.html")
+  deriving newtype (Eq, Show, Hashable, Arbitrary, ToObject, HasTemplate HTML)
+
+--------------------------------------------------------------------------------
+-- /package/upload
+
+newtype PackageUpload = PackageUpload (StaticHTML "upload/form.html")
+  deriving newtype (Eq, Show, Hashable, Arbitrary, ToObject, HasTemplate HTML)
