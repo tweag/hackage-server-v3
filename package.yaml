@@ -22,45 +22,45 @@ description:         Please see the README on GitHub at <https://github.com/twea
 
 dependencies:
 - base >= 4.7 && < 5
-- rel8
-- servant
-- servant-server
-- servant-ede
-- text
-- tagged
-- resourcet
-- wai
-- http-types
-- warp
-- gdp
-- hasql
-- bytestring
-- time
-- mtl
 - Cabal-syntax
-- containers
-- base64-bytestring
-- random
+- QuickCheck
 - aeson
-- http-reverse-proxy
+- base16-bytestring
+- base64-bytestring
+- bytestring
+- cereal
+- containers
+- crypton
+- directory
+- ede
+- filepath
+- gdp
+- hashable
+- hasql
 - http-client
 - http-client-tls
-- ede
-- unordered-containers
-- mime-types
+- http-reverse-proxy
+- http-types
 - lens
-- filepath
-- hashable
-- crypton
-- base16-bytestring
 - memory
-- tar
-- cereal
-- directory
-- resource-pool
-- transformers
-- QuickCheck
+- mime-types
+- mtl
 - quickcheck-text
+- random
+- rel8
+- resource-pool
+- resourcet
+- servant
+- servant-ede
+- servant-server
+- tagged
+- tar
+- text
+- time
+- transformers
+- unordered-containers
+- wai
+- warp
 
 ghc-options:
 - -Wall
@@ -90,5 +90,5 @@ tests:
     dependencies:
     - hackage-server-v3
     - hspec
-    - hspec-wai
     - hspec-discover
+    - hspec-wai
