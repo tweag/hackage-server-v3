@@ -73,8 +73,8 @@ packagesHtmlServer :: PackagesHtmlAPI (AsServerT ServerM)
 packagesHtmlServer = PackagesHtmlAPI
   { htmlPackagesNames = namesStub
   , htmlPackagesTrustees = trusteesEndpoint
-  , htmlPackagesHelp = pure staticHTML
-  , htmlPackagesUploadForm = pure staticHTML
+  , htmlPackagesHelp = staticHTML
+  , htmlPackagesUploadForm = staticHTML
   }
 
 --------------------------------------------------------------------------------
@@ -152,15 +152,20 @@ trusteesEndpoint = do
 
 
 --------------------------------------------------------------------------------
--- /upload
-
+-- | A @'StaticHTML' template@ uses the statically known type-level symbol
+-- @template@ for its template. As suggested by its name, it can be used to
+-- serve static HTML templates. In order to use this type, you should @newtype@
+-- wrap it, and @newtype@ derive 'Eq', 'Show', 'Arbitrary', 'ToObject', and
+-- @'HasTemplate' 'HTML'@. You can get a free handler for it via 'staticHTML'
+--
+-- The advantage of newtype-wrapping this type is that doing so prevents the
+-- template names from leaking into the API contract. Furthermore, it provides
+-- a forward-compatable means of making the endpoint /less/ static in the
+-- future :)
 type StaticHTML :: Symbol -> Type
 data StaticHTML template = StaticHTML
   deriving stock (Eq, Show, Generic)
   deriving anyclass Hashable
-
-staticHTML :: Coercible (StaticHTML a) b => b
-staticHTML = coerce StaticHTML
 
 instance Arbitrary (StaticHTML a) where
   arbitrary = pure StaticHTML
@@ -171,7 +176,13 @@ instance ToObject (StaticHTML a) where
 instance KnownSymbol a => HasTemplate HTML (StaticHTML a) where
   templateFor _ _ = symbolVal @a undefined
 
+-- | Get a handler for a newtype-wrapped 'StaticHTML' value.
+staticHTML :: Coercible (StaticHTML a) b => ServerM b
+staticHTML = pure $ coerce StaticHTML
 
+
+--------------------------------------------------------------------------------
+-- /upload
 newtype UploadHelp = UploadHelp (StaticHTML "upload/help.html")
   deriving newtype (Eq, Show, Hashable, Arbitrary, ToObject, HasTemplate HTML)
 
