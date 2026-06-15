@@ -5,7 +5,6 @@ module TestAPI where
 import Control.Exception (bracket)
 import Data.Proxy
 import Hackage.API.PackagesHTML
-import Hackage.Features.Upload
 import Hackage.ServerM
 import Hackage.Types
 import Hasql.Connection

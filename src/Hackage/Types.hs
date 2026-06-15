@@ -24,10 +24,23 @@ import Numeric (readHex)
 import Rel8 hiding (Enum)
 import Rel8.CreateTable
 import Rel8.Decoder (parseDecoder)
+import Test.QuickCheck (Arbitrary)
 
 
 newtype UserId = UserId Int64
-  deriving newtype (Eq, Ord, Show, DBType, DBEq, DBOrd, DBAutoInc, ToJSON, FromJSON, Hashable)
+  deriving newtype
+    ( Eq
+    , Ord
+    , Show
+    , DBType
+    , DBEq
+    , DBOrd
+    , DBAutoInc
+    , ToJSON
+    , FromJSON
+    , Hashable
+    , Arbitrary
+    )
 
 
 data UserStatus = Enabled | Disabled | Deleted

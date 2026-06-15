@@ -32,7 +32,6 @@ library
       Hackage.Auth.AuthToken
       Hackage.Auth.Maintainer
       Hackage.Auth.Nonce
-      Hackage.Features.Upload
       Hackage.Schemas.Packages
       Hackage.Schemas.Users
       Hackage.ServerM

@@ -1,19 +1,24 @@
+{-# LANGUAGE OverloadedLists   #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Hackage.API.PackagesHTML where
 
-import Data.Aeson (ToJSON)
+import Data.Aeson hiding (Result(..))
+import Data.Functor
+import Data.Hashable
 import Data.Map (Map)
 import Data.Map qualified as M
 import Data.Text (Text)
+import Data.Text.Arbitrary ()
 import GHC.Generics
+import Hackage.Schemas.Users
 import Hackage.Types
 import Hackage.Utils
+import Rel8 hiding (Lift)
 import Servant.API
 import Servant.EDE
 import Servant.Server.Generic (AsServerT)
 import Test.QuickCheck
-import Data.Text.Arbitrary ()
 
 -- `/packages/.:format`                                   | GET    | html    | html                     |
 -- `/packages/.:format`                                   | POST   | html    | html                     |
@@ -42,6 +47,7 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
     -- , htmlPackagesGraph :: mode :- "packages" :> "graph" :> Get '[HTML] ()
     -- , htmlPackagesGraphJson :: mode :- "packages" :> "graph.json" :> Get '[JSON] ()
     { htmlPackagesNames :: mode :- "packages" :> "names" :> Get '[HTML] PackageNames
+    , htmlPackagesTrustees :: mode :- "packages" :> "trustees" :> Get '[HTML] TrusteesObject
     -- , htmlPackagesPreferred :: mode :- "packages" :> "preferred.html" :> Get '[HTML] ()
     -- , htmlPackagesRecentHtml :: mode :- "packages" :> "recent.html" :> Get '[HTML] ()
     -- , htmlPackagesRecentRss :: mode :- "packages" :> "recent.rss" :> Get '[RSS] ()
@@ -60,8 +66,8 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
 
 packagesHtmlServer :: PackagesHtmlAPI (AsServerT ServerM)
 packagesHtmlServer = PackagesHtmlAPI
-  {
-    htmlPackagesNames = namesStub
+  { htmlPackagesNames = namesStub
+  , htmlPackagesTrustees = trusteesEndpoint
   }
 
 --------------------------------------------------------------------------------
@@ -96,4 +102,45 @@ namesStub = pure $ PackageNames $ M.fromList
   [ ("hello", PackageNameData "from space" ["a", "b", "c"])
   , ("goodbye", PackageNameData "my dude" ["a", "b"])
   ]
+
+--------------------------------------------------------------------------------
+-- /packages/trustees
+data TrusteesObject = TrusteesObject (Map UserId UserName)
+  deriving stock (Eq, Show, Generic)
+  deriving anyclass Hashable
+
+instance Arbitrary TrusteesObject where
+  arbitrary = fmap TrusteesObject arbitrary
+
+instance ToJSON TrusteesObject where
+  toJSON ts = Object $ toObject ts <>
+    [ "title" .= id @String "Package trustees"
+    , "description" .= id @String "The role of trustees is to help to curate the whole package collection. Trustees have a limited ability to edit package information, for the entire package database (as opposed to package maintainers who have full control over individual packages). Trustees can edit .cabal files, edit other package metadata and upload documentation but they cannot upload new package versions."
+    ]
+
+instance ToObject TrusteesObject where
+  toObject (TrusteesObject ts) =
+    [ "members" .= (M.toList ts <&> \(uid, name) ->
+        object
+          [ "userid" .= uid
+          , "username" .= name
+          ]
+      )
+    ]
+
+instance HasTemplate HTML TrusteesObject where
+  templateFor _ _ = "upload/trustees.html"
+
+
+trusteesEndpoint :: ServerM TrusteesObject
+trusteesEndpoint = do
+  ts <- liftDB $ doSelect $ do
+    r <- each userRolesSchema
+    where_ $ userRoleRole r ==. lit Trustee
+    u <- activeUsers
+    where_ $ userId u ==. userRoleUserId r
+    pure (userRoleUserId r, userName u)
+
+  pure $ TrusteesObject $ M.fromList ts
+
 
