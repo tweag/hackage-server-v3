@@ -6,7 +6,6 @@
 -- servant types, and to hook into our own database logic.
 module Servant.HackageAuth where
 
-import Hackage.Auth.AuthToken
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.IO.Class (liftIO)
@@ -15,8 +14,11 @@ import Data.Char (intToDigit, isAsciiLower)
 import Data.List (intercalate)
 import Data.Map (Map)
 import Data.Maybe (listToMaybe)
+import Data.Pool (Pool, withResource)
 import Data.String
+import Data.Text.Encoding (decodeUtf8)
 import Distribution.Utils.MD5 (md5, showMD5)
+import Hackage.Auth.AuthToken
 import Hackage.Schemas.Users
 import Hackage.Types
 import Hackage.Utils
@@ -31,7 +33,6 @@ import qualified Data.ByteString.Char8 as BS -- Only used for Digest headers
 import qualified Data.ByteString.Lazy.Char8 as BS.Lazy -- Only used for ASCII data
 import qualified Data.Map as Map
 import qualified Data.Text as T
-import Data.Text.Encoding (decodeUtf8)
 import qualified Text.ParserCombinators.ReadP as Parse
 
 
@@ -45,8 +46,9 @@ hackageRealm, adminRealm :: RealmName
 hackageRealm = RealmName "Hackage"
 adminRealm   = RealmName "Hackage admin"
 
-checkAuthenticated :: RealmName -> Connection -> Request -> {- ServerEnv -> -} ExceptT AuthError IO UserId
-checkAuthenticated realm conn req = goCheck
+checkAuthenticated :: RealmName -> Pool Connection -> Request -> {- ServerEnv -> -} ExceptT AuthError IO UserId
+checkAuthenticated realm pool req =
+  ExceptT $ withResource pool $ runExceptT . goCheck
     -- mbHost <- getHost
     -- case mbHost of
     --    Just hostHeaderValue ->
@@ -58,7 +60,7 @@ checkAuthenticated realm conn req = goCheck
     --         else goCheck
     --    Nothing -> goCheck
   where
-    goCheck = do
+    goCheck conn = do
          case getHeaderAuth req of
            Just (DigestAuth, ahdr) -> checkDigestAuth conn ahdr req
            -- Just _ | plainHttp req  -> Left InsecureAuthError

@@ -3,6 +3,7 @@
 
 module Servant.HackageCombinators.HackageAuth where
 
+import Data.Pool (Pool)
 import Control.Monad.Except (ExceptT(..), runExceptT)
 import Hackage.Types
 import Hackage.Utils (Connection)
@@ -19,7 +20,7 @@ type instance AuthServerData HackageAuth = UserId
 
 
 -- | Generate an 'AuthHandler' for 'HackageAuth' auth.
-hackageAuthHandler :: RealmName -> Connection -> AuthHandler Request UserId
+hackageAuthHandler :: RealmName -> Pool Connection -> AuthHandler Request UserId
 hackageAuthHandler realm conn = mkAuthHandler $ \req -> Handler $ ExceptT $ do
   eauth <- runExceptT $ checkAuthenticated hackageRealm conn req
   case eauth of

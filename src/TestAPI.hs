@@ -2,6 +2,7 @@
 
 module TestAPI where
 
+import Data.Pool
 import Control.Exception (bracket)
 import Data.Proxy
 import Hackage.API.PackagesHTML
@@ -35,19 +36,30 @@ withConn ss = bracket (acquire ss >>= either (error . show) pure) release
 
 
 mkConn :: (Connection -> IO r) -> IO r
-mkConn = withConn $ pure $ DB.connection $ DB.string "postgresql://sandy@/sandy"
+mkConn = withConn (pure $ DB.connection $ DB.string "postgresql://sandy@/sandy")
 
+connPool :: PoolConfig Connection
+connPool =
+  setNumStripes Nothing $
+    defaultPoolConfig
+      (acquire (pure $ DB.connection $ DB.string "postgresql://sandy@/sandy") >>= either (error . show) pure)
+      release
+      30
+      10
 
 main :: IO ()
 main = do
   client <- newTlsManager
-  mkConn $ \conn -> do
-    app <-
-      runServerM
-        (Proxy @(NamedRoutes PackagesHtmlAPI :<|> NotYetPorted))
-        (client
-          :. hackageAuthHandler hackageRealm conn
-          :. EmptyContext
-        ) undefined $ packagesHtmlServer :<|> NotYetPorted
-    run 8000 app
+  pool <- newPool connPool
+  app <-
+    runServerM
+      (Proxy @(NamedRoutes PackagesHtmlAPI :<|> NotYetPorted))
+      (client
+        :. hackageAuthHandler hackageRealm pool
+        :. EmptyContext
+      )
+      (ServerCtx pool)
+      $ packagesHtmlServer
+        :<|> NotYetPorted
+  run 8000 app
 
