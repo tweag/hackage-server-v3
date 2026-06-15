@@ -47,8 +47,7 @@ hackageRealm = RealmName "Hackage"
 adminRealm   = RealmName "Hackage admin"
 
 checkAuthenticated :: RealmName -> Pool Connection -> Request -> {- ServerEnv -> -} ExceptT AuthError IO UserId
-checkAuthenticated realm pool req =
-  ExceptT $ withResource pool $ runExceptT . goCheck
+checkAuthenticated realm pool req = goCheck
     -- mbHost <- getHost
     -- case mbHost of
     --    Just hostHeaderValue ->
@@ -60,12 +59,13 @@ checkAuthenticated realm pool req =
     --         else goCheck
     --    Nothing -> goCheck
   where
-    goCheck conn = do
+    hoisting f = ExceptT . withResource pool $ runExceptT . f
+    goCheck = do
          case getHeaderAuth req of
-           Just (DigestAuth, ahdr) -> checkDigestAuth conn ahdr req
+           Just (DigestAuth, ahdr) -> hoisting $ \conn -> checkDigestAuth conn ahdr req
            -- Just _ | plainHttp req  -> Left InsecureAuthError
-           Just (BasicAuth,  ahdr) -> checkBasicAuth  conn realm ahdr
-           Just (AuthToken,  ahdr) -> checkTokenAuth  conn ahdr
+           Just (BasicAuth,  ahdr) -> hoisting $ \conn -> checkBasicAuth  conn realm ahdr
+           Just (AuthToken,  ahdr) -> hoisting $ \conn -> checkTokenAuth  conn ahdr
            Nothing                 -> throwError NoAuthError
 
 -- | Authentication methods supported by hackage-server.
