@@ -67,9 +67,13 @@ pkgInfoSchema = TableSchema
       }
   }
 
+newtype PkgRevId = PkgRevId { getPkgRevId :: Int64 }
+  deriving newtype (Eq, Ord, Show, Read, DBEq, DBOrd, DBType)
+
 
 data MetadataRevisionRow f = MetadataRevisionRow
-  { metadataPkgId :: Column f PkgInfoId
+  { metadataId :: Column f PkgRevId
+  , metadataPkgId :: Column f PkgInfoId
   , metadataRevId :: Column f MetadataRevIx
   , metadataTime :: Column f UTCTime
   , metadataUploader :: Column f UserId
@@ -83,7 +87,8 @@ metadataRevisionsSchema :: TableSchema (MetadataRevisionRow Name)
 metadataRevisionsSchema = TableSchema
   { name = "metadata_revs"
   , columns = MetadataRevisionRow
-      { metadataPkgId = "pkgid"
+      { metadataId = "id"
+      , metadataPkgId = "pkgid"
       , metadataRevId = "rev"
       , metadataTime = "time"
       , metadataUploader = "uploader"
@@ -185,6 +190,32 @@ packageMaintainersSchema = TableSchema
       }
   }
 
+
+newtype TagId = TagId { getTagId :: Int64 }
+  deriving newtype (Eq, Ord, Show, Read, DBEq, DBOrd, DBType)
+
+-- | Package tags for categorization
+--
+-- PRIMARY KEY (synthetic): ptId
+-- Each (package_name, tag) pair is stored as a separate row. The pair
+-- should be unique to prevent assigning the same tag twice to a package.
+data TagRow f = TagRow
+  { tagId :: Column f TagId
+  , tagTag :: Column f Text
+  }
+  deriving stock (Generic)
+  deriving anyclass (Rel8able)
+
+
+tagsSchema :: TableSchema (TagRow Name)
+tagsSchema = TableSchema
+  { name = "tags"
+  , columns = TagRow
+      { tagId = "id"
+      , tagTag = "tag"
+      }
+  }
+
 -- | Package tags for categorization
 --
 -- PRIMARY KEY (synthetic): ptId
@@ -192,8 +223,8 @@ packageMaintainersSchema = TableSchema
 -- should be unique to prevent assigning the same tag twice to a package.
 data PackageTagRow f = PackageTagRow
   { ptId :: Column f Int64
-  , ptPackageName :: Column f PackageName
-  , ptTag :: Column f Text
+  , ptPackageRevId :: Column f PkgRevId
+  , ptTagId :: Column f TagId
   , ptAssignedTime :: Column f UTCTime
   }
   deriving stock (Generic)
@@ -204,31 +235,9 @@ packageTagsSchema = TableSchema
   { name = "package_tags"
   , columns = PackageTagRow
       { ptId = "package_tag_id"
-      , ptPackageName = "package_name"
-      , ptTag = "tag"
+      , ptPackageRevId = "package_rev_id"
+      , ptTagId = "tag"
       , ptAssignedTime = "assigned_time"
-      }
-  }
-
--- | Tag aliases for tag normalization
---
--- PRIMARY KEY (synthetic): taId
--- Each (tag, alias) pair is stored as a separate row.
-data TagAliasRow f = TagAliasRow
-  { taId    :: Column f Int64
-  , taTag   :: Column f Text
-  , taAlias :: Column f Text
-  }
-  deriving stock (Generic)
-  deriving anyclass (Rel8able)
-
-tagAliasesSchema :: TableSchema (TagAliasRow Name)
-tagAliasesSchema = TableSchema
-  { name = "tag_aliases"
-  , columns = TagAliasRow
-      { taId    = "tag_alias_id"
-      , taTag   = "tag"
-      , taAlias = "alias"
       }
   }
 
