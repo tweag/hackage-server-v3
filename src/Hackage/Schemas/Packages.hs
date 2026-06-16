@@ -3,13 +3,14 @@
 
 module Hackage.Schemas.Packages where
 
-import Hackage.Schemas.Users
-import Hackage.Types.PrimaryKey
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
+import Hackage.Orphans ()
+import Hackage.Schemas.Users
 import Hackage.Types
+import Hackage.Types.PrimaryKey
 import Rel8.CreateTable
 
 import Rel8

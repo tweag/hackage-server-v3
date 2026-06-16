@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wno-orphans #-}
-
 module Hackage.Types
   ( module Hackage.Types
   , PackageName
@@ -15,9 +13,8 @@ import Data.Int (Int64)
 import Data.Maybe (listToMaybe)
 import Data.Text (Text)
 import Data.Text qualified as T
-import Distribution.Package (PackageName, mkPackageName)
-import Distribution.Package qualified as Pkg
-import Distribution.Types.Version (Version, mkVersion, versionNumbers)
+import Distribution.Package (PackageName)
+import Distribution.Types.Version (Version)
 import Distribution.Utils.MD5 (MD5, showMD5)
 import GHC.Fingerprint (Fingerprint(..))
 import Numeric (readHex)
@@ -92,23 +89,3 @@ instance DBType (BlobId a) where
 newtype PasswdHash = PasswdHash ByteString
   deriving newtype (Eq, Ord, Show, DBType, DBEq, DBOrd)
 
-
-instance DBType PackageName where
-  typeInformation =
-    let ti = typeInformation @Text
-    in ti { encode = contramap (T.pack . Pkg.unPackageName) $ encode ti
-          , decode = fmap (mkPackageName . T.unpack) $ decode ti
-          }
-
-instance DBEq PackageName
-instance DBOrd PackageName
-
-instance DBType Version where
-  typeInformation =
-    let ti = typeInformation @[Int64]
-    in ti { encode = contramap (fmap fromIntegral . versionNumbers) $ encode ti
-          , decode = fmap (mkVersion . fmap fromIntegral) $ decode ti
-          }
-
-instance DBEq Version
-instance DBOrd Version
