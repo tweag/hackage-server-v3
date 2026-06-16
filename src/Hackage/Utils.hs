@@ -6,6 +6,7 @@ module Hackage.Utils
   , Connection
   ) where
 
+import Data.ByteString.Lazy.Char8 qualified as BSL8
 import Hasql.Connection (Connection)
 import Hasql.Session (SessionError, statement, run)
 import Servant.Server
@@ -21,7 +22,7 @@ liftDB ma = do
   withConnection $ \conn ->
     liftIO (ma conn) >>= \case
       Left _err ->
-        throwError $ err500 { errBody = "A database exception occurred!" }
+        throwError $ err500 { errBody = BSL8.pack $ show _err }
       Right a -> pure a
 
 

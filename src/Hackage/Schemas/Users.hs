@@ -34,7 +34,6 @@ module Hackage.Schemas.Users
   , UserRole(..)
   ) where
 
-import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
@@ -111,8 +110,10 @@ data UserRole
   deriving anyclass DBEq
   deriving DBType via ReadShow UserRole
 
+type UserRoleId = PrimaryKey UserRoleRow
+
 data UserRoleRow f = UserRoleRow
-  { userRoleId :: Column f Int64
+  { userRoleId :: Column f UserRoleId
   , userRoleUserId :: Column f UserId
   , userRoleRole :: Column f UserRole
   , userRoleAssignedTime :: Column f UTCTime
