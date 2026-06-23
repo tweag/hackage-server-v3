@@ -2,11 +2,15 @@ snapshot: lts-24.35
 
 packages:
 - .
+- ../hackage-server
 
 extra-deps:
   - rel8-1.7.0.0
   - github: isovector/servant-ede
     commit: 098dbc1eb15f944ad9728a40f578aac582a2bdde
+  - Cabal-3.16.1.0
+  - Cabal-syntax-3.16.1.0
+  - tar-0.7.1.0
 
 nix:
   packages:
@@ -15,3 +19,13 @@ nix:
     - openssl
     - libz
     - cacert
+
+    - gd
+    - libpng
+    - libz
+    - libjpeg
+    - fontconfig
+    - expat
+    - postgresql
+    - pkg-config
+    - openssl

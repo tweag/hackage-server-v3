@@ -62,6 +62,9 @@ dependencies:
 - wai
 - warp
 
+
+- hackage-server
+
 ghc-options:
 - -Wall
 - -Wcompat

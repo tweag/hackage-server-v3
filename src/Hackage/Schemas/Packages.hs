@@ -24,6 +24,7 @@ import Rel8
   , Rel8able
   )
 
+data Compressed a
 data Tarball
 
 type PkgId = PrimaryKey PackageNameRow
@@ -119,16 +120,18 @@ metadataRevisionsTable = DbTable metadataRevisionsSchema
   , FK metadataPkgId pkgInfoSchema pkgInfoId
   ]
 
+type TarballRevId = PrimaryKey TarballRevisionRow
 
 data TarballRevisionRow f = TarballRevisionRow
-  { tarballPkgId :: Column f PkgInfoId
-  , tarballRevId :: Column f TarballRevIx
+  { tarballRevId :: Column f TarballRevId
+  , tarballPkgId :: Column f PkgInfoId
+  , tarballRevIx :: Column f TarballRevIx
   , tarballTime :: Column f UTCTime
   , tarballUploader :: Column f UserId
-  , tarballBlobGz   :: Column f (BlobId Tarball)
+  , tarballBlobGz   :: Column f (BlobId (Compressed Tarball))
   , tarballBlobNoGz :: Column f (BlobId Tarball)
-  , tarballLength :: Column f Int64
-  , tarballHash :: Column f SHA256Digest
+  , tarballGzLength :: Column f Int64
+  , tarballGzHash :: Column f SHA256Digest
   }
   deriving stock (Generic)
   deriving anyclass (Rel8able)
@@ -138,14 +141,15 @@ packageTarballRevisionsSchema :: TableSchema (TarballRevisionRow Name)
 packageTarballRevisionsSchema = TableSchema
   { name = "package_tarball_revisions"
   , columns = TarballRevisionRow
-      { tarballPkgId = "pkgid"
-      , tarballRevId = "rev"
+      { tarballRevId = "id"
+      , tarballPkgId = "pkgid"
+      , tarballRevIx = "rev"
       , tarballTime = "upload_time"
       , tarballUploader = "revised_by"
       , tarballBlobGz   = "blob_gz"
       , tarballBlobNoGz = "blob_nogz"
-      , tarballLength = "tarball_length"
-      , tarballHash = "tarball_hash"
+      , tarballGzLength = "tarball_length"
+      , tarballGzHash = "tarball_hash"
       }
   }
 

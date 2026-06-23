@@ -22,6 +22,27 @@ packages:
     version: '0.6'
   original:
     url: https://github.com/isovector/servant-ede/archive/098dbc1eb15f944ad9728a40f578aac582a2bdde.tar.gz
+- completed:
+    hackage: Cabal-3.16.1.0@sha256:39873317ab895194547c3fd72c91cdb97c800a49b2656920854747ee466627ca,14459
+    pantry-tree:
+      sha256: b6ac49163659ec305805fc0d2c0564c35fac7132f4c5be6689d0c80a6405ecf0
+      size: 12139
+  original:
+    hackage: Cabal-3.16.1.0
+- completed:
+    hackage: Cabal-syntax-3.16.1.0@sha256:17cf54d07d7aa65ea24ba4045912b8a8af065f10e429fd1811d43810b313c504,7778
+    pantry-tree:
+      sha256: 1db24d3ca877095a7c4f99fda3c58155a33d8041dfe9faa886420c43572330a3
+      size: 11238
+  original:
+    hackage: Cabal-syntax-3.16.1.0
+- completed:
+    hackage: tar-0.7.1.0@sha256:6754dab008f513734cf78a8a2eb80b60f3952ce18fd874a88b42edcefc9030dd,4805
+    pantry-tree:
+      sha256: 3e82a22ad190711cecd8c91524a2b024c5647194a09a319229ee9a48afa803dc
+      size: 2242
+  original:
+    hackage: tar-0.7.1.0
 snapshots:
 - completed:
     sha256: 6406d8039dd538f18fc0d242f01c7066ee386d81ba3c8751b914ac1ae193ec5d
