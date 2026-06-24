@@ -12,16 +12,17 @@ import Data.Function (on)
 import Distribution.Types.Version
 import Hackage.Types.PrimaryKey
 import Distribution.Server.Packages.Types hiding (pkgInfoId)
--- import Distribution.Server.Features.UserDetails.Types
+import Distribution.Server.Features.UserDetails.Types qualified as V2
 import Distribution.Server.Users.Types qualified as V2
 import Distribution.Server.Packages.Types qualified as V2
-import Distribution.Server.Framework.BlobStorage
+import Distribution.Server.Framework.BlobStorage qualified as V2
 -- import Data.TarIndex
 import Distribution.Package (PackageIdentifier(..), unPackageName)
 import Distribution.Package qualified as Cabal
 import Rel8
 import Hackage.Types
 import Hackage.Schemas.Packages
+import Hackage.Schemas.Users
 import Data.Text qualified as T
 import Data.Time
 
@@ -120,9 +121,9 @@ mkTarballRev qpkgid (V2.TarballRevIx revix) (PkgTarball (BlobInfo gz len sha) no
               , tarballTime = lit time
               , tarballUploader = lit $ UserId $ fromIntegral uid
               , tarballBlobGz
-                  = lit $ either error BlobId $ parseMD5 $ blobMd5 gz
+                  = lit $ either error BlobId $ parseMD5 $ V2.blobMd5 gz
               , tarballBlobNoGz
-                  = lit $ either error BlobId $ parseMD5 $ blobMd5 nogz
+                  = lit $ either error BlobId $ parseMD5 $ V2.blobMd5 nogz
               , tarballGzLength = lit $ fromIntegral len
               , -- TODO(sandy): fixme
                 tarballGzHash = lit $ T.pack $ show sha
@@ -131,7 +132,26 @@ mkTarballRev qpkgid (V2.TarballRevIx revix) (PkgTarball (BlobInfo gz len sha) no
     , onConflict = DoNothing
     , returning = Returning tarballRevId
     }
-mkTarballRev qpkgid (V2.TarballRevIx revix) e _ = error $ show e
+mkTarballRev _ (V2.TarballRevIx _) e _ = error $ show e
+
+mkUser
+  :: V2.UserId
+  -> V2.UserName
+  -> V2.AccountDetails
+  -> Statement (Query (Expr UserId))
+mkUser (V2.UserId uid) (V2.UserName uname) details = insert $ Insert
+  { into = usersSchema
+  , rows = values @_ @[]
+      [ lit $ UsersRow
+          { userId = UserId $ fromIntegral uid
+          , userName = T.pack uname
+          , userEmail = Just $ V2.accountContactEmail details
+          , userRealName = Just $ V2.accountName details
+          }
+      ]
+  , onConflict = noUpsert userName userId
+  , returning = Returning userId
+  }
 
 sometime :: UTCTime
 sometime = read "2026-06-23 21:45:05.410012761 UTC"
