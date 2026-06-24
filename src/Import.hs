@@ -1,15 +1,15 @@
 {-# LANGUAGE AllowAmbiguousTypes             #-}
-{-# LANGUAGE OverloadedLists                 #-}
 {-# LANGUAGE OverloadedStrings               #-}
 {-# LANGUAGE PartialTypeSignatures           #-}
 {-# OPTIONS_GHC -Wno-partial-type-signatures #-}
 
 module Import where
 
+import Distribution.Server.Packages.PackageIndex (PackageIndex(..))
+import System.FilePath ((</>))
 import Data.Foldable
 import Data.Text.Encoding (decodeUtf8)
 import Data.Function (on)
-import Distribution.Types.Version
 import Hackage.Types.PrimaryKey
 import Distribution.Server.Packages.Types hiding (pkgInfoId)
 import Distribution.Server.Features.UserDetails.Types qualified as V2
@@ -24,7 +24,15 @@ import Hackage.Types
 import Hackage.Schemas.Packages
 import Hackage.Schemas.Users
 import Data.Text qualified as T
-import Data.Time
+
+import Data.Acid (openLocalStateFrom, query)
+import qualified Distribution.Server.Users.Users as Users
+import Distribution.Server.Users.State (GetUserDb(..))
+import Distribution.Server.Features.UserDetails.Acid (GetUserDetailsTable(..), UserDetailsTable(..))
+import Distribution.Server.Features.Core.State (initialPackagesState, GetPackagesState(..), PackagesState(..))
+import Data.IntMap qualified as IM
+
+
 
 
 noUpsert
@@ -153,18 +161,23 @@ mkUser (V2.UserId uid) (V2.UserName uname) details = insert $ Insert
   , returning = Returning userId
   }
 
-sometime :: UTCTime
-sometime = read "2026-06-23 21:45:05.410012761 UTC"
-
 main :: IO ()
-main = putStrLn $ showStatement $ insertPkgInfo $
-  PkgInfo
-    (PackageIdentifier "dope" $ mkVersion [1,2,3])
-    [ (CabalFileText "v1", (sometime, V2.UserId 111))
-    , (CabalFileText "v2", (sometime, V2.UserId 122))
-    , (CabalFileText "v3", (sometime, V2.UserId 333))
-    ]
-    []
+main = do
+  let dbDir = ".." </> "state" </> "db"
+
+  usersH    <- openLocalStateFrom (dbDir </> "Users") Users.emptyUsers
+  detailsH  <- openLocalStateFrom (dbDir </> "UserDetails") (UserDetailsTable mempty)
+  packagesH <- openLocalStateFrom (dbDir </> "PackagesState") (initialPackagesState False)
+
+  Users.Users users _ _ _ <- query usersH     GetUserDb
+  UserDetailsTable details     <- query detailsH   GetUserDetailsTable
+  PackagesState (PackageIndex pkgs) _ <- query packagesH     GetPackagesState
+
+  let x = IM.intersectionWith (,) (fmap V2.userName users) details
+  putStrLn $ showStatement $ do
+    for_ pkgs $ traverse_ insertPkgInfo
+    for_ (IM.toList x) $ \(uid, (uname, deets)) ->
+      mkUser (V2.UserId uid) uname deets
 
 insertPkgInfo :: PkgInfo -> Statement ()
 insertPkgInfo (PkgInfo pkgid mdrevs tbrevs) = do

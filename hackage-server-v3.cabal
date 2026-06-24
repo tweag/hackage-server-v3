@@ -70,6 +70,7 @@ library
   build-depends:
       Cabal-syntax
     , QuickCheck
+    , acid-state
     , aeson
     , base >=4.7 && <5
     , base16-bytestring
@@ -131,6 +132,7 @@ test-suite tests
   build-depends:
       Cabal-syntax
     , QuickCheck
+    , acid-state
     , aeson
     , base >=4.7 && <5
     , base16-bytestring
