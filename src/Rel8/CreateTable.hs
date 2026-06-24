@@ -112,3 +112,4 @@ mkConstraints (TableSchema (QualifiedName table_name _) table) (Index f) =
     , nameToString $ f table
     , ")"
     ]
+

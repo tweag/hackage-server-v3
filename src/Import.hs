@@ -19,18 +19,22 @@ import Distribution.Server.Framework.BlobStorage qualified as V2
 -- import Data.TarIndex
 import Distribution.Package (PackageIdentifier(..), unPackageName)
 import Distribution.Package qualified as Cabal
-import Rel8
+import Rel8 hiding (run)
+import qualified Rel8 as Rel8
+import Rel8.Expr.Time (now)
+import Hasql.Session (statement, run)
 import Hackage.Types
 import Hackage.Schemas.Packages
 import Hackage.Schemas.Users
 import Data.Text qualified as T
 
-import Data.Acid (openLocalStateFrom, query)
+import Data.Acid (openLocalStateFrom, query, closeAcidState)
 import qualified Distribution.Server.Users.Users as Users
 import Distribution.Server.Users.State (GetUserDb(..))
 import Distribution.Server.Features.UserDetails.Acid (GetUserDetailsTable(..), UserDetailsTable(..))
 import Distribution.Server.Features.Core.State (initialPackagesState, GetPackagesState(..), PackagesState(..))
 import Data.IntMap qualified as IM
+import TestAPI (mkConn)
 
 
 
@@ -145,16 +149,20 @@ mkTarballRev _ (V2.TarballRevIx _) e _ = error $ show e
 mkUser
   :: V2.UserId
   -> V2.UserName
-  -> V2.AccountDetails
+  -> Maybe V2.AccountDetails
   -> Statement (Query (Expr UserId))
 mkUser (V2.UserId uid) (V2.UserName uname) details = insert $ Insert
   { into = usersSchema
   , rows = values @_ @[]
-      [ lit $ UsersRow
-          { userId = UserId $ fromIntegral uid
-          , userName = T.pack uname
-          , userEmail = Just $ V2.accountContactEmail details
-          , userRealName = Just $ V2.accountName details
+      [ UsersRow
+          { userId = lit $ UserId $ fromIntegral uid
+          , userName = lit $ T.pack uname
+          , userEmail = lit $ fmap V2.accountContactEmail details
+          , userRealName = lit $ fmap V2.accountName details
+          , userAuth = lit $ PasswdHash ""
+          , userStatus = lit $ Enabled
+          , userAdminNotes = lit $ ""
+          , userCreatedTime = now
           }
       ]
   , onConflict = noUpsert userName userId
@@ -163,21 +171,29 @@ mkUser (V2.UserId uid) (V2.UserName uname) details = insert $ Insert
 
 main :: IO ()
 main = do
-  let dbDir = ".." </> "state" </> "db"
+  let dbDir = ".." </> "hackage-server" </> "state" </> "db"
 
   usersH    <- openLocalStateFrom (dbDir </> "Users") Users.emptyUsers
   detailsH  <- openLocalStateFrom (dbDir </> "UserDetails") (UserDetailsTable mempty)
   packagesH <- openLocalStateFrom (dbDir </> "PackagesState") (initialPackagesState False)
 
-  Users.Users users _ _ _ <- query usersH     GetUserDb
-  UserDetailsTable details     <- query detailsH   GetUserDetailsTable
-  PackagesState (PackageIndex pkgs) _ <- query packagesH     GetPackagesState
+  Users.Users users _ _ _ <- query usersH GetUserDb
+  UserDetailsTable details <- query detailsH GetUserDetailsTable
+  PackagesState (PackageIndex pkgs) _ <- query packagesH GetPackagesState
 
-  let x = IM.intersectionWith (,) (fmap V2.userName users) details
-  putStrLn $ showStatement $ do
-    for_ pkgs $ traverse_ insertPkgInfo
-    for_ (IM.toList x) $ \(uid, (uname, deets)) ->
-      mkUser (V2.UserId uid) uname deets
+  closeAcidState usersH
+  closeAcidState detailsH
+  closeAcidState packagesH
+
+  let z = IM.mergeWithKey (const $ \x y -> Just (x, Just y)) (fmap (, Nothing)) (error "hopefully impossible") (fmap V2.userName users) details
+  mkConn $ \conn -> do
+    res <- flip run conn $ statement () $ Rel8.run $ do
+      for_ (IM.toList z) $ \(uid, (uname, deets)) ->
+        mkUser (V2.UserId uid) uname deets
+      for_ pkgs $ traverse_ insertPkgInfo
+      pure $ pure $ lit True
+    print res
+  pure ()
 
 insertPkgInfo :: PkgInfo -> Statement ()
 insertPkgInfo (PkgInfo pkgid mdrevs tbrevs) = do
