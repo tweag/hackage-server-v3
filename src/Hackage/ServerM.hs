@@ -49,9 +49,9 @@ runServerM
     -> Context ctx
     -> ServerCtx
     -> ServerT api ServerM
-    -> IO (Application)
+    -> IO Application
 runServerM api ctx serverCtx server = either (fail . show) pure =<< do
-  loadTemplates (Proxy @api) [] "templates"
+  unsafeLoadTemplates api [] "templates"
     $ pure
     $ serveWithContext api ctx
     $ hoistServerWithContext

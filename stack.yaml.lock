@@ -14,14 +14,14 @@ packages:
 - completed:
     name: servant-ede
     pantry-tree:
-      sha256: de1e11ef07a5b75ab95717fa354dc9c32d1cb253fa4e5c1310d1774f96c9e3eb
-      size: 863
-    sha256: e31b780daa95379687d9d9e093ce2d08833e610d3d14e267ec49034a87b44cb8
-    size: 9852
-    url: https://github.com/isovector/servant-ede/archive/098dbc1eb15f944ad9728a40f578aac582a2bdde.tar.gz
-    version: '0.6'
+      sha256: 81f60b2a1f51012cf9d94dfaad6f43e570ec0a0a4a917252e96791c2c4efa9c4
+      size: 915
+    sha256: 2f01c27323821db306989141de5feaee01654d76c78f3451cd565512b595dcef
+    size: 9836
+    url: https://github.com/isovector/servant-ede/archive/5aaf380ce2b02a01823a7abb81b184e71316b391.tar.gz
+    version: 1.0.0.0
   original:
-    url: https://github.com/isovector/servant-ede/archive/098dbc1eb15f944ad9728a40f578aac582a2bdde.tar.gz
+    url: https://github.com/isovector/servant-ede/archive/5aaf380ce2b02a01823a7abb81b184e71316b391.tar.gz
 - completed:
     hackage: Cabal-3.16.1.0@sha256:39873317ab895194547c3fd72c91cdb97c800a49b2656920854747ee466627ca,14459
     pantry-tree:
