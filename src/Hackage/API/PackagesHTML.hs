@@ -16,7 +16,6 @@ import Data.Map (Map)
 import Data.Map qualified as M
 import Data.String (fromString)
 import Data.Text (Text)
-import Data.Text qualified as T
 import Data.Text.Arbitrary ()
 import Distribution.Types.PackageName
 import GHC.Generics (Generic)
@@ -237,7 +236,7 @@ packageVersionsEndpoint :: PackageName -> ServerM PackageVersions
 packageVersionsEndpoint pname = do
   versions <- liftDB $ doSelect $ do
     pkg <- each packageNameSchema
-    where_ $ packageName pkg ==. lit (T.pack $ unPackageName pname)
+    where_ $ packageName pkg ==. lit pname
     pkgv <- each pkgInfoSchema
     where_ $ pkgId pkgv ==. packageNameId pkg
     pure (packageVersion pkgv, pkgInfoDeprecated pkgv)
@@ -247,7 +246,7 @@ packageVersionsEndpoint pname = do
 --------------------------------------------------------------------------------
 -- /package/:package/:package.cabal
 
-getLatestVersionAndRev :: Expr Text -> Query (MetadataRevisionRow Expr)
+getLatestVersionAndRev :: Expr PackageName -> Query (MetadataRevisionRow Expr)
 getLatestVersionAndRev pname = do
   version <- limit 1 $ orderBy (packageVersion >$< desc) $ do
     pkg <- each packageNameSchema
@@ -267,5 +266,5 @@ packageCabalFileEndpoint pname1 pname2 = do
   -- For legacy reasons, this path requires both package names to be the same
   unless (pname1 == pname2) $ throwError err404
   liftDB $ doSelect1 $ do
-    rev <- getLatestVersionAndRev $ lit $ T.pack $ unPackageName pname1
+    rev <- getLatestVersionAndRev $ lit pname1
     pure $ metadataCabalFile rev
