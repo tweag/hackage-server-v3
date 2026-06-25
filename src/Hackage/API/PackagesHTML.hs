@@ -3,23 +3,29 @@
 
 module Hackage.API.PackagesHTML where
 
-import GHC.TypeLits
-import Data.Kind (Type)
+import Data.Bool
 import Data.Aeson hiding (Result(..))
+import Data.Coerce
 import Data.Functor
 import Data.Hashable
+import Data.Kind (Type)
 import Data.Map (Map)
 import Data.Map qualified as M
-import Data.Coerce
+import Data.String (fromString)
 import Data.Text (Text)
+import Data.Text qualified as T
 import Data.Text.Arbitrary ()
-import GHC.Generics
+import Distribution.Types.PackageName
+import GHC.Generics (Generic)
+import GHC.TypeLits
+import Hackage.Schemas.Packages
 import Hackage.Schemas.Users
 import Hackage.Types
 import Hackage.Utils
-import Rel8 hiding (Lift)
+import Rel8 hiding (Lift, bool)
 import Servant.API
 import Servant.EDE
+import Servant.HackageCombinators.CaptureExt
 import Servant.Server.Generic (AsServerT)
 import Test.QuickCheck
 
@@ -65,8 +71,10 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
     -- , htmlPackagesTagAliasEdit :: mode :- "packages" :> "tag" :> Capture "tag" Tag :> "alias" :> "edit" :> Get '[HTML] ()
     -- , htmlPackagesTagsGet :: mode :- "packages" :> "tags" :> Get '[HTML] ()
     -- , htmlPackagesTop :: mode :- "packages" :> "top.html" :> Get '[HTML] ()
+    , htmlPackageVersions :: mode :- "packages" :> CaptureExt "package-name" PackageName "json" :> Get '[JSON] PackageVersions
     }
     deriving stock (Generic)
+
 
 
 packagesHtmlServer :: PackagesHtmlAPI (AsServerT ServerM)
@@ -74,6 +82,7 @@ packagesHtmlServer = PackagesHtmlAPI
   { htmlPackagesNames = namesStub
   , htmlPackagesTrustees = trusteesEndpoint
   , htmlPackagesHelp = staticHTML
+  , htmlPackageVersions = packageVersionsEndpoint
   , htmlPackagesUploadForm = staticHTML
   }
 
@@ -191,3 +200,40 @@ newtype UploadHelp = UploadHelp (StaticHTML "upload/help.html")
 
 newtype PackageUpload = PackageUpload (StaticHTML "upload/form.html")
   deriving newtype (Eq, Show, Hashable, Arbitrary, ToObject, HasTemplate HTML)
+
+--------------------------------------------------------------------------------
+-- /package/:packagename.json
+
+data VersionStatus = Normal | Deprecated
+  deriving stock (Eq, Ord, Show, Generic)
+
+instance ToJSON VersionStatus where
+  toJSON Normal = "normal"
+  toJSON Deprecated = "deprecated"
+
+instance Arbitrary VersionStatus where
+  arbitrary = elements [Normal, Deprecated]
+
+data PackageVersions = PackageVersions
+  { getPackageVersions :: Map Version VersionStatus
+  }
+  deriving stock (Eq, Ord, Show, Generic)
+
+instance ToJSON PackageVersions where
+  toJSON
+    = object
+    . fmap (\(v, s) -> fromString (show v) .= s)
+    . M.toList
+    . getPackageVersions
+
+
+packageVersionsEndpoint :: PackageName -> ServerM PackageVersions
+packageVersionsEndpoint pname = do
+  versions <- liftDB $ doSelect $ do
+    pkg <- each packageNameSchema
+    where_ $ packageName pkg ==. lit (T.pack $ unPackageName pname)
+    pkgv <- each pkgInfoSchema
+    where_ $ pkgId pkgv ==. packageNameId pkg
+    pure (packageVersion pkgv, pkgInfoDeprecated pkgv)
+  pure $ PackageVersions $ M.fromList $ fmap (fmap $ bool Normal Deprecated) versions
+

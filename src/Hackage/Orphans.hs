@@ -2,6 +2,7 @@
 
 module Hackage.Orphans where
 
+import Servant.API
 import Rel8 hiding (Enum)
 import Distribution.Types.PackageId (PackageIdentifier(..))
 import Distribution.Types.Version
@@ -41,4 +42,7 @@ instance DBOrd Version
 
 instance Arbitrary Version where
   arbitrary = mkVersion <$> fmap (fmap getNonNegative) arbitrary
+
+instance FromHttpApiData PackageName where
+  parseUrlPiece = fmap mkPackageName . parseUrlPiece
 
