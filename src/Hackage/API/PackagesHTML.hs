@@ -87,7 +87,7 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
     -- , htmlPackagesTop :: mode :- "packages" :> "top.html" :> Get '[HTML] ()
     , htmlPackageVersions :: mode :- "packages" :> CaptureExt "package" PackageName "json" :> Get '[JSON] PackageVersions
     , htmlPackageMetadata :: mode :- "packages" :> CaptureExt "package" PackageIdentifier "json" :> Get '[JSON] PackageBasicDescriptionDTO
-    , htmlPackageCabalFile :: mode :- "packages" :> Capture "package" PackageName :> CaptureExt "package" PackageName "cabal" :> Get '[Text] Text
+    , htmlPackageCabalFile :: mode :- "packages" :> Capture "package" PackageName :> CaptureExt "package" PackageName "cabal" :> Get '[PlainText] Text
     }
     deriving stock (Generic)
 

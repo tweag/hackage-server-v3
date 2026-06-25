@@ -1,4 +1,5 @@
-{-# OPTIONS_GHC -Wno-orphans #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -Wno-orphans   #-}
 
 module Hackage.Orphans where
 
@@ -13,6 +14,8 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import Distribution.Package qualified as Pkg
 import Data.Functor.Contravariant
+import Distribution.Parsec
+
 
 instance Arbitrary PackageIdentifier where
   arbitrary = PackageIdentifier <$> arbitrary <*> arbitrary
@@ -45,4 +48,7 @@ instance Arbitrary Version where
 
 instance FromHttpApiData PackageName where
   parseUrlPiece = fmap mkPackageName . parseUrlPiece
+
+instance FromHttpApiData PackageIdentifier where
+  parseUrlPiece = maybe (Left "Can't parse package identifier") Right . simpleParsec . T.unpack
 

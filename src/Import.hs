@@ -17,7 +17,7 @@ import Distribution.Server.Users.Types qualified as V2
 import Distribution.Server.Packages.Types qualified as V2
 import Distribution.Server.Framework.BlobStorage qualified as V2
 -- import Data.TarIndex
-import Distribution.Package (PackageIdentifier(..), unPackageName)
+import Distribution.Package (PackageIdentifier(..))
 import Distribution.Package qualified as Cabal
 import Rel8 hiding (run)
 import qualified Rel8 as Rel8
@@ -60,7 +60,7 @@ mkPkgName name = insert $
     , rows = values @_ @[]
         [ PackageNameRow
             { packageNameId = newPrimaryKey
-            , packageName = lit $ T.pack $ unPackageName name
+            , packageName = lit name
             }
         ]
     , onConflict = noUpsert packageName packageNameId
