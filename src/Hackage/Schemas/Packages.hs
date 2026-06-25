@@ -31,6 +31,7 @@ type PkgId = PrimaryKey PackageNameRow
 
 data PackageNameRow f = PackageNameRow
   { packageNameId :: Column f PkgId
+    -- TODO(sandy): make this a PackageName
   , packageName :: Column f Text
   }
   deriving stock (Generic)

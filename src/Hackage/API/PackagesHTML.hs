@@ -3,10 +3,13 @@
 
 module Hackage.API.PackagesHTML where
 
-import Data.Bool
+import Control.Monad (unless)
+import Control.Monad.Except (throwError)
 import Data.Aeson hiding (Result(..))
+import Data.Bool
 import Data.Coerce
 import Data.Functor
+import Data.Functor.Contravariant
 import Data.Hashable
 import Data.Kind (Type)
 import Data.Map (Map)
@@ -26,6 +29,7 @@ import Rel8 hiding (Lift, bool)
 import Servant.API
 import Servant.EDE
 import Servant.HackageCombinators.CaptureExt
+import Servant.Server (err404)
 import Servant.Server.Generic (AsServerT)
 import Test.QuickCheck
 
@@ -71,7 +75,8 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
     -- , htmlPackagesTagAliasEdit :: mode :- "packages" :> "tag" :> Capture "tag" Tag :> "alias" :> "edit" :> Get '[HTML] ()
     -- , htmlPackagesTagsGet :: mode :- "packages" :> "tags" :> Get '[HTML] ()
     -- , htmlPackagesTop :: mode :- "packages" :> "top.html" :> Get '[HTML] ()
-    , htmlPackageVersions :: mode :- "packages" :> CaptureExt "package-name" PackageName "json" :> Get '[JSON] PackageVersions
+    , htmlPackageVersions :: mode :- "packages" :> CaptureExt "package" PackageName "json" :> Get '[JSON] PackageVersions
+    , htmlPackageCabalFile :: mode :- "packages" :> Capture "package" PackageName :> CaptureExt "package" PackageName "cabal" :> Get '[Text] Text
     }
     deriving stock (Generic)
 
@@ -84,6 +89,7 @@ packagesHtmlServer = PackagesHtmlAPI
   , htmlPackagesHelp = staticHTML
   , htmlPackageVersions = packageVersionsEndpoint
   , htmlPackagesUploadForm = staticHTML
+  , htmlPackageCabalFile = packageCabalFileEndpoint
   }
 
 --------------------------------------------------------------------------------
@@ -237,3 +243,29 @@ packageVersionsEndpoint pname = do
     pure (packageVersion pkgv, pkgInfoDeprecated pkgv)
   pure $ PackageVersions $ M.fromList $ fmap (fmap $ bool Normal Deprecated) versions
 
+
+--------------------------------------------------------------------------------
+-- /package/:package/:package.cabal
+
+getLatestVersionAndRev :: Expr Text -> Query (MetadataRevisionRow Expr)
+getLatestVersionAndRev pname = do
+  version <- limit 1 $ orderBy (packageVersion >$< desc) $ do
+    pkg <- each packageNameSchema
+    where_ $ packageName pkg ==. pname
+    pkgv <- each pkgInfoSchema
+    where_ $ pkgId pkgv ==. packageNameId pkg
+    pure pkgv
+  limit 1 $ orderBy (metadataTime >$< desc) $ do
+    rev <- each metadataRevisionsSchema
+    where_ $ metadataPkgId rev ==. pkgInfoId version
+    pure rev
+
+
+
+packageCabalFileEndpoint :: PackageName -> PackageName -> ServerM Text
+packageCabalFileEndpoint pname1 pname2 = do
+  -- For legacy reasons, this path requires both package names to be the same
+  unless (pname1 == pname2) $ throwError err404
+  liftDB $ doSelect1 $ do
+    rev <- getLatestVersionAndRev $ lit $ T.pack $ unPackageName pname1
+    pure $ metadataCabalFile rev
