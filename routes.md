@@ -2,9 +2,9 @@
 | ---- | --------------------------------------------------- | --------------- | -------- |
 | [ ]  | /package/:package.:format (html)                    | Html            | GET      |
 | [x]  | /package/:packagename.:format (json)                | PackageInfoJSON | GET      |
-| [ ]  | /package/:package-version.:format (json)            | PackageInfoJSON | GET      |
+| [x]  | /package/:package-version.:format (json)            | PackageInfoJSON | GET      |
 | [ ]  | /package/:package.rss                               | PackageFeed     | GET      |
-| [ ]  | /package/:package/:cabal.cabal                      | Core            | GET      |
+| [x]  | /package/:package/:cabal.cabal                      | Core            | GET      |
 | [ ]  | /package/:package/:tarball.tar.gz                   | Core            | GET      |
 | [ ]  | /package/:package/changelog.:format (html)          | PackageContents | GET      |
 | [ ]  | /package/:package/changelog.:format (txt)           | PackageContents | GET      |

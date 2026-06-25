@@ -16,7 +16,17 @@ import Data.Map (Map)
 import Data.Map qualified as M
 import Data.String (fromString)
 import Data.Text (Text)
+import Data.Text qualified as T
+import Distribution.Utils.ShortText (fromShortText)
 import Data.Text.Arbitrary ()
+import Data.Text.Encoding (encodeUtf8)
+import Data.Time (UTCTime)
+import Distribution.License (licenseToSPDX)
+import Distribution.PackageDescription.Parsec qualified as PkgDescr
+import Distribution.Pretty qualified as Pretty
+import Distribution.Types.GenericPackageDescription qualified as PkgDescr
+import Distribution.Types.PackageDescription qualified as PkgDescr
+import Distribution.Types.PackageId
 import Distribution.Types.PackageName
 import GHC.Generics (Generic)
 import GHC.TypeLits
@@ -28,9 +38,10 @@ import Rel8 hiding (Lift, bool)
 import Servant.API
 import Servant.EDE
 import Servant.HackageCombinators.CaptureExt
-import Servant.Server (err404)
+import Servant.Server (err404, err500)
 import Servant.Server.Generic (AsServerT)
 import Test.QuickCheck
+import Distribution.SPDX.License (License)
 
 -- `/packages/.:format`                                   | GET    | html    | html                     |
 -- `/packages/.:format`                                   | POST   | html    | html                     |
@@ -75,6 +86,7 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
     -- , htmlPackagesTagsGet :: mode :- "packages" :> "tags" :> Get '[HTML] ()
     -- , htmlPackagesTop :: mode :- "packages" :> "top.html" :> Get '[HTML] ()
     , htmlPackageVersions :: mode :- "packages" :> CaptureExt "package" PackageName "json" :> Get '[JSON] PackageVersions
+    , htmlPackageMetadata :: mode :- "packages" :> CaptureExt "package" PackageIdentifier "json" :> Get '[JSON] PackageBasicDescriptionDTO
     , htmlPackageCabalFile :: mode :- "packages" :> Capture "package" PackageName :> CaptureExt "package" PackageName "cabal" :> Get '[Text] Text
     }
     deriving stock (Generic)
@@ -89,6 +101,7 @@ packagesHtmlServer = PackagesHtmlAPI
   , htmlPackageVersions = packageVersionsEndpoint
   , htmlPackagesUploadForm = staticHTML
   , htmlPackageCabalFile = packageCabalFileEndpoint
+  , htmlPackageMetadata = packageMetadataEndpoint
   }
 
 --------------------------------------------------------------------------------
@@ -241,6 +254,88 @@ packageVersionsEndpoint pname = do
     where_ $ pkgId pkgv ==. packageNameId pkg
     pure (packageVersion pkgv, pkgInfoDeprecated pkgv)
   pure $ PackageVersions $ M.fromList $ fmap (fmap $ bool Normal Deprecated) versions
+
+
+--------------------------------------------------------------------------------
+-- /package/:packageid.json
+
+-- data PackageVersions = PackageVersions
+--   { getPackageVersions :: Map Version VersionStatus
+--   }
+--   deriving stock (Eq, Ord, Show, Generic)
+
+-- instance ToJSON PackageVersions where
+--   toJSON
+--     = object
+--     . fmap (\(v, s) -> fromString (show v) .= s)
+--     . M.toList
+--     . getPackageVersions
+
+
+getLatestRev :: PackageIdentifier -> Query (MetadataRevisionRow Expr)
+getLatestRev pid = do
+  pkg <- each packageNameSchema
+  where_ $ packageName pkg ==. lit (pkgName pid)
+  pkgv <- each pkgInfoSchema
+  where_ $ pkgId pkgv ==. packageNameId pkg
+  where_ $ packageVersion pkgv ==. lit (pkgVersion pid)
+  limit 1 $ orderBy (metadataTime >$< desc) $ do
+    rev <- each metadataRevisionsSchema
+    where_ $ metadataPkgId rev ==. pkgInfoId pkgv
+    pure rev
+
+data PackageBasicDescriptionDTO = PackageBasicDescriptionDTO
+  { license           :: !License
+  , copyright         :: !Text
+  , synopsis          :: !Text
+  , description       :: !Text
+  , author            :: !Text
+  , homepage          :: !Text
+  , metadata_revision :: !MetadataRevIx
+  , uploaded_at       :: !UTCTime
+  , uploader          :: !UserName
+  } deriving stock (Eq, Show, Generic)
+
+
+instance ToJSON PackageBasicDescriptionDTO where
+  toJSON dto =
+    object
+      [ "license"           .= Pretty.prettyShow (license dto)
+      , "copyright"         .= copyright dto
+      , "synopsis"          .= synopsis dto
+      , "description"       .= description dto
+      , "author"            .= author dto
+      , "homepage"          .= homepage dto
+      , "metadata_revision" .= metadata_revision dto
+      , "uploaded_at"       .= uploaded_at dto
+      , "uploader"          .= uploader dto
+      ]
+
+packageMetadataEndpoint :: PackageId -> ServerM PackageBasicDescriptionDTO
+packageMetadataEndpoint pid = do
+  (rev, user) <- liftDB $ doSelect1 $ do
+    rev <- getLatestRev pid
+    user <- each usersSchema
+    where_ $ userId user ==. metadataUploader rev
+    pure (rev, userName user)
+
+  let parseResult = PkgDescr.parseGenericPackageDescription $ encodeUtf8 $ metadataCabalFile rev
+  case PkgDescr.runParseResult parseResult of
+    (_, Right pkg) -> do
+      let pkgd = PkgDescr.packageDescription pkg
+      pure $ PackageBasicDescriptionDTO
+        { license = either id licenseToSPDX $ PkgDescr.licenseRaw pkgd
+        , copyright = T.pack . fromShortText $ PkgDescr.copyright pkgd
+        , synopsis = T.pack . fromShortText $ PkgDescr.synopsis pkgd
+        , description = T.pack . fromShortText $ PkgDescr.description pkgd
+        , homepage = T.pack . fromShortText $ PkgDescr.homepage pkgd
+        , author = T.pack . fromShortText $ PkgDescr.author pkgd
+        , metadata_revision = metadataRevId rev
+        , uploaded_at = metadataTime rev
+        , uploader = user
+        }
+    -- TODO(sandy): do something with the warnings?
+    _ -> throwError $ err500
 
 
 --------------------------------------------------------------------------------
