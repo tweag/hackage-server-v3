@@ -3,6 +3,7 @@
 
 module Hackage.API.PackagesHTML where
 
+import Data.List (partition)
 import Control.Monad (unless)
 import Control.Monad.Except (throwError)
 import Data.Aeson hiding (Result(..))
@@ -38,6 +39,7 @@ import Rel8 hiding (Lift, bool)
 import Servant.API
 import Servant.EDE
 import Servant.HackageCombinators.CaptureExt
+import Servant.HackageCombinators.NegotiableContent
 import Servant.Server (err404, err500)
 import Servant.Server.Generic (AsServerT)
 import Test.QuickCheck
@@ -88,6 +90,8 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
     , htmlPackageVersions :: mode :- "packages" :> CaptureExt "package" PackageName "json" :> Get '[JSON] PackageVersions
     , htmlPackageMetadata :: mode :- "packages" :> CaptureExt "package" PackageIdentifier "json" :> Get '[JSON] PackageBasicDescriptionDTO
     , htmlPackageCabalFile :: mode :- "packages" :> Capture "package" PackageName :> CaptureExt "package" PackageName "cabal" :> Get '[PlainText] Text
+    , htmlPackagePreferredVersions :: mode :-
+        NegotiableContent :> "packages" :> Capture "package" PackageName :> "preferred" :> Get '[HTML, JSON] PreferredVersions
     }
     deriving stock (Generic)
 
@@ -102,6 +106,7 @@ packagesHtmlServer = PackagesHtmlAPI
   , htmlPackagesUploadForm = staticHTML
   , htmlPackageCabalFile = packageCabalFileEndpoint
   , htmlPackageMetadata = packageMetadataEndpoint
+  , htmlPackagePreferredVersions = packagePreferredVersionsEndpoint
   }
 
 --------------------------------------------------------------------------------
@@ -237,10 +242,13 @@ data PackageVersions = PackageVersions
   }
   deriving stock (Eq, Ord, Show, Generic)
 
+instance Arbitrary PackageVersions where
+  arbitrary = fmap PackageVersions arbitrary
+
 instance ToJSON PackageVersions where
   toJSON
     = object
-    . fmap (\(v, s) -> fromString (show v) .= s)
+    . fmap (\(v, s) -> fromString (Pretty.prettyShow v) .= s)
     . M.toList
     . getPackageVersions
 
@@ -258,19 +266,6 @@ packageVersionsEndpoint pname = do
 
 --------------------------------------------------------------------------------
 -- /package/:packageid.json
-
--- data PackageVersions = PackageVersions
---   { getPackageVersions :: Map Version VersionStatus
---   }
---   deriving stock (Eq, Ord, Show, Generic)
-
--- instance ToJSON PackageVersions where
---   toJSON
---     = object
---     . fmap (\(v, s) -> fromString (show v) .= s)
---     . M.toList
---     . getPackageVersions
-
 
 getLatestRev :: PackageIdentifier -> Query (MetadataRevisionRow Expr)
 getLatestRev pid = do
@@ -363,3 +358,45 @@ packageCabalFileEndpoint pname1 pname2 = do
   liftDB $ doSelect1 $ do
     rev <- getLatestVersionAndRev $ lit pname1
     pure $ metadataCabalFile rev
+
+
+--------------------------------------------------------------------------------
+-- /package/:package/preferred
+
+
+data PreferredVersions = PreferredVersions
+  { pv_packageName :: PackageName
+  , getPreferredVersions :: Map Version VersionStatus
+  }
+  deriving stock (Eq, Ord, Show, Generic)
+
+instance Arbitrary PreferredVersions where
+  arbitrary = PreferredVersions <$> arbitrary <*> arbitrary
+
+instance ToJSON PreferredVersions where
+  toJSON (PreferredVersions _ vs) = do
+    let (normal, deprecated) = partition ((== Normal) . snd) $ M.toList vs
+    object
+      [ "normal-version" .= fmap (Pretty.prettyShow . fst) normal
+      , "deprecated-version" .= fmap (Pretty.prettyShow . fst) deprecated
+      ]
+
+instance ToObject PreferredVersions where
+  toObject (PreferredVersions pkg vs) =
+      [ "package" .= unPackageName pkg
+      , "versions" .= M.mapKeys Pretty.prettyShow vs
+      ]
+
+instance HasTemplate HTML PreferredVersions where
+  templateFor _ _ = "packages/preferred.html"
+
+packagePreferredVersionsEndpoint :: PackageName -> ServerM PreferredVersions
+packagePreferredVersionsEndpoint pname = do
+  versions <- liftDB $ doSelect $ do
+    pkg <- each packageNameSchema
+    where_ $ packageName pkg ==. lit pname
+    pkgv <- each pkgInfoSchema
+    where_ $ pkgId pkgv ==. packageNameId pkg
+    pure (packageVersion pkgv, pkgInfoDeprecated pkgv)
+  pure $ PreferredVersions pname $ M.fromList $ fmap (fmap $ bool Normal Deprecated) versions
+

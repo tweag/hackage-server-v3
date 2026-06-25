@@ -13,10 +13,7 @@
 | [ ]  | /package/:package/distro-monitor.:format (html)     | Html            | GET      |
 | [ ]  | /package/:package/docs.:format (tar)                | Documentation   | GET      |
 | [ ]  | /package/:package/docs/..                           | Documentation   | GET      |
-| [ ]  | /package/:package/maintain (html)                   | Html            | GET      |
-| [ ]  | /package/:package/preferred.:format (html)          | Html            | GET      |
-| [ ]  | /package/:package/preferred.:format (html)          | Html            | PUT      |
-| [ ]  | /package/:package/preferred/edit (html)             | Html            | GET      |
+| [/]  | /package/:package/preferred.:format (html)          | Html            | GET      |
 | [ ]  | /package/:package/readme.:format (html)             | PackageContents | GET      |
 | [ ]  | /package/:package/readme.:format (txt)              | PackageContents | GET      |
 | [ ]  | /package/:package/reports/.:format (txt)            | BuildReports    | GET      |
@@ -33,4 +30,3 @@
 | [ ]  | /packages/.:format (html)                           | Html            | GET      |
 | [ ]  | /packages/.:format (json)                           | Core            | GET      |
 | [ ]  | /packages/reverse.:format (html)                    | Html            | GET      |
-| [ ]  | /packages/tag/:tag/alias (html)                     | Html            | PUT      |

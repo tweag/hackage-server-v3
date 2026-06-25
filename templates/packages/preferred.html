@@ -1,0 +1,51 @@
+{% include "../header.html" with title = "{{package}}: preferred and deprecated versions" %}
+
+<h2>{{package}}: preferred and deprecated versions</h2>
+
+<p>
+  <a href="/packages/preferred">Preferred and deprecated versions</a> can
+  be used to influence Cabal's decisions about which versions of <a
+  href="/package/{{package}}">{{package}}</a> to install. If a range of versions
+is preferred, it means that the installer won't install a non-preferred package
+version unless it is explicitly specified or if it's the only choice the
+installer has. Deprecating a version adds a range which excludes just that
+version. All of this information is collected in the <a
+  href="/packages/preferred-versions">preferred-versions</a> file that's
+  included in the index tarball.
+
+  <span style="color: gray">
+  [maintainers: <a href="/package/{{package}}/preferred/edit">edit</a>]
+  </span>
+</p>
+
+<p>
+  If all the available versions of a package are non-preferred or deprecated,
+  cabal-install will treat this the same as if none of them are. This feature
+  doesn't affect whether or not to install a package, only for selecting
+  versions after a given package has decided to be installed. <a
+  href="deprecatedPackageUri versions "" pkgname">Entire-package deprecation</a>
+is also available, but it's separate from preferred versions.
+</p>
+
+<h4>Stored information</h4>
+
+<!-- TODO(sandy): implement this -->
+
+<h4>Versions affected</h4>
+
+Green versions are normal versions. Yellow are those out of any preferred
+version ranges. Red are deprecated.
+
+<p class="versions">
+<ul class="comma-sep">
+{% for version in versions %}
+<!-- TODO(sandy): implement colors -->
+<li><a href="/package/{{package}}-{{version.key}}">{{version.key}}</a></li>
+{% endfor %}
+</ul>
+</p>
+
+
+{% include "../footer.html" %}
+
+
