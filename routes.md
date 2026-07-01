@@ -25,8 +25,8 @@
 | [ ]  | /package/:package/revisions/.:format                | Core            | GET      |
 | [ ]  | /package/:package/revisions/.:format (html)         | Html            | GET      |
 | [ ]  | /package/:package/src/..                            | PackageContents | GET      |
-| [ ]  | /package/:package/upload-time                       | Mirror          | GET      |
-| [ ]  | /package/:package/uploader                          | Mirror          | GET      |
+| [x]  | /package/:package/upload-time                       | Mirror          | GET      |
+| [x]  | /package/:package/uploader                          | Mirror          | GET      |
 | [ ]  | /packages/.:format (html)                           | Html            | GET      |
 | [ ]  | /packages/.:format (json)                           | Core            | GET      |
 | [ ]  | /packages/reverse.:format (html)                    | Html            | GET      |

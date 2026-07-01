@@ -3,6 +3,8 @@
 
 module Hackage.Orphans where
 
+import Data.ByteString.Lazy.Char8 qualified as LBS
+import Data.Time
 import Servant.API
 import Rel8 hiding (Enum)
 import Distribution.Types.PackageId (PackageIdentifier(..))
@@ -52,3 +54,5 @@ instance FromHttpApiData PackageName where
 instance FromHttpApiData PackageIdentifier where
   parseUrlPiece = maybe (Left "Can't parse package identifier") Right . simpleParsec . T.unpack
 
+instance MimeRender PlainText UTCTime where
+  mimeRender _ = LBS.pack . show

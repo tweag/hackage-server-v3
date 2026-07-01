@@ -87,6 +87,8 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
     -- , htmlPackagesTagAliasEdit :: mode :- "packages" :> "tag" :> Capture "tag" Tag :> "alias" :> "edit" :> Get '[HTML] ()
     -- , htmlPackagesTagsGet :: mode :- "packages" :> "tags" :> Get '[HTML] ()
     -- , htmlPackagesTop :: mode :- "packages" :> "top.html" :> Get '[HTML] ()
+    , htmlMirrorUploader :: mode :- "packages" :> Capture "package" (Either PackageName PackageIdentifier) :> "uploader" :> Get '[PlainText] UserName
+    , htmlMirrorUploadTime :: mode :- "packages" :> Capture "package" (Either PackageName PackageIdentifier) :> "uploader" :> Get '[PlainText] UTCTime
     , htmlPackageVersions :: mode :- "packages" :> CaptureExt "package" PackageName "json" :> Get '[JSON] PackageVersions
     , htmlPackageMetadata :: mode :- "packages" :> CaptureExt "package" PackageIdentifier "json" :> Get '[JSON] PackageBasicDescriptionDTO
     , htmlPackageCabalFile :: mode :- "packages" :> Capture "package" PackageName :> CaptureExt "package" PackageName "cabal" :> Get '[PlainText] Text
@@ -107,6 +109,8 @@ packagesHtmlServer = PackagesHtmlAPI
   , htmlPackageCabalFile = packageCabalFileEndpoint
   , htmlPackageMetadata = packageMetadataEndpoint
   , htmlPackagePreferredVersions = packagePreferredVersionsEndpoint
+  , htmlMirrorUploader = packageMirrorUploader
+  , htmlMirrorUploadTime = packageMirrorUploadTime
   }
 
 --------------------------------------------------------------------------------
@@ -363,7 +367,6 @@ packageCabalFileEndpoint pname1 pname2 = do
 --------------------------------------------------------------------------------
 -- /package/:package/preferred
 
-
 data PreferredVersions = PreferredVersions
   { pv_packageName :: PackageName
   , getPreferredVersions :: Map Version VersionStatus
@@ -400,3 +403,24 @@ packagePreferredVersionsEndpoint pname = do
     pure (packageVersion pkgv, pkgInfoDeprecated pkgv)
   pure $ PreferredVersions pname $ M.fromList $ fmap (fmap $ bool Normal Deprecated) versions
 
+
+--------------------------------------------------------------------------------
+-- /package/:package/uploader
+
+packageMirrorUploader :: Either PackageName PackageIdentifier -> ServerM UserName
+packageMirrorUploader pname =
+  liftDB $ doSelect1 $ do
+    pkgv <- either (getLatestVersionAndRev . lit) getLatestRev pname
+    u <- each usersSchema
+    where_ $ metadataUploader pkgv ==. userId u
+    pure $ userName u
+
+
+--------------------------------------------------------------------------------
+-- /package/:package/upload-time
+
+packageMirrorUploadTime :: Either PackageName PackageIdentifier -> ServerM UTCTime
+packageMirrorUploadTime pname =
+  liftDB $ doSelect1 $ do
+    pkgv <- either (getLatestVersionAndRev . lit) getLatestRev pname
+    pure $ metadataTime pkgv
