@@ -12,6 +12,7 @@ import Hackage.Schemas.Users
 import Hackage.Types
 import Hackage.Types.PrimaryKey
 import Rel8.CreateTable
+import Servant.Tarball
 
 import Rel8
   ( Rel8able
@@ -25,7 +26,6 @@ import Rel8
   )
 
 data Compressed a
-data Tarball
 
 type PkgId = PrimaryKey PackageNameRow
 

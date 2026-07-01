@@ -5,7 +5,7 @@
 | [x]  | /package/:package-version.:format (json)            | PackageInfoJSON | GET      |
 | [ ]  | /package/:package.rss                               | PackageFeed     | GET      |
 | [x]  | /package/:package/:cabal.cabal                      | Core            | GET      |
-| [ ]  | /package/:package/:tarball.tar.gz                   | Core            | GET      |
+| [x]  | /package/:package/:tarball.tar.gz                   | Core            | GET      |
 | [ ]  | /package/:package/changelog.:format (html)          | PackageContents | GET      |
 | [ ]  | /package/:package/changelog.:format (txt)           | PackageContents | GET      |
 | [ ]  | /package/:package/dependencies (html)               | Html            | GET      |
@@ -16,7 +16,6 @@
 | [/]  | /package/:package/preferred.:format (html)          | Html            | GET      |
 | [ ]  | /package/:package/readme.:format (html)             | PackageContents | GET      |
 | [ ]  | /package/:package/readme.:format (txt)              | PackageContents | GET      |
-| [ ]  | /package/:package/reports/.:format (txt)            | BuildReports    | GET      |
 | [ ]  | /package/:package/reverse.:format (html)            | Html            | GET      |
 | [ ]  | /package/:package/reverse/old.:format (html)        | Html            | GET      |
 | [ ]  | /package/:package/reverse/verbose.:format (html)    | Html            | GET      |

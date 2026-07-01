@@ -1,14 +1,15 @@
 module Hackage.TarBalls where
 
-import Data.Text qualified as T
-import Data.Map qualified as M
 import Control.Monad.Except
-import Hackage.Schemas.Packages
-import Hackage.Utils
+import Data.Map qualified as M
 import Data.TarIndex
+import Data.Text qualified as T
+import Hackage.Schemas.Packages
 import Hackage.Types
-import Rel8 (Insert(..), Returning(..), OnConflict(..), lit, unsafeDefault, values)
+import Hackage.Utils
 import Hasql.Session (SessionError)
+import Rel8 (Insert(..), Returning(..), OnConflict(..), lit, unsafeDefault, values)
+import Servant.Tarball
 
 
 data InsertTarEntriesError e

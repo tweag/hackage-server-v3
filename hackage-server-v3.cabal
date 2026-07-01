@@ -54,6 +54,7 @@ library
       Servant.HackageCombinators.PermanentRedirect
       Servant.HackageCombinators.UserDomain
       Servant.HackageCombinators.WhitelistDigest
+      Servant.Tarball
       SetupDB
       TestAPI
   other-modules:
@@ -88,6 +89,7 @@ library
     , hasql
     , http-client
     , http-client-tls
+    , http-media
     , http-reverse-proxy
     , http-types
     , lens
@@ -154,6 +156,7 @@ test-suite tests
     , hspec-wai
     , http-client
     , http-client-tls
+    , http-media
     , http-reverse-proxy
     , http-types
     , lens

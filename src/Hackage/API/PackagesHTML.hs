@@ -3,32 +3,37 @@
 
 module Hackage.API.PackagesHTML where
 
-import Data.List (partition)
+import Control.Monad.Reader
+import Hackage.ServerM
 import Control.Monad (unless)
 import Control.Monad.Except (throwError)
 import Data.Aeson hiding (Result(..))
+import Data.BlobStorage qualified as Blob
 import Data.Bool
+import Data.ByteString.Lazy qualified as BL
 import Data.Coerce
 import Data.Functor
 import Data.Functor.Contravariant
 import Data.Hashable
 import Data.Kind (Type)
+import Data.List (partition)
 import Data.Map (Map)
 import Data.Map qualified as M
 import Data.String (fromString)
 import Data.Text (Text)
 import Data.Text qualified as T
-import Distribution.Utils.ShortText (fromShortText)
 import Data.Text.Arbitrary ()
 import Data.Text.Encoding (encodeUtf8)
 import Data.Time (UTCTime)
 import Distribution.License (licenseToSPDX)
 import Distribution.PackageDescription.Parsec qualified as PkgDescr
 import Distribution.Pretty qualified as Pretty
+import Distribution.SPDX.License (License)
 import Distribution.Types.GenericPackageDescription qualified as PkgDescr
 import Distribution.Types.PackageDescription qualified as PkgDescr
 import Distribution.Types.PackageId
 import Distribution.Types.PackageName
+import Distribution.Utils.ShortText (fromShortText)
 import GHC.Generics (Generic)
 import GHC.TypeLits
 import Hackage.Schemas.Packages
@@ -42,8 +47,8 @@ import Servant.HackageCombinators.CaptureExt
 import Servant.HackageCombinators.NegotiableContent
 import Servant.Server (err404, err500)
 import Servant.Server.Generic (AsServerT)
+import Servant.Tarball
 import Test.QuickCheck
-import Distribution.SPDX.License (License)
 
 -- `/packages/.:format`                                   | GET    | html    | html                     |
 -- `/packages/.:format`                                   | POST   | html    | html                     |
@@ -87,6 +92,9 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
     -- , htmlPackagesTagAliasEdit :: mode :- "packages" :> "tag" :> Capture "tag" Tag :> "alias" :> "edit" :> Get '[HTML] ()
     -- , htmlPackagesTagsGet :: mode :- "packages" :> "tags" :> Get '[HTML] ()
     -- , htmlPackagesTop :: mode :- "packages" :> "top.html" :> Get '[HTML] ()
+    , htmlTarball :: mode :-
+        "packages" :> Capture "package" (Either PackageName PackageIdentifier)
+          :> CaptureExt "tarball" PackageIdentifier "tar.gz" :> Get '[Tarball] BL.ByteString
     , htmlMirrorUploader :: mode :- "packages" :> Capture "package" (Either PackageName PackageIdentifier) :> "uploader" :> Get '[PlainText] UserName
     , htmlMirrorUploadTime :: mode :- "packages" :> Capture "package" (Either PackageName PackageIdentifier) :> "upload-time" :> Get '[PlainText] UTCTime
     , htmlPackageVersions :: mode :- "packages" :> CaptureExt "package" PackageName "json" :> Get '[JSON] PackageVersions
@@ -111,6 +119,7 @@ packagesHtmlServer = PackagesHtmlAPI
   , htmlPackagePreferredVersions = packagePreferredVersionsEndpoint
   , htmlMirrorUploader = packageMirrorUploader
   , htmlMirrorUploadTime = packageMirrorUploadTime
+  , htmlTarball = packageTarball
   }
 
 --------------------------------------------------------------------------------
@@ -424,3 +433,43 @@ packageMirrorUploadTime pname =
   liftDB $ doSelect1 $ do
     pkgv <- either (getLatestVersionAndRev . lit) getLatestRev pname
     pure $ metadataTime pkgv
+
+
+--------------------------------------------------------------------------------
+-- /package/:package/:tarball.tar.gz
+
+getLatestTarball :: PackageIdentifier -> Query (TarballRevisionRow Expr)
+getLatestTarball pid = do
+  pkg <- each packageNameSchema
+  where_ $ packageName pkg ==. lit (pkgName pid)
+  pkgv <- each pkgInfoSchema
+  where_ $ pkgId pkgv ==. packageNameId pkg
+  where_ $ packageVersion pkgv ==. lit (pkgVersion pid)
+  limit 1 $ orderBy (tarballTime >$< desc) $ do
+    rev <- each packageTarballRevisionsSchema
+    where_ $ tarballPkgId rev ==. pkgInfoId pkgv
+    pure rev
+
+packageTarball
+    :: Either PackageName PackageIdentifier
+    -> PackageIdentifier
+    -> ServerM BL.ByteString
+packageTarball epname tarball = do
+  -- We want to ensure that the tarball name lines up with the package we were
+  -- given. If we have only a 'PackageName', then ensure it's the same package
+  -- name as on the 'PackageIdentifier'.
+  --
+  -- If we have a full package identifier, then make sure they agree!
+  case epname of
+    Left pname | pname == pkgName tarball -> pure ()
+    Right pid | pid == tarball -> pure ()
+    _ -> throwError err404
+
+  mblob <-
+    liftDB $ doSelect1 $ optional $ fmap tarballBlobGz $ getLatestTarball tarball
+  case mblob of
+    Just blob -> do
+      store <- asks serverBlobStore
+      liftIO $ Blob.get store blob
+    Nothing -> throwError err404
+

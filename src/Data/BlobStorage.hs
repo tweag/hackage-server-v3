@@ -3,6 +3,7 @@ module Data.BlobStorage where
 import Data.Foldable
 import Control.Monad (unless)
 import Data.ByteString qualified as BS
+import Data.ByteString.Lazy qualified as BSL
 import System.FilePath ((</>))
 import Data.Serialize (Serialize, encode, decode)
 import Distribution.Utils.MD5 (md5, showMD5)
@@ -70,6 +71,11 @@ add store a = do
   BS.writeFile (filepath store bid) encoded
   pure bid
 
+get' :: BlobStorage -> BlobId a -> IO BS.ByteString
+get' store = BS.readFile . filepath store
+
+get :: BlobStorage -> BlobId a -> IO BSL.ByteString
+get store = BSL.readFile . filepath store
 
 fetch :: Serialize a => BlobStorage -> BlobId a -> IO (Either String a)
 fetch store = fmap decode . BS.readFile . filepath store
