@@ -3,6 +3,9 @@
 
 module Hackage.API.PackagesHTML where
 
+
+import Distribution.Types.VersionRange (anyVersion)
+import Distribution.Types.Dependency as Cabal
 import Control.Monad.Reader
 import Hackage.ServerM
 import Control.Monad (unless)
@@ -100,6 +103,7 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
           :> "distro-monitor" :> Get '[HTML] AllTarballs
     , htmlMirrorUploader :: mode :- "packages" :> Capture "package" (Either PackageName PackageIdentifier) :> "uploader" :> Get '[PlainText] UserName
     , htmlMirrorUploadTime :: mode :- "packages" :> Capture "package" (Either PackageName PackageIdentifier) :> "upload-time" :> Get '[PlainText] UTCTime
+    , htmlPackageDeps :: mode :- "packages" :> Capture "package" (Either PackageName PackageIdentifier) :> "dependencies" :> Get '[HTML] Dependencies
     , htmlPackageVersions :: mode :- "packages" :> CaptureExt "package" PackageName "json" :> Get '[JSON] PackageVersions
     , htmlPackageMetadata :: mode :- "packages" :> CaptureExt "package" PackageIdentifier "json" :> Get '[JSON] PackageBasicDescriptionDTO
     , htmlPackageCabalFile :: mode :- "packages" :> Capture "package" PackageName :> CaptureExt "package" PackageName "cabal" :> Get '[PlainText] Text
@@ -124,6 +128,7 @@ packagesHtmlServer = PackagesHtmlAPI
   , htmlMirrorUploadTime = packageMirrorUploadTime
   , htmlTarball = packageTarball
   , htmlTarballs = packageTarballs
+  , htmlPackageDeps = packageDependencies
   }
 
 --------------------------------------------------------------------------------
@@ -508,4 +513,45 @@ packageTarballs pname = do
     pkgv <- each pkgInfoSchema
     where_ $ pkgId pkgv ==. packageNameId pkg
     pure (packageName pkg, packageVersion pkgv)
+
+
+--------------------------------------------------------------------------------
+-- /package/:package/dependencies
+
+
+data Dependencies = Dependencies
+  { packageIdName' :: PackageIdentifier
+  , isCandidate :: Bool
+  , dependencies :: [Cabal.Dependency]
+  }
+  deriving stock (Eq, Ord, Show)
+
+instance Arbitrary Dependencies where
+  arbitrary = Dependencies <$> arbitrary <*> arbitrary <*> arbitrary
+
+instance HasTemplate HTML Dependencies where
+  templateFor _ _ = "packages/dependencies.html"
+
+instance ToObject Dependencies where
+  toObject (Dependencies a b c) =
+    [ "package" .= Pretty.prettyShow a
+    , "isCandidate" .= b
+    , "dependencies" .= object (do
+        (Dependency pkg vers libs) <- c
+        pure $ fromString (Pretty.prettyShow $ Dependency pkg anyVersion libs) .= Pretty.prettyShow vers
+        )
+    ]
+
+packageDependencies :: Either PackageName PackageIdentifier -> ServerM Dependencies
+packageDependencies pname = do
+  rev <- liftDB $ doSelect1 $ do
+    pkgv <- either (getLatestVersionAndRev . lit) getLatestRev pname
+    pure pkgv
+
+  let parseResult = PkgDescr.parseGenericPackageDescription $ encodeUtf8 $ metadataCabalFile rev
+  case PkgDescr.runParseResult parseResult of
+    (_, Right pkg) -> do
+      let pkgd = PkgDescr.packageDescription pkg
+      pure $ Dependencies (PkgDescr.package pkgd) False $ PkgDescr.allBuildDepends pkgd
+    _ -> throwError $ err500
 

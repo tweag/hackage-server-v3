@@ -1,0 +1,18 @@
+{% include "../header.html" with title = "{{package}}: dependencies" %}
+
+<h1>Dependencies for <a href="/package/{{package}}">{{package}}</a></h2>
+
+<h2>Libraries</h2>
+
+<h3>{{package}}</h3>
+
+<ul>
+{% for dep in dependencies %}
+<li>
+  <a href="/package/{{ dep.key }}">{{ dep.key }}</a> {{ dep.value }}
+</li>
+{% endfor %}
+</ul>
+
+{% include "../footer.html" %}
+

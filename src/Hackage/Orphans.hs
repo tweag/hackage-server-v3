@@ -3,6 +3,7 @@
 
 module Hackage.Orphans where
 
+import Distribution.Compat.Prelude (NonEmpty(..))
 import Data.ByteString.Lazy.Char8 qualified as LBS
 import Data.Time
 import Servant.API
@@ -17,6 +18,12 @@ import Data.Text (Text)
 import Distribution.Package qualified as Pkg
 import Data.Functor.Contravariant
 import Distribution.Parsec
+import Distribution.Types.LibraryName
+import Distribution.Compat.NonEmptySet (NonEmptySet)
+import Distribution.Compat.NonEmptySet qualified as NES
+import Distribution.Types.UnqualComponentName
+import Distribution.Types.VersionRange
+import Distribution.Types.Dependency
 
 
 instance Arbitrary PackageIdentifier where
@@ -41,6 +48,42 @@ instance DBType Version where
     in ti { encode = contramap (fmap fromIntegral . versionNumbers) $ encode ti
           , decode = fmap (mkVersion . fmap fromIntegral) $ decode ti
           }
+
+instance Arbitrary Dependency where
+  arbitrary = Dependency <$> arbitrary <*> arbitrary <*> arbitrary
+
+instance Arbitrary VersionRange where
+  arbitrary = do
+    let small = [ pure anyVersion
+                , pure noVersion
+                , thisVersion <$> arbitrary
+                , notThisVersion <$> arbitrary
+                , laterVersion <$> arbitrary
+                , earlierVersion <$> arbitrary
+                , orLaterVersion <$> arbitrary
+                , orEarlierVersion <$> arbitrary
+                , withinVersion <$> arbitrary
+                , majorBoundVersion <$> arbitrary
+                ]
+    sized $ \n ->
+      case n <= 1 of
+        True -> oneof small
+        False -> oneof $ small <>
+          [ unionVersionRanges <$> resize (div n 2) arbitrary <*> resize (div n 2) arbitrary
+          , intersectVersionRanges <$> resize (div n 2) arbitrary <*> resize (div n 2) arbitrary
+          ]
+
+instance (Ord a, Arbitrary a) => Arbitrary (NonEmptySet a) where
+  arbitrary = fmap NES.fromNonEmpty $ (:|) <$> arbitrary <*> arbitrary
+
+instance Arbitrary LibraryName where
+  arbitrary = oneof
+    [ pure LMainLibName
+    , fmap LSubLibName arbitrary
+    ]
+
+instance Arbitrary UnqualComponentName where
+  arbitrary = fmap mkUnqualComponentName arbitrary
 
 instance DBEq Version
 instance DBOrd Version

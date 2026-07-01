@@ -8,9 +8,9 @@
 | [x]  | /package/:package/:tarball.tar.gz                   | Core            | GET      |
 | [ ]  | /package/:package/changelog.:format (html)          | PackageContents | GET      |
 | [ ]  | /package/:package/changelog.:format (txt)           | PackageContents | GET      |
-| [ ]  | /package/:package/dependencies (html)               | Html            | GET      |
+| [x]  | /package/:package/dependencies (html)               | Html            | GET      |
 | [ ]  | /package/:package/deprecated.:format (html)         | Html            | PUT      |
-| [ ]  | /package/:package/distro-monitor.:format (html)     | Html            | GET      |
+| [x]  | /package/:package/distro-monitor.:format (html)     | Html            | GET      |
 | [ ]  | /package/:package/docs.:format (tar)                | Documentation   | GET      |
 | [ ]  | /package/:package/docs/..                           | Documentation   | GET      |
 | [/]  | /package/:package/preferred.:format (html)          | Html            | GET      |
