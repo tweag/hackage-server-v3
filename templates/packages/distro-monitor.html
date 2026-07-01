@@ -1,0 +1,17 @@
+{% include "../header.html" with title = "Tarballs for {{package}}" %}
+
+<h2>Tarballs for {{package}}</h2>
+
+<p>The following versions of {{package}} exist:</p>
+
+<ul>
+{% for version in versions %}
+<li>
+  <a href="/package/{{ version.value }}/{{ version.value }}.tar.gz">{{ version.value }}.tar.gz</a>
+</li>
+{% endfor %}
+</ul>
+
+{% include "../footer.html" %}
+
+

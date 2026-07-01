@@ -95,6 +95,9 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
     , htmlTarball :: mode :-
         "packages" :> Capture "package" (Either PackageName PackageIdentifier)
           :> CaptureExt "tarball" PackageIdentifier "tar.gz" :> Get '[Tarball] BL.ByteString
+    , htmlTarballs :: mode :-
+        NegotiableContent :> "packages" :> Capture "package" PackageName
+          :> "distro-monitor" :> Get '[HTML] AllTarballs
     , htmlMirrorUploader :: mode :- "packages" :> Capture "package" (Either PackageName PackageIdentifier) :> "uploader" :> Get '[PlainText] UserName
     , htmlMirrorUploadTime :: mode :- "packages" :> Capture "package" (Either PackageName PackageIdentifier) :> "upload-time" :> Get '[PlainText] UTCTime
     , htmlPackageVersions :: mode :- "packages" :> CaptureExt "package" PackageName "json" :> Get '[JSON] PackageVersions
@@ -120,6 +123,7 @@ packagesHtmlServer = PackagesHtmlAPI
   , htmlMirrorUploader = packageMirrorUploader
   , htmlMirrorUploadTime = packageMirrorUploadTime
   , htmlTarball = packageTarball
+  , htmlTarballs = packageTarballs
   }
 
 --------------------------------------------------------------------------------
@@ -472,4 +476,36 @@ packageTarball epname tarball = do
       store <- asks serverBlobStore
       liftIO $ Blob.get store blob
     Nothing -> throwError err404
+
+--------------------------------------------------------------------------------
+-- /package/:package/distro-monitor[.html]
+
+data AllTarballs = AllTarballs
+  { packageIdName :: PackageName
+  , allTarballs :: [PackageIdentifier]
+  }
+  deriving stock (Eq, Ord, Show)
+
+instance ToObject AllTarballs where
+  toObject (AllTarballs pkg tbs) =
+    [ "package" .= Pretty.prettyShow pkg
+    , "versions" .= fmap Pretty.prettyShow tbs
+    ]
+
+instance Arbitrary AllTarballs where
+  arbitrary = AllTarballs <$> arbitrary <*> arbitrary
+
+instance HasTemplate HTML AllTarballs where
+  templateFor _ _ = "packages/distro-monitor.html"
+
+packageTarballs
+    :: PackageName
+    -> ServerM AllTarballs
+packageTarballs pname = do
+  fmap (AllTarballs pname . fmap (uncurry PackageIdentifier)) $ liftDB $ doSelect $ orderBy (snd >$< asc) $ do
+    pkg <- each packageNameSchema
+    where_ $ packageName pkg ==. lit pname
+    pkgv <- each pkgInfoSchema
+    where_ $ pkgId pkgv ==. packageNameId pkg
+    pure (packageName pkg, packageVersion pkgv)
 
