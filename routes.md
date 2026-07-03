@@ -21,8 +21,8 @@
 | [ ]  | /package/:package/reverse/verbose.:format (html)    | Html            | GET      |
 | [ ]  | /package/:package/revision/:revision.:format        | Core            | GET      |
 | [ ]  | /package/:package/revision/:revision.:format (json) | PackageInfoJSON | GET      |
-| [ ]  | /package/:package/revisions/.:format                | Core            | GET      |
-| [ ]  | /package/:package/revisions/.:format (html)         | Html            | GET      |
+| [x]  | /package/:package/revisions/.:format                | Core            | GET      |
+| [x]  | /package/:package/revisions/.:format (html)         | Html            | GET      |
 | [ ]  | /package/:package/src/..                            | PackageContents | GET      |
 | [x]  | /package/:package/upload-time                       | Mirror          | GET      |
 | [x]  | /package/:package/uploader                          | Mirror          | GET      |

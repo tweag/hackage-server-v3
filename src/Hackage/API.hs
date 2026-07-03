@@ -120,7 +120,7 @@ data CoreAPI mode = CoreAPI
     { packageIndex :: mode :- "package" :> Get '[TODO] ()
     , packageCabalGet :: mode :- "package" :> Capture "package" PackageName :> CaptureExt "cabal" PackageName "cabal" :> Get '[PlainText] ()
     , packageTarballGet :: mode :- "package" :> Capture "package" PackageName :> CaptureExt "tarball" PackageName "tar.gz" :> Get '[OctetStream] ()
-    , packageRevisionGet :: mode :- "package" :> Capture "package" PackageName :> "revision" :> CaptureExt "revision" Revision "cabal" :> Get '[PlainText] ()
+    -- , packageRevisionGet :: mode :- "package" :> Capture "package" PackageName :> "revision" :> CaptureExt "revision" Revision "cabal" :> Get '[PlainText] ()
     , packageRevisionsGet :: mode :- "package" :> Capture "package" PackageName :> "revisions" :> Get '[JSON] ()
     , packagesGet :: mode :- "packages" :> Get '[JSON] ()
     , packagesDeauth :: mode :- "packages" :> "deauth" :> Get '[TODO] ()
@@ -409,7 +409,7 @@ data PackageContentsAPI mode = PackageContentsAPI
 -- `/package/:package/revision/:revision.:format`         | GET    | json    | package-info-json        |
 data PackageInfoJsonAPI mode = PackageInfoJsonAPI
     { packageInfoJson :: mode :- "package" :> CaptureExt "package" PackageName "json" :> Get '[JSON] ()
-    , packageRevisionInfoJson :: mode :- "package" :> Capture "package" PackageName :> "revision" :> CaptureExt "revision" Revision "json" :> Get '[JSON] ()
+    -- , packageRevisionInfoJson :: mode :- "package" :> Capture "package" PackageName :> "revision" :> CaptureExt "revision" Revision "json" :> Get '[JSON] ()
     }
     deriving stock (Generic)
 

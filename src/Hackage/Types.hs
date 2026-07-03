@@ -50,7 +50,6 @@ type UserName = Text
 type Nonce = Text
 type Tag = Text
 type ReportId = Text
-type Revision = Text
 type SHA256Digest = Text
 type TarballRevIx = Int64
 type MetadataRevIx = Int64

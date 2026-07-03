@@ -4,6 +4,7 @@
 module Hackage.API.PackagesHTML where
 
 
+import Distribution.Utils.MD5 (md5, showMD5)
 import Distribution.Types.VersionRange (anyVersion)
 import Distribution.Types.Dependency as Cabal
 import Control.Monad.Reader
@@ -84,6 +85,9 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
     , htmlPackagesTrustees :: mode :- "packages" :> "trustees" :> Get '[HTML] TrusteesObject
     , htmlPackagesHelp :: mode :- "upload" :> Get '[HTML] UploadHelp
     , htmlPackagesUploadForm :: mode :- "packages" :> "upload" :> Get '[HTML] PackageUpload
+    , htmlPackageRevisions :: mode :-
+        NegotiableContent :> "package" :> Capture "package" PackageLocator
+          :> "revisions" :> "revisions" :> "" :> Get '[HTML, JSON] (WithPackage Revisions)
     -- , htmlPackagesPreferred :: mode :- "packages" :> "preferred.html" :> Get '[HTML] ()
     -- , htmlPackagesRecentHtml :: mode :- "packages" :> "recent.html" :> Get '[HTML] ()
     -- , htmlPackagesRecentRss :: mode :- "packages" :> "recent.rss" :> Get '[RSS] ()
@@ -130,6 +134,7 @@ packagesHtmlServer = PackagesHtmlAPI
   , htmlTarball = packageTarball
   , htmlTarballs = packageTarballs
   , htmlPackageDeps = packageDependencies
+  , htmlPackageRevisions = packageRevisions
   }
 
 
@@ -568,4 +573,72 @@ packageDependencies pname = do
       let pkgd = PkgDescr.packageDescription pkg
       pure $ WithPackage (PkgDescr.package pkgd) $ Dependencies False $ PkgDescr.allBuildDepends pkgd
     _ -> throwError $ err500
+
+
+--------------------------------------------------------------------------------
+-- /package/:package/revisions
+
+newtype Revisions = Revisions
+  { unRevisions :: [Revision]
+  }
+  deriving newtype (Eq, Ord, Show, Arbitrary)
+
+instance HasTemplate HTML Revisions where
+  templateFor _ _ = "packages/revisions.html"
+
+
+data Revision = Revision
+  { number :: MetadataRevIx
+  , sha256 :: Text
+  , time :: UTCTime
+  , user :: UserName
+  }
+  deriving stock (Eq, Ord, Show)
+
+instance Arbitrary Revision where
+  arbitrary = Revision <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+
+instance ToObject Revisions where
+  toObject (Revisions revs) =
+    [ "revisions" .= revs
+    ]
+
+instance ToJSON Revisions where
+  toJSON (Revisions revs) = toJSON revs
+
+instance ToJSON Revision where
+  toJSON rev = object
+    [ "number" .= number rev
+    , "sha256" .= sha256 rev
+    , "time"   .= time rev
+    , "user"   .= user rev
+    ]
+
+lookupLocatorAllRevs :: PackageLocator -> Query (MetadataRevisionRow Expr)
+lookupLocatorAllRevs (Latest x) = getLatestVersionRevs $ lit x
+lookupLocatorAllRevs (Specific x) = getAllRevs x
+
+
+locatorToPackageId :: PackageLocator -> Query (Expr PackageName, Expr Version)
+locatorToPackageId (Specific p) = pure $ lit (pkgName p, pkgVersion p)
+locatorToPackageId (Latest p) = do
+  version <- getLatestVersion $ lit p
+  pure (lit p, packageVersion version)
+
+
+packageRevisions :: PackageLocator -> ServerM (WithPackage Revisions)
+packageRevisions loc = do
+  (name, version) <- liftDB $ doSelect1 $ locatorToPackageId loc
+  revs <- liftDB $ doSelect $ do
+    rev <- lookupLocatorRevs loc
+    u <- each usersSchema
+    where_ $ userId u ==. metadataUploader rev
+    pure (rev, userName u)
+  pure $ WithPackage (PackageIdentifier name version) $ Revisions $ revs <&> \(rev, user) ->
+    Revision
+      { number = metadataRevId rev
+      , sha256 = T.pack $ showMD5 $ md5 $ encodeUtf8 $ metadataCabalFile rev
+      , time = metadataTime rev
+      , user = user
+      }
 

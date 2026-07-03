@@ -1,0 +1,52 @@
+{% include "../header.html" with title = "Metadata revisions for {{package}}" %}
+
+<h2>Metadata revisions for {{package | toPackageUrl}}</h2>
+
+<p>
+  Package maintainers and Hackage trustees are allowed to edit certain bits of
+  package metadata after a release, without uploading a new tarball. Note that
+  the tarball itself is never changed, just the metadata that is stored
+  separately. For more information about metadata revisions, please refer to the
+  <a href="https://github.com/haskell-infra/hackage-trustees/blob/master/revisions-information.md">Hackage Metadata Revisions FAQ</a>.
+</p>
+
+<p>
+  If all the available versions of a package are non-preferred or deprecated,
+  cabal-install will treat this the same as if none of them are. This feature
+  doesn't affect whether or not to install a package, only for selecting
+  versions after a given package has decided to be installed. <a
+  href="deprecatedPackageUri versions "" pkgname">Entire-package deprecation</a>
+is also available, but it's separate from preferred versions.
+</p>
+
+<table class="fancy" style="width: 100%">
+  <tbody><tr>
+    <th>No.</th>
+    <th>Time</th>
+    <th>User</th>
+    <th>SHA256</th>
+  </tr>
+{% for rev in revisions %}
+    <tr>
+      <td valign="top"><a href="{{package | toPackageUrl}}/revision/{{rev.value.number}}.cabal">-r{{rev.value.number}}</a></td>
+      <!-- TODO(sandy): time title should be pretty printed -->
+      <td valign="top"><span title="{{rev.value.time}}">{{rev.value.time}}</span></td>
+      <td valign="top"><a href="/user/{{rev.value.user}}">{{rev.value.user}}</a></td>
+      <td valign="top">{{rev.value.sha256}}
+    </td></tr>
+{% endfor %}
+    <tr>
+      <td valign="top"></td>
+      <td colspan="3">
+        <ul>
+
+        </ul>
+      </td>
+    </tr>
+
+</tbody></table>
+
+
+{% include "../footer.html" %}
+
+
