@@ -1,0 +1,63 @@
+{-# LANGUAGE OverloadedLists   #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -Wno-orphans   #-}
+
+
+module Hackage.Objects where
+
+import Data.Aeson hiding (Result(..))
+import Data.Profunctor
+import Data.Schema qualified as S
+import Data.Text qualified as T
+import Distribution.Types.PackageId
+import Distribution.Types.PackageName
+import Distribution.Types.Version
+import Hackage.Orphans ()
+import Text.EDE.Filters (Quote, Unquote)
+
+instance S.ToSchema PackageIdentifier where
+  schema = S.object $
+    PackageIdentifier
+      <$> pkgName S..= S.field "name" S.schema
+      <*> pkgVersion S..= S.field "version" S.schema
+
+deriving via Schema PackageIdentifier instance ToJSON PackageIdentifier
+deriving via Schema PackageIdentifier instance FromJSON PackageIdentifier
+deriving via Schema PackageIdentifier instance Quote PackageIdentifier
+deriving via Schema PackageIdentifier instance Unquote PackageIdentifier
+
+instance S.ToSchema PackageName where
+  schema
+    = dimap (T.pack . unPackageName) (mkPackageName . T.unpack)
+    $ S.text "PackageName"
+
+deriving via Schema PackageName instance ToJSON PackageName
+deriving via Schema PackageName instance FromJSON PackageName
+deriving via Schema PackageName instance Quote PackageName
+deriving via Schema PackageName instance Unquote PackageName
+
+instance S.ToSchema Version where
+  schema
+    = dimap versionNumbers mkVersion
+    $ S.named "version"
+    $ S.array S.schema
+
+deriving via Schema Version instance ToJSON Version
+deriving via Schema Version instance FromJSON Version
+deriving via Schema Version instance Quote Version
+deriving via Schema Version instance Unquote Version
+
+
+--------------------------------------------------------------------------------
+
+newtype Schema a = ViaSchema { unViaSchema :: a }
+
+instance S.ToSchema a => ToJSON (Schema a) where
+  toJSON = S.schemaToJSON . unViaSchema
+
+instance S.ToSchema a => FromJSON (Schema a) where
+  parseJSON = fmap ViaSchema . S.schemaParseJSON
+
+instance S.ToSchema a => Quote (Schema a)
+instance S.ToSchema a => Unquote (Schema a)
+

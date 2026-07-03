@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       Data.BlobStorage
+      Data.Schema
       Data.TarIndex
       Hackage.API
       Hackage.API.PackagesHTML
@@ -33,6 +34,7 @@ library
       Hackage.Auth.AuthToken
       Hackage.Auth.Maintainer
       Hackage.Auth.Nonce
+      Hackage.Objects
       Hackage.Orphans
       Hackage.Schemas.Packages
       Hackage.Schemas.Users
