@@ -52,6 +52,7 @@ import Servant.Server (err404, err500)
 import Servant.Server.Generic (AsServerT)
 import Servant.Tarball
 import Test.QuickCheck
+import Hackage.Objects
 
 -- `/packages/.:format`                                   | GET    | html    | html                     |
 -- `/packages/.:format`                                   | POST   | html    | html                     |
@@ -96,14 +97,14 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
     -- , htmlPackagesTagsGet :: mode :- "packages" :> "tags" :> Get '[HTML] ()
     -- , htmlPackagesTop :: mode :- "packages" :> "top.html" :> Get '[HTML] ()
     , htmlTarball :: mode :-
-        "packages" :> Capture "package" (Either PackageName PackageIdentifier)
+        "packages" :> Capture "package" PackageLocator
           :> CaptureExt "tarball" PackageIdentifier "tar.gz" :> Get '[Tarball] BL.ByteString
     , htmlTarballs :: mode :-
         NegotiableContent :> "packages" :> Capture "package" PackageName
           :> "distro-monitor" :> Get '[HTML] AllTarballs
-    , htmlMirrorUploader :: mode :- "packages" :> Capture "package" (Either PackageName PackageIdentifier) :> "uploader" :> Get '[PlainText] UserName
-    , htmlMirrorUploadTime :: mode :- "packages" :> Capture "package" (Either PackageName PackageIdentifier) :> "upload-time" :> Get '[PlainText] UTCTime
-    , htmlPackageDeps :: mode :- "packages" :> Capture "package" (Either PackageName PackageIdentifier) :> "dependencies" :> Get '[HTML] Dependencies
+    , htmlMirrorUploader :: mode :- "packages" :> Capture "package" PackageLocator :> "uploader" :> Get '[PlainText] UserName
+    , htmlMirrorUploadTime :: mode :- "packages" :> Capture "package" PackageLocator :> "upload-time" :> Get '[PlainText] UTCTime
+    , htmlPackageDeps :: mode :- "packages" :> Capture "package" PackageLocator :> "dependencies" :> Get '[HTML] Dependencies
     , htmlPackageVersions :: mode :- "packages" :> CaptureExt "package" PackageName "json" :> Get '[JSON] PackageVersions
     , htmlPackageMetadata :: mode :- "packages" :> CaptureExt "package" PackageIdentifier "json" :> Get '[JSON] PackageBasicDescriptionDTO
     , htmlPackageCabalFile :: mode :- "packages" :> Capture "package" PackageName :> CaptureExt "package" PackageName "cabal" :> Get '[PlainText] Text
@@ -130,6 +131,7 @@ packagesHtmlServer = PackagesHtmlAPI
   , htmlTarballs = packageTarballs
   , htmlPackageDeps = packageDependencies
   }
+
 
 --------------------------------------------------------------------------------
 -- /packages/names
@@ -425,10 +427,14 @@ packagePreferredVersionsEndpoint pname = do
 --------------------------------------------------------------------------------
 -- /package/:package/uploader
 
-packageMirrorUploader :: Either PackageName PackageIdentifier -> ServerM UserName
+lookupLocator :: PackageLocator -> Query (MetadataRevisionRow Expr)
+lookupLocator (Latest x) = getLatestVersionAndRev $ lit x
+lookupLocator (Specific x) = getLatestRev x
+
+packageMirrorUploader :: PackageLocator -> ServerM UserName
 packageMirrorUploader pname =
   liftDB $ doSelect1 $ do
-    pkgv <- either (getLatestVersionAndRev . lit) getLatestRev pname
+    pkgv <- lookupLocator pname
     u <- each usersSchema
     where_ $ metadataUploader pkgv ==. userId u
     pure $ userName u
@@ -437,10 +443,10 @@ packageMirrorUploader pname =
 --------------------------------------------------------------------------------
 -- /package/:package/upload-time
 
-packageMirrorUploadTime :: Either PackageName PackageIdentifier -> ServerM UTCTime
+packageMirrorUploadTime :: PackageLocator -> ServerM UTCTime
 packageMirrorUploadTime pname =
   liftDB $ doSelect1 $ do
-    pkgv <- either (getLatestVersionAndRev . lit) getLatestRev pname
+    pkgv <- lookupLocator pname
     pure $ metadataTime pkgv
 
 
@@ -460,7 +466,7 @@ getLatestTarball pid = do
     pure rev
 
 packageTarball
-    :: Either PackageName PackageIdentifier
+    :: PackageLocator
     -> PackageIdentifier
     -> ServerM BL.ByteString
 packageTarball epname tarball = do
@@ -470,8 +476,8 @@ packageTarball epname tarball = do
   --
   -- If we have a full package identifier, then make sure they agree!
   case epname of
-    Left pname | pname == pkgName tarball -> pure ()
-    Right pid | pid == tarball -> pure ()
+    Latest pname | pname == pkgName tarball -> pure ()
+    Specific pid | pid == tarball -> pure ()
     _ -> throwError err404
 
   mblob <-
@@ -542,10 +548,10 @@ instance ToObject Dependencies where
         )
     ]
 
-packageDependencies :: Either PackageName PackageIdentifier -> ServerM Dependencies
+packageDependencies :: PackageLocator -> ServerM Dependencies
 packageDependencies pname = do
   rev <- liftDB $ doSelect1 $ do
-    pkgv <- either (getLatestVersionAndRev . lit) getLatestRev pname
+    pkgv <- lookupLocator pname
     pure pkgv
 
   let parseResult = PkgDescr.parseGenericPackageDescription $ encodeUtf8 $ metadataCabalFile rev

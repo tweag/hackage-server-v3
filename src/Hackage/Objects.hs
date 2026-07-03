@@ -12,8 +12,22 @@ import Data.Text qualified as T
 import Distribution.Types.PackageId
 import Distribution.Types.PackageName
 import Distribution.Types.Version
+import GHC.Generics (Generic)
 import Hackage.Orphans ()
+import Servant.API
+import Servant.EDE
 import Text.EDE.Filters (Quote, Unquote)
+
+
+data PackageLocator
+  = Latest PackageName
+  | Specific PackageIdentifier
+  deriving stock (Eq, Ord, Show, Generic)
+
+instance FromHttpApiData PackageLocator where
+  parseUrlPiece = fmap (either Latest Specific) . parseUrlPiece
+
+--------------------------------------------------------------------------------
 
 instance S.ToSchema PackageIdentifier where
   schema = S.object $
