@@ -3,6 +3,7 @@
 
 module Hackage.Orphans where
 
+import Data.Time.Calendar.OrdinalDate
 import Distribution.Compat.Prelude (NonEmpty(..))
 import Data.ByteString.Lazy.Char8 qualified as LBS
 import Data.Time
@@ -99,3 +100,12 @@ instance FromHttpApiData PackageIdentifier where
 
 instance MimeRender PlainText UTCTime where
   mimeRender _ = LBS.pack . show
+
+instance Arbitrary UTCTime where
+  arbitrary = UTCTime <$> arbitrary <*> arbitrary
+
+instance Arbitrary Day where
+  arbitrary = fromSundayStartWeek <$> fmap (+ 2000) arbitrary <*> arbitrary <*> arbitrary
+
+instance Arbitrary DiffTime where
+  arbitrary = realToFrac <$> arbitrary @Double
