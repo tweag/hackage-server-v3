@@ -101,7 +101,7 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
           :> CaptureExt "tarball" PackageIdentifier "tar.gz" :> Get '[Tarball] BL.ByteString
     , htmlTarballs :: mode :-
         NegotiableContent :> "packages" :> Capture "package" PackageName
-          :> "distro-monitor" :> Get '[HTML] AllTarballs
+          :> "distro-monitor" :> Get '[HTML] (WithPackageName AllTarballs)
     , htmlMirrorUploader :: mode :- "packages" :> Capture "package" PackageLocator :> "uploader" :> Get '[PlainText] UserName
     , htmlMirrorUploadTime :: mode :- "packages" :> Capture "package" PackageLocator :> "upload-time" :> Get '[PlainText] UTCTime
     , htmlPackageDeps :: mode :- "packages" :> Capture "package" PackageLocator :> "dependencies" :> Get '[HTML] (WithPackage Dependencies)
@@ -109,7 +109,7 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
     , htmlPackageMetadata :: mode :- "packages" :> CaptureExt "package" PackageIdentifier "json" :> Get '[JSON] PackageBasicDescriptionDTO
     , htmlPackageCabalFile :: mode :- "packages" :> Capture "package" PackageName :> CaptureExt "package" PackageName "cabal" :> Get '[PlainText] Text
     , htmlPackagePreferredVersions :: mode :-
-        NegotiableContent :> "packages" :> Capture "package" PackageName :> "preferred" :> Get '[HTML, JSON] PreferredVersions
+        NegotiableContent :> "packages" :> Capture "package" PackageName :> "preferred" :> Get '[HTML, JSON] (WithPackageName PreferredVersions)
     }
     deriving stock (Generic)
 
@@ -387,17 +387,16 @@ packageCabalFileEndpoint pname1 pname2 = do
 --------------------------------------------------------------------------------
 -- /package/:package/preferred
 
-data PreferredVersions = PreferredVersions
-  { pv_packageName :: PackageName
-  , getPreferredVersions :: Map Version VersionStatus
+newtype PreferredVersions = PreferredVersions
+  { getPreferredVersions :: Map Version VersionStatus
   }
   deriving stock (Eq, Ord, Show, Generic)
 
 instance Arbitrary PreferredVersions where
-  arbitrary = PreferredVersions <$> arbitrary <*> arbitrary
+  arbitrary = PreferredVersions <$> arbitrary
 
 instance ToJSON PreferredVersions where
-  toJSON (PreferredVersions _ vs) = do
+  toJSON (PreferredVersions vs) = do
     let (normal, deprecated) = partition ((== Normal) . snd) $ M.toList vs
     object
       [ "normal-version" .= fmap (Pretty.prettyShow . fst) normal
@@ -405,15 +404,14 @@ instance ToJSON PreferredVersions where
       ]
 
 instance ToObject PreferredVersions where
-  toObject (PreferredVersions pkg vs) =
-      [ "package" .= unPackageName pkg
-      , "versions" .= M.mapKeys Pretty.prettyShow vs
+  toObject (PreferredVersions vs) =
+      [ "versions" .= M.mapKeys Pretty.prettyShow vs
       ]
 
 instance HasTemplate HTML PreferredVersions where
   templateFor _ _ = "packages/preferred.html"
 
-packagePreferredVersionsEndpoint :: PackageName -> ServerM PreferredVersions
+packagePreferredVersionsEndpoint :: PackageName -> ServerM (WithPackageName PreferredVersions)
 packagePreferredVersionsEndpoint pname = do
   versions <- liftDB $ doSelect $ do
     pkg <- each packageNameSchema
@@ -421,7 +419,7 @@ packagePreferredVersionsEndpoint pname = do
     pkgv <- each pkgInfoSchema
     where_ $ pkgId pkgv ==. packageNameId pkg
     pure (packageVersion pkgv, pkgInfoDeprecated pkgv)
-  pure $ PreferredVersions pname $ M.fromList $ fmap (fmap $ bool Normal Deprecated) versions
+  pure $ WithPackageName pname $ PreferredVersions $ M.fromList $ fmap (fmap $ bool Normal Deprecated) versions
 
 
 --------------------------------------------------------------------------------
@@ -491,29 +489,27 @@ packageTarball epname tarball = do
 --------------------------------------------------------------------------------
 -- /package/:package/distro-monitor[.html]
 
-data AllTarballs = AllTarballs
-  { packageIdName :: PackageName
-  , allTarballs :: [PackageIdentifier]
+newtype AllTarballs = AllTarballs
+  { allTarballs :: [PackageIdentifier]
   }
   deriving stock (Eq, Ord, Show)
 
 instance ToObject AllTarballs where
-  toObject (AllTarballs pkg tbs) =
-    [ "package" .= Pretty.prettyShow pkg
-    , "versions" .= fmap Pretty.prettyShow tbs
+  toObject (AllTarballs tbs) =
+    [ "versions" .= fmap Pretty.prettyShow tbs
     ]
 
 instance Arbitrary AllTarballs where
-  arbitrary = AllTarballs <$> arbitrary <*> arbitrary
+  arbitrary = AllTarballs <$> arbitrary
 
 instance HasTemplate HTML AllTarballs where
   templateFor _ _ = "packages/distro-monitor.html"
 
 packageTarballs
     :: PackageName
-    -> ServerM AllTarballs
+    -> ServerM (WithPackageName AllTarballs)
 packageTarballs pname = do
-  fmap (AllTarballs pname . fmap (uncurry PackageIdentifier)) $ liftDB $ doSelect $ orderBy (snd >$< asc) $ do
+  fmap (WithPackageName pname . AllTarballs . fmap (uncurry PackageIdentifier)) $ liftDB $ doSelect $ orderBy (snd >$< asc) $ do
     pkg <- each packageNameSchema
     where_ $ packageName pkg ==. lit pname
     pkgv <- each pkgInfoSchema

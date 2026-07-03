@@ -1,6 +1,7 @@
-{-# LANGUAGE OverloadedLists   #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS_GHC -Wno-orphans   #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE OverloadedLists       #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# OPTIONS_GHC -Wno-orphans       #-}
 
 
 module Hackage.Objects where
@@ -44,7 +45,31 @@ instance Arbitrary a => Arbitrary (WithPackage a) where
 instance ToObject a => ToObject (WithPackage a) where
   toObject (WithPackage pkg v) = ["package" .= pkg] <> toObject v
 
+instance ToJSON a => ToJSON (WithPackage a) where
+  toJSON (WithPackage _ v) = toJSON v
+
 instance HasTemplate c a => HasTemplate c (WithPackage a) where
+  templateFor c _ = templateFor c $ Proxy @a
+
+
+--------------------------------------------------------------------------------
+
+data WithPackageName a = WithPackageName
+  { package :: PackageName
+  , value :: a
+  }
+  deriving stock (Eq, Ord, Show, Generic)
+
+instance Arbitrary a => Arbitrary (WithPackageName a) where
+  arbitrary = WithPackageName <$> arbitrary <*> arbitrary
+
+instance ToObject a => ToObject (WithPackageName a) where
+  toObject (WithPackageName pkg v) = ["package" .= pkg] <> toObject v
+
+instance ToJSON a => ToJSON (WithPackageName a) where
+  toJSON (WithPackageName _ v) = toJSON v
+
+instance HasTemplate c a => HasTemplate c (WithPackageName a) where
   templateFor c _ = templateFor c $ Proxy @a
 
 
