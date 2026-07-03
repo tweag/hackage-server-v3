@@ -104,7 +104,7 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
           :> "distro-monitor" :> Get '[HTML] AllTarballs
     , htmlMirrorUploader :: mode :- "packages" :> Capture "package" PackageLocator :> "uploader" :> Get '[PlainText] UserName
     , htmlMirrorUploadTime :: mode :- "packages" :> Capture "package" PackageLocator :> "upload-time" :> Get '[PlainText] UTCTime
-    , htmlPackageDeps :: mode :- "packages" :> Capture "package" PackageLocator :> "dependencies" :> Get '[HTML] Dependencies
+    , htmlPackageDeps :: mode :- "packages" :> Capture "package" PackageLocator :> "dependencies" :> Get '[HTML] (WithPackage Dependencies)
     , htmlPackageVersions :: mode :- "packages" :> CaptureExt "package" PackageName "json" :> Get '[JSON] PackageVersions
     , htmlPackageMetadata :: mode :- "packages" :> CaptureExt "package" PackageIdentifier "json" :> Get '[JSON] PackageBasicDescriptionDTO
     , htmlPackageCabalFile :: mode :- "packages" :> Capture "package" PackageName :> CaptureExt "package" PackageName "cabal" :> Get '[PlainText] Text
@@ -526,29 +526,27 @@ packageTarballs pname = do
 
 
 data Dependencies = Dependencies
-  { packageIdName' :: PackageIdentifier
-  , isCandidate :: Bool
+  { isCandidate :: Bool
   , dependencies :: [Cabal.Dependency]
   }
   deriving stock (Eq, Ord, Show)
 
 instance Arbitrary Dependencies where
-  arbitrary = Dependencies <$> arbitrary <*> arbitrary <*> arbitrary
+  arbitrary = Dependencies <$> arbitrary <*> arbitrary
 
 instance HasTemplate HTML Dependencies where
   templateFor _ _ = "packages/dependencies.html"
 
 instance ToObject Dependencies where
-  toObject (Dependencies a b c) =
-    [ "package" .= Pretty.prettyShow a
-    , "isCandidate" .= b
+  toObject (Dependencies b c) =
+    [ "isCandidate" .= b
     , "dependencies" .= object (do
         (Dependency pkg vers libs) <- c
         pure $ fromString (Pretty.prettyShow $ Dependency pkg anyVersion libs) .= Pretty.prettyShow vers
         )
     ]
 
-packageDependencies :: PackageLocator -> ServerM Dependencies
+packageDependencies :: PackageLocator -> ServerM (WithPackage Dependencies)
 packageDependencies pname = do
   rev <- liftDB $ doSelect1 $ do
     pkgv <- lookupLocator pname
@@ -558,6 +556,6 @@ packageDependencies pname = do
   case PkgDescr.runParseResult parseResult of
     (_, Right pkg) -> do
       let pkgd = PkgDescr.packageDescription pkg
-      pure $ Dependencies (PkgDescr.package pkgd) False $ PkgDescr.allBuildDepends pkgd
+      pure $ WithPackage (PkgDescr.package pkgd) $ Dependencies False $ PkgDescr.allBuildDepends pkgd
     _ -> throwError $ err500
 

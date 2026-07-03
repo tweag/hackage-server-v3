@@ -20,7 +20,8 @@ import Servant.EDE
 import System.FilePath ((</>))
 import Test.Hspec
 import Test.QuickCheck (Arbitrary, forAll, property, arbitrary)
-import Text.EDE (parseFile, render, eitherResult)
+import Text.EDE (parseFile, renderWith, eitherResult)
+import Hackage.ServerM (filters)
 
 
 spec :: Spec
@@ -58,7 +59,7 @@ makeTemplateTest dir (Template @a pa ((dir </>) -> file)) = do
       -- The goal is to see if we can find any inputs which cause it to fail to
       -- render.
       property $ forAll arbitrary $ \(a :: a) ->
-        eitherResult (render template $ mkObject a) `shouldSatisfy` isRight
+        eitherResult (renderWith filters template $ mkObject a) `shouldSatisfy` isRight
 
 
 -- | Helper data structure for implementing 'GetTemplates'. This exists

@@ -5,6 +5,7 @@
 
 module Hackage.Objects where
 
+import Data.Proxy (Proxy(..))
 import Data.Aeson hiding (Result(..))
 import Data.Profunctor
 import Data.Schema qualified as S
@@ -17,6 +18,7 @@ import Hackage.Orphans ()
 import Servant.API
 import Servant.EDE
 import Text.EDE.Filters (Quote, Unquote)
+import Test.QuickCheck (Arbitrary(..))
 
 
 data PackageLocator
@@ -26,6 +28,25 @@ data PackageLocator
 
 instance FromHttpApiData PackageLocator where
   parseUrlPiece = fmap (either Latest Specific) . parseUrlPiece
+
+
+--------------------------------------------------------------------------------
+
+data WithPackage a = WithPackage
+  { package :: PackageIdentifier
+  , value :: a
+  }
+  deriving stock (Eq, Ord, Show, Generic)
+
+instance Arbitrary a => Arbitrary (WithPackage a) where
+  arbitrary = WithPackage <$> arbitrary <*> arbitrary
+
+instance ToObject a => ToObject (WithPackage a) where
+  toObject (WithPackage pkg v) = ["package" .= pkg] <> toObject v
+
+instance HasTemplate c a => HasTemplate c (WithPackage a) where
+  templateFor c _ = templateFor c $ Proxy @a
+
 
 --------------------------------------------------------------------------------
 

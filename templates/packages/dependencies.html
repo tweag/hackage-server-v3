@@ -1,10 +1,11 @@
 {% include "../header.html" with title = "{{package}}: dependencies" %}
 
-<h1>Dependencies for <a href="/package/{{package}}">{{package}}</a></h2>
+<h1>Dependencies for
+  <a href="{{package | toPackageUrl}}">{{package | packagePretty}}</a></h1>
 
 <h2>Libraries</h2>
 
-<h3>{{package}}</h3>
+<h3>{{package | packageName}}</h3>
 
 <ul>
 {% for dep in dependencies %}

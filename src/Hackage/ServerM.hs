@@ -1,7 +1,13 @@
+{-# LANGUAGE OverloadedLists       #-}
+{-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 
 module Hackage.ServerM where
 
+import GHC.Exts (IsList(..))
+import Distribution.Pretty qualified as Pretty
+import Distribution.Types.PackageId (PackageIdentifier(..))
+import Data.Text (Text)
 import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
 import Hasql.Connection (Connection)
@@ -11,6 +17,9 @@ import Servant
 import Data.Pool
 import Servant.EDE
 import Data.BlobStorage (BlobStorage)
+import Data.Text qualified as T
+import Text.EDE.Filters
+import Hackage.Objects ()
 
 
 data ServerCtx = ServerCtx
@@ -51,7 +60,7 @@ runServerM
     -> ServerT api ServerM
     -> IO Application
 runServerM api ctx serverCtx server = either (fail . show) pure =<< do
-  unsafeLoadTemplates api [] "templates"
+  unsafeLoadTemplates api filters "templates"
     $ pure
     $ serveWithContext api ctx
     $ hoistServerWithContext
@@ -59,4 +68,14 @@ runServerM api ctx serverCtx server = either (fail . show) pure =<< do
         (Proxy @ctx)
         (Handler . flip runReaderT serverCtx . unServerM)
         server
+
+filters :: (IsList l, Item l ~ (Text, Term)) => l
+filters =
+  [ "toPackageUrl" @: toPackageUrl
+  , "packageName" @: pkgName
+  , "packagePretty" @: (T.pack . Pretty.prettyShow @PackageIdentifier)
+  ]
+
+toPackageUrl :: PackageIdentifier -> Text
+toPackageUrl pkg = T.pack $ "package/" <> Pretty.prettyShow pkg
 
