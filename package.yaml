@@ -63,6 +63,12 @@ dependencies:
 - warp
 - http-media
 
+# for schema-profunctor
+- vector
+- profunctors
+- bifunctors
+- comonad
+- openapi3
 
 - hackage-server
 - acid-state
