@@ -34,6 +34,7 @@ library
       Hackage.Auth.AuthToken
       Hackage.Auth.Maintainer
       Hackage.Auth.Nonce
+      Hackage.Mirror
       Hackage.Objects
       Hackage.Orphans
       Hackage.Schemas.Packages
@@ -97,6 +98,7 @@ library
     , lens
     , memory
     , mime-types
+    , monoidal-containers
     , mtl
     , openapi3
     , profunctors
@@ -117,6 +119,7 @@ library
     , vector
     , wai
     , warp
+    , zlib
   default-language: GHC2024
 
 test-suite tests
@@ -167,6 +170,7 @@ test-suite tests
     , lens
     , memory
     , mime-types
+    , monoidal-containers
     , mtl
     , openapi3
     , profunctors
@@ -187,4 +191,5 @@ test-suite tests
     , vector
     , wai
     , warp
+    , zlib
   default-language: GHC2024

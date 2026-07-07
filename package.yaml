@@ -62,6 +62,8 @@ dependencies:
 - wai
 - warp
 - http-media
+- zlib
+- monoidal-containers
 
 # for schema-profunctor
 - vector
