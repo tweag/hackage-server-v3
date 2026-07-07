@@ -70,8 +70,8 @@ dependencies:
 - comonad
 - openapi3
 
-- hackage-server
-- acid-state
+# - hackage-server
+# - acid-state
 
 ghc-options:
 - -Wall

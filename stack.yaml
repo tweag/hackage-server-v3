@@ -2,7 +2,7 @@ snapshot: lts-24.35
 
 packages:
 - .
-- ../hackage-server
+# - ../hackage-server
 
 extra-deps:
   - rel8-1.7.0.0
