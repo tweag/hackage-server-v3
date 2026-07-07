@@ -13,6 +13,7 @@ import Hackage.Types
 import Hackage.Types.PrimaryKey
 import Rel8.CreateTable
 import Servant.Tarball
+import Data.ByteString (StrictByteString)
 
 import Rel8
   ( Rel8able
@@ -93,7 +94,7 @@ data MetadataRevisionRow f = MetadataRevisionRow
   , metadataRevId :: Column f MetadataRevIx
   , metadataTime :: Column f UTCTime
   , metadataUploader :: Column f UserId
-  , metadataCabalFile :: Column f Text
+  , metadataCabalFile :: Column f StrictByteString
   }
   deriving stock (Generic)
   deriving anyclass (Rel8able)

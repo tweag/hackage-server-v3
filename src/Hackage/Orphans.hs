@@ -6,6 +6,7 @@ module Hackage.Orphans where
 import Data.Time.Calendar.OrdinalDate
 import Distribution.Compat.Prelude (NonEmpty(..))
 import Data.ByteString.Lazy.Char8 qualified as LBS
+import Data.ByteString (StrictByteString)
 import Data.Time
 import Servant.API
 import Rel8 hiding (Enum)
@@ -101,6 +102,9 @@ instance FromHttpApiData PackageIdentifier where
 instance MimeRender PlainText UTCTime where
   mimeRender _ = LBS.pack . show
 
+instance MimeRender PlainText StrictByteString where
+  mimeRender _ = LBS.fromStrict
+
 instance Arbitrary UTCTime where
   arbitrary = UTCTime <$> arbitrary <*> arbitrary
 
@@ -109,3 +113,4 @@ instance Arbitrary Day where
 
 instance Arbitrary DiffTime where
   arbitrary = realToFrac <$> arbitrary @Double
+

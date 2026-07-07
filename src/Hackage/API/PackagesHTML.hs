@@ -4,6 +4,7 @@
 module Hackage.API.PackagesHTML where
 
 
+import Data.ByteString (StrictByteString)
 import Distribution.Utils.MD5 (md5, showMD5)
 import Distribution.Types.VersionRange (anyVersion)
 import Distribution.Types.Dependency as Cabal
@@ -27,7 +28,6 @@ import Data.String (fromString)
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Arbitrary ()
-import Data.Text.Encoding (encodeUtf8)
 import Data.Time (UTCTime)
 import Distribution.License (licenseToSPDX)
 import Distribution.PackageDescription.Parsec qualified as PkgDescr
@@ -111,7 +111,7 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
     , htmlPackageDeps :: mode :- "packages" :> Capture "package" PackageLocator :> "dependencies" :> Get '[HTML] (WithPackage Dependencies)
     , htmlPackageVersions :: mode :- "packages" :> CaptureExt "package" PackageName "json" :> Get '[JSON] PackageVersions
     , htmlPackageMetadata :: mode :- "packages" :> CaptureExt "package" PackageIdentifier "json" :> Get '[JSON] PackageBasicDescriptionDTO
-    , htmlPackageCabalFile :: mode :- "packages" :> Capture "package" PackageName :> CaptureExt "package" PackageName "cabal" :> Get '[PlainText] Text
+    , htmlPackageCabalFile :: mode :- "packages" :> Capture "package" PackageName :> CaptureExt "package" PackageName "cabal" :> Get '[PlainText] StrictByteString
     , htmlPackagePreferredVersions :: mode :-
         NegotiableContent :> "packages" :> Capture "package" PackageName :> "preferred" :> Get '[HTML, JSON] (WithPackageName PreferredVersions)
     }
@@ -351,7 +351,7 @@ packageMetadataEndpoint pid = do
     where_ $ userId user ==. metadataUploader rev
     pure (rev, userName user)
 
-  let parseResult = PkgDescr.parseGenericPackageDescription $ encodeUtf8 $ metadataCabalFile rev
+  let parseResult = PkgDescr.parseGenericPackageDescription $ metadataCabalFile rev
   case PkgDescr.runParseResult parseResult of
     (_, Right pkg) -> do
       let pkgd = PkgDescr.packageDescription pkg
@@ -394,7 +394,7 @@ getLatestVersionRevs pname = do
 
 
 
-packageCabalFileEndpoint :: PackageName -> PackageName -> ServerM Text
+packageCabalFileEndpoint :: PackageName -> PackageName -> ServerM StrictByteString
 packageCabalFileEndpoint pname1 pname2 = do
   -- For legacy reasons, this path requires both package names to be the same
   unless (pname1 == pname2) $ throwError err404
@@ -567,7 +567,7 @@ packageDependencies pname = do
     pkgv <- onlyLatestRev $ lookupLocatorRevs pname
     pure pkgv
 
-  let parseResult = PkgDescr.parseGenericPackageDescription $ encodeUtf8 $ metadataCabalFile rev
+  let parseResult = PkgDescr.parseGenericPackageDescription $ metadataCabalFile rev
   case PkgDescr.runParseResult parseResult of
     (_, Right pkg) -> do
       let pkgd = PkgDescr.packageDescription pkg
@@ -637,7 +637,7 @@ packageRevisions loc = do
   pure $ WithPackage (PackageIdentifier name version) $ Revisions $ revs <&> \(rev, user) ->
     Revision
       { number = metadataRevId rev
-      , sha256 = T.pack $ showMD5 $ md5 $ encodeUtf8 $ metadataCabalFile rev
+      , sha256 = T.pack $ showMD5 $ md5 $ metadataCabalFile rev
       , time = metadataTime rev
       , user = user
       }
