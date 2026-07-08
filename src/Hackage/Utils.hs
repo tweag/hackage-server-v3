@@ -4,6 +4,7 @@ module Hackage.Utils
   ( module Hackage.Utils
   , ServerM
   , Connection
+  , SessionError
   ) where
 
 import Data.ByteString.Lazy.Char8 qualified as BSL8

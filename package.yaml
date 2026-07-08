@@ -73,6 +73,8 @@ dependencies:
 - comonad
 - openapi3
 
+- request
+
 # - hackage-server
 # - acid-state
 

@@ -26,6 +26,10 @@ import System.FilePath (dropExtensions)
 -- will use standard content negotiation for the @/resource@ route.
 data NegotiableContent
 
+instance HasLink api => HasLink (NegotiableContent :> api) where
+  type MkLink (NegotiableContent :> api) a = MkLink api a
+  toLink f _ = toLink f (Proxy @api)
+
 instance HasServer api context => HasServer (NegotiableContent :> api) context where
   type ServerT (NegotiableContent :> api) m = ServerT api m
   hoistServerWithContext _ = hoistServerWithContext (Proxy @api)

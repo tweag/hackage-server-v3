@@ -3,30 +3,30 @@
 
 module Hackage.Orphans where
 
-import Data.Time.Calendar.OrdinalDate
-import Distribution.Compat.Prelude (NonEmpty(..))
-import Data.ByteString.Lazy.Char8 qualified as LBS
 import Data.ByteString (StrictByteString)
-import Data.Time
-import Servant.API
-import Rel8 hiding (Enum)
-import Distribution.Types.PackageId (PackageIdentifier(..))
-import Distribution.Types.Version
-import Distribution.Types.PackageName
-import Test.QuickCheck
-import Data.Text qualified as T
+import Data.ByteString.Lazy.Char8 qualified as LBS
+import Data.Functor.Contravariant
 import Data.Int (Int64)
 import Data.Text (Text)
-import Distribution.Package qualified as Pkg
-import Data.Functor.Contravariant
-import Distribution.Parsec
-import Distribution.Types.LibraryName
+import Data.Text qualified as T
+import Data.Time
+import Data.Time.Calendar.OrdinalDate
 import Distribution.Compat.NonEmptySet (NonEmptySet)
 import Distribution.Compat.NonEmptySet qualified as NES
-import Distribution.Types.UnqualComponentName
-import Distribution.Types.VersionRange
+import Distribution.Compat.Prelude (NonEmpty(..))
+import Distribution.Package qualified as Pkg
+import Distribution.Parsec
+import Distribution.Pretty qualified as Pretty
 import Distribution.Types.Dependency
-
+import Distribution.Types.LibraryName
+import Distribution.Types.PackageId (PackageIdentifier(..))
+import Distribution.Types.PackageName
+import Distribution.Types.UnqualComponentName
+import Distribution.Types.Version
+import Distribution.Types.VersionRange
+import Rel8 hiding (Enum)
+import Servant.API
+import Test.QuickCheck
 
 instance Arbitrary PackageIdentifier where
   arbitrary = PackageIdentifier <$> arbitrary <*> arbitrary
@@ -96,8 +96,14 @@ instance Arbitrary Version where
 instance FromHttpApiData PackageName where
   parseUrlPiece = fmap mkPackageName . parseUrlPiece
 
+instance ToHttpApiData PackageName where
+  toUrlPiece = T.pack . unPackageName
+
 instance FromHttpApiData PackageIdentifier where
   parseUrlPiece = maybe (Left "Can't parse package identifier") Right . simpleParsec . T.unpack
+
+instance ToHttpApiData PackageIdentifier where
+  toUrlPiece = T.pack . Pretty.prettyShow
 
 instance MimeRender PlainText UTCTime where
   mimeRender _ = LBS.pack . show

@@ -106,6 +106,7 @@ library
     , quickcheck-text
     , random
     , rel8
+    , request
     , resource-pool
     , resourcet
     , servant
@@ -127,6 +128,7 @@ test-suite tests
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      DBArbitrary
       HackageCombinatorsSpec
       MD5Spec
       TemplatesSpec
@@ -179,6 +181,7 @@ test-suite tests
     , quickcheck-text
     , random
     , rel8
+    , request
     , resource-pool
     , resourcet
     , servant

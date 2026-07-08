@@ -1,7 +1,10 @@
 {-# LANGUAGE OverloadedLists   #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Hackage.API.PackagesHTML where
+module Hackage.API.PackagesHTML
+  ( PackagesHtmlAPI (..)
+  , packagesHtmlServer
+  ) where
 
 
 import Data.ByteString (StrictByteString)

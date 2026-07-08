@@ -43,6 +43,13 @@ packages:
       size: 2242
   original:
     hackage: tar-0.7.1.0
+- completed:
+    hackage: request-0.4.0.0@sha256:ed44dc5de6d07774188bf23316a34b582b0ed0cadaf47ce4c87a6fa155ad03a0,1472
+    pantry-tree:
+      sha256: dfd3abab3ed2a9ece3ed38b064828cf1046785f4b5ca9d7f18b3d60ba60c72a6
+      size: 321
+  original:
+    hackage: request-0.4.0.0
 snapshots:
 - completed:
     sha256: 6406d8039dd538f18fc0d242f01c7066ee386d81ba3c8751b914ac1ae193ec5d
