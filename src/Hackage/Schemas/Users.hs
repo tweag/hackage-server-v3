@@ -98,7 +98,7 @@ activeUsers = do
 usersTable :: DbTable UsersRow
 usersTable = DbTable usersSchema
   [ PK userId
-  , AutoInc userId
+  -- , AutoInc userId
   ]
 
 data UserRole

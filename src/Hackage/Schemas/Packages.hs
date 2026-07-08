@@ -51,6 +51,7 @@ packageNameTable :: DbTable PackageNameRow
 packageNameTable = DbTable packageNameSchema
   [ PK packageNameId
   , AutoInc packageNameId
+  , Unique packageName
   ]
 
 
@@ -82,6 +83,7 @@ pkgInfoTable :: DbTable PkgInfoRow
 pkgInfoTable = DbTable pkgInfoSchema
   [ PK pkgInfoId
   , AutoInc pkgInfoId
+  , Unique2 pkgId packageVersion
   , FK pkgId packageNameSchema packageNameId
   ]
 
@@ -118,6 +120,7 @@ metadataRevisionsTable :: DbTable MetadataRevisionRow
 metadataRevisionsTable = DbTable metadataRevisionsSchema
   [ PK metadataId
   , AutoInc metadataId
+  , Unique2 metadataPkgId metadataRevId
   , FK metadataPkgId pkgInfoSchema pkgInfoId
   ]
 
@@ -156,8 +159,9 @@ packageTarballRevisionsSchema = TableSchema
 
 packageTarballRevisionsTable :: DbTable TarballRevisionRow
 packageTarballRevisionsTable = DbTable packageTarballRevisionsSchema
-  [ PK tarballPkgId
-  , AutoInc tarballPkgId
+  [ PK tarballRevId
+  , AutoInc tarballRevId
+  , Unique2 tarballPkgId tarballRevId
   , FK tarballPkgId pkgInfoSchema pkgInfoId
   ]
 
@@ -170,8 +174,10 @@ data PackageRole = Maintainer
   deriving (DBType) via ReadShow PackageRole
   deriving anyclass (DBEq)
 
+type PackageMaintainerId = PrimaryKey PackageMaintainerRow
+
 data PackageMaintainerRow f = PackageMaintainerRow
-  { pmId :: Column f Int64
+  { pmId :: Column f PackageMaintainerId
   , pmPackageId :: Column f PkgInfoId
   , pmUserId :: Column f UserId
   , pmRole :: Column f PackageRole

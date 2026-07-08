@@ -1,14 +1,19 @@
+{-# LANGUAGE AllowAmbiguousTypes      #-}
 {-# LANGUAGE GADTs                    #-}
 {-# LANGUAGE OverloadedStrings        #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
+{-# LANGUAGE TypeAbstractions         #-}
 
 module Rel8.CreateTable
   ( DbConstraint (..)
   , DbTable (..)
   , DBAutoInc
   , makeTable
+  , PrimaryKey(..)
+  , newPrimaryKey
   ) where
 
+import Data.Char (toLower)
 import Data.ByteString.Char8 qualified as BS8
 import Data.Foldable
 import Data.Int (Int16, Int32, Int64)
@@ -19,6 +24,26 @@ import Rel8 (QualifiedName(QualifiedName), TableSchema(..), Name)
 import Rel8 qualified as Rel8
 import Rel8.Table.Verify (showCreateTable)
 import Unsafe.Coerce (unsafeCoerce)
+import Data.String (fromString)
+import Data.Typeable
+import Rel8 (DBEq, DBOrd, DBType, Expr, unsafeCoerceExpr, nextval)
+
+
+-- | Synthetic primary keys for a given table, intended to parameterized by the
+-- table itself.
+type role PrimaryKey nominal
+newtype PrimaryKey a = PrimaryKey { getPrimaryKey :: Int64 }
+  deriving newtype
+    (Eq, Ord, Show, Read, DBEq, DBOrd, DBType, DBAutoInc)
+
+pkSeq :: forall a. Typeable a => String
+pkSeq = fmap toLower $ show (typeRep @_ @a undefined) <> "_id_seq"
+
+-- | Expression for getting a new instance of a 'PrimaryKey'.
+newPrimaryKey :: forall a. Typeable a => Expr (PrimaryKey a)
+newPrimaryKey = unsafeCoerceExpr $ nextval $ fromString $ pkSeq @a
+
+
 
 
 -- | Whenever you see this type, you should think "a record field selector from
@@ -40,9 +65,11 @@ data DbConstraint table where
     -> Selector foreign_table a
     -> DbConstraint table
 -- | The given field selector should be marked as AUTOINCREMENT.
-  AutoInc :: DBAutoInc a => Selector table a -> DbConstraint table
+  AutoInc :: (DBAutoInc (PrimaryKey a), Typeable a) => Selector table (PrimaryKey a) -> DbConstraint table
 -- | The given field selector should be given an index.
   Index :: Selector table a -> DbConstraint table
+  Unique :: Selector table a -> DbConstraint table
+  Unique2 :: Selector table a -> Selector table b -> DbConstraint table
 
 
 class DBAutoInc a
@@ -82,6 +109,26 @@ mkConstraints (TableSchema (QualifiedName table_name _) table) (PK f) =
     , nameToString $ f table
     , ")"
     ]
+mkConstraints (TableSchema (QualifiedName table_name _) table) (Unique f) =
+  sql $ BS8.pack $ unwords
+    [ "ALTER TABLE"
+    , table_name
+    , "ADD UNIQUE"
+    , "("
+    , nameToString $ f table
+    , ")"
+    ]
+mkConstraints (TableSchema (QualifiedName table_name _) table) (Unique2 f g) =
+  sql $ BS8.pack $ unwords
+    [ "ALTER TABLE"
+    , table_name
+    , "ADD UNIQUE"
+    , "("
+    , nameToString $ f table
+    , ","
+    , nameToString $ g table
+    , ")"
+    ]
 mkConstraints (TableSchema (QualifiedName table_name _) table) (FK here (TableSchema (QualifiedName other_name _) other) there) =
   sql $ BS8.pack $ unwords
     [ "ALTER TABLE"
@@ -96,13 +143,17 @@ mkConstraints (TableSchema (QualifiedName table_name _) table) (FK here (TableSc
     , nameToString $ there other
     , ")"
     ]
-mkConstraints (TableSchema (QualifiedName table_name _) table) (AutoInc f) =
+mkConstraints (TableSchema (QualifiedName table_name _) table) (AutoInc @a f) = do
   sql $ BS8.pack $ unwords
-    [ "ALTER TABLE"
-    , table_name
-    , "ALTER COLUMN"
-    , nameToString $ f table
-    , "ADD GENERATED ALWAYS AS IDENTITY"
+    [ "CREATE SEQUENCE "
+    , pkSeq @a
+    , "AS bigint"
+    ]
+  sql $ BS8.pack $ unwords
+    [ "ALTER SEQUENCE"
+    , pkSeq @a
+    , "OWNED BY"
+    , table_name <> "." <> nameToString (f table)
     ]
 mkConstraints (TableSchema (QualifiedName table_name _) table) (Index f) =
   sql $ BS8.pack $ unwords
