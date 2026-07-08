@@ -1,78 +1,127 @@
 {-# LANGUAGE AllowAmbiguousTypes             #-}
+{-# LANGUAGE OverloadedLabels                #-}
 {-# LANGUAGE OverloadedStrings               #-}
 {-# LANGUAGE PartialTypeSignatures           #-}
 {-# OPTIONS_GHC -Wno-partial-type-signatures #-}
 
 module Import where
 
--- import Distribution.Server.Packages.PackageIndex (PackageIndex(..))
-import System.FilePath ((</>))
-import Data.Foldable
-import Data.Text.Encoding (decodeUtf8)
-import Data.Function (on)
-import Hackage.Types.PrimaryKey
--- import Distribution.Server.Packages.Types hiding (pkgInfoId)
--- import Distribution.Server.Features.UserDetails.Types qualified as V2
--- import Distribution.Server.Users.Types qualified as V2
--- import Distribution.Server.Packages.Types qualified as V2
--- import Distribution.Server.Framework.BlobStorage qualified as V2
--- import Data.TarIndex
+import Control.Lens (Lens', at, view, (&), (.~))
+import Control.Monad.Accum
+import Control.Monad.State
+import Data.ByteString
+import Data.Generics.Labels ()
+import Data.Map (Map)
+import Data.Time (UTCTime)
 import Distribution.Package (PackageIdentifier(..))
 import Distribution.Package qualified as Cabal
-import Rel8 hiding (run)
-import qualified Rel8 as Rel8
-import Rel8.Expr.Time (now)
-import Hasql.Session (statement, run)
-import Hackage.Types
+import GHC.Generics (Generically(..), Generic)
 import Hackage.Schemas.Packages
-import Hackage.Schemas.Users
-import Data.Text qualified as T
-import Data.ByteString
-import Data.Time (UTCTime)
+import Hackage.Types
+import Hackage.Types.PrimaryKey
+import Rel8 hiding (run)
+import Data.Map qualified as M
 
 -- import Data.Acid (openLocalStateFrom, query, closeAcidState)
--- import qualified Distribution.Server.Users.Users as Users
--- import Distribution.Server.Users.State (GetUserDb(..))
--- import Distribution.Server.Features.UserDetails.Acid (GetUserDetailsTable(..), UserDetailsTable(..))
+-- import Data.TarIndex
 -- import Distribution.Server.Features.Core.State (initialPackagesState, GetPackagesState(..), PackagesState(..))
-import Data.IntMap qualified as IM
-import TestAPI (mkConn)
+-- import Distribution.Server.Features.UserDetails.Acid (GetUserDetailsTable(..), UserDetailsTable(..))
+-- import Distribution.Server.Features.UserDetails.Types qualified as V2
+-- import Distribution.Server.Framework.BlobStorage qualified as V2
+-- import Distribution.Server.Packages.PackageIndex (PackageIndex(..))
+-- import Distribution.Server.Packages.Types hiding (pkgInfoId)
+-- import Distribution.Server.Packages.Types qualified as V2
+-- import Distribution.Server.Users.State (GetUserDb(..))
+-- import Distribution.Server.Users.Types qualified as V2
+-- import qualified Distribution.Server.Users.Users as Users
 
 
+-- | A mapping from Haskell types to queries that cache the results of their
+-- inserted IDs.
+data Queries = Queries
+  { names :: Map PackageName (Query (Expr PkgId))
+  , versions :: Map PackageIdentifier (Query (Expr PkgInfoId))
+  }
+  deriving stock (Generic)
+  deriving (Semigroup, Monoid) via Generically Queries
 
 
-noUpsert
+-- | A monad capable of generating SQL and caching 'Queries' (via the
+-- 'MonadAccum' interface.)
+newtype SqlM a = SqlM
+  { unSqlM :: StateT Queries Statement a }
+  deriving newtype (Functor, Applicative, Monad)
+
+instance MonadAccum Queries SqlM where
+  look = SqlM get
+  add = SqlM . modify' . mappend
+
+
+-- | Lift a 'Statement' into 'SqlM'.
+sql :: Statement a -> SqlM a
+sql = SqlM . lift
+
+
+-- | Run a 'SqlM' in the 'Statement' monad.
+runSqlM :: SqlM a -> Statement a
+runSqlM = flip evalStateT mempty . unSqlM
+
+
+-- | Used for filling in 'onConflict' fields, such that a conflict on the given
+-- 'Projection' will still return the desired 'Returning'.
+returnKeyOnConflict
     :: (Projecting names index, _)
     => Projection names index
-    -> (Transpose Expr names -> Expr a)
     -> OnConflict names
-noUpsert idx f = DoUpdate $ Upsert
+returnKeyOnConflict idx = DoUpdate $ Upsert
   { index = idx
   , predicate = Nothing
   , set = const id
-  , updateWhere = on (==.) f
+  , updateWhere = \_ _ -> lit True
   }
 
 
+-- | Cache the result of a 'SqlM' so that we can pull it up again quickly.
+caching
+  :: Ord a
+  => Lens' Queries (Map a (Query (Expr b)))
+  -- ^ A map inside of 'Queries' for the thing we'd like to cache.
+  -> (a -> SqlM (Query (Expr b)))
+  -- ^ How to generate the result on a cache miss
+  -> a -> SqlM (Query (Expr b))
+caching prop mk key = do
+  q <- looks $ view prop
+  case M.lookup key q of
+    Just b -> pure b
+    Nothing -> do
+      b <- mk key
+      add $ mempty & prop . at key .~ Just b
+      pure b
 
-mkPkgName :: PackageName -> Statement (Query (Expr PkgId))
-mkPkgName name = insert $
-  Insert
-    { into = packageNameSchema
-    , rows = values @_ @[]
-        [ PackageNameRow
-            { packageNameId = newPrimaryKey
-            , packageName = lit name
-            }
-        ]
-    , onConflict = noUpsert packageName packageNameId
-    , returning = Returning packageNameId
-    }
 
-mkPkgIdentifier :: PackageIdentifier -> Statement (Query (Expr PkgInfoId))
-mkPkgIdentifier pkgid = do
+-- | Insert a 'PackageName' into the 'packageNameSchema' table
+mkPkgName :: PackageName -> SqlM (Query (Expr PkgId))
+mkPkgName = caching #names $ \name -> do
+  sql $
+    insert $
+      Insert
+        { into = packageNameSchema
+        , rows = values @_ @[]
+            [ PackageNameRow
+                { packageNameId = newPrimaryKey
+                , packageName = lit name
+                }
+            ]
+        , onConflict = returnKeyOnConflict packageName
+        , returning = Returning packageNameId
+        }
+
+
+-- | Insert a 'PackageIdentifier' into the 'pkgInfoSchema' table
+mkPkgIdentifier :: PackageIdentifier -> SqlM (Query (Expr PkgInfoId))
+mkPkgIdentifier = caching #versions $ \pkgid -> do
   pkgname <- mkPkgName $ Cabal.packageName pkgid
-  insert $
+  sql $ insert $
     Insert
       { into = pkgInfoSchema
       , rows = do
@@ -85,18 +134,19 @@ mkPkgIdentifier pkgid = do
                 , pkgInfoDeprecated = lit False
                 }
             ]
-      , onConflict = noUpsert (liftA2 (,) pkgId packageVersion) pkgInfoId
+      , onConflict = returnKeyOnConflict $ liftA2 (,) pkgId packageVersion
       , returning = Returning pkgInfoId
       }
 
 
+-- | Insert a revision into the 'metadataRevisionsSchema' table
 mkMetadataRev
     :: Query (Expr PkgInfoId)
     -> MetadataRevIx
     -> ByteString
     -> (UTCTime, UserId)
-    -> Statement (Query (Expr PkgRevId))
-mkMetadataRev qpkgid (revix) cabal (time, uid) = do
+    -> SqlM (Query (Expr PkgRevId))
+mkMetadataRev qpkgid (revix) cabal (time, uid) = sql $
   insert $ Insert
     { into = metadataRevisionsSchema
     , rows = do
@@ -105,7 +155,7 @@ mkMetadataRev qpkgid (revix) cabal (time, uid) = do
           [ MetadataRevisionRow
               { metadataId = newPrimaryKey
               , metadataPkgId = pkgid
-              , metadataRevId = lit $ fromIntegral revix
+              , metadataRevId = lit revix
               , metadataTime = lit time
               , metadataUploader = lit uid
               , metadataCabalFile = lit cabal
@@ -115,6 +165,9 @@ mkMetadataRev qpkgid (revix) cabal (time, uid) = do
     , returning = Returning metadataId
     }
 
+
+--------------------------------------------------------------------------------
+-- Disabled acid-state importing
 
 -- mkMetadataRev
 --     :: Query (Expr PkgInfoId)
@@ -193,7 +246,7 @@ mkMetadataRev qpkgid (revix) cabal (time, uid) = do
 --           , userCreatedTime = now
 --           }
 --       ]
---   , onConflict = noUpsert userName userId
+--   , onConflict = returnKeyOnConflict userName
 --   , returning = Returning userId
 --   }
 

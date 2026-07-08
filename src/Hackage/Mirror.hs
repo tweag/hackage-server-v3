@@ -2,8 +2,12 @@
 
 module Hackage.Mirror where
 
+import GHC.Generics
+import qualified Rel8 as Rel8
+import Hasql.Session (statement, run)
+import TestAPI (mkConn)
 import Import
-import Control.Monad (when)
+import Control.Monad (when, void)
 import Distribution.Pretty qualified as Pretty
 import Data.Coerce
 import GHC.Generics
@@ -25,6 +29,7 @@ import Distribution.Types.Version (mkVersion)
 import Distribution.Types.PackageName
 import Rel8 hiding (run)
 import Data.Time.Clock.POSIX
+import Hackage.Schemas.Packages (PkgRevId)
 
 
 
@@ -41,7 +46,7 @@ metaRev = coerce . rs_meta_rev
 tarRev :: RevState -> TarballRevIx
 tarRev = coerce . rs_tar_rev
 
-newMetaRev :: PackageIdentifier -> MetadataRevIx -> Tar.GenEntry BSL.ByteString b c -> Statement ()
+newMetaRev :: PackageIdentifier -> MetadataRevIx -> Tar.GenEntry BSL.ByteString b c -> SqlM (Query (Expr PkgRevId))
 newMetaRev pid rev e = do
   pkgid <- mkPkgIdentifier pid
   mkMetadataRev
@@ -54,14 +59,13 @@ newMetaRev pid rev e = do
     ( posixSecondsToUTCTime $ fromIntegral $ Tar.entryTime e
     , UserId $ fromIntegral $ Tar.ownerId $ Tar.entryOwnership e
     )
-  pure ()
 
 
 data UpdateType = TarballRev | MetadataRev
   deriving stock (Eq, Ord, Show)
 
 main :: IO ()
-main = do
+main = mkConn $ \conn -> do
   bs <- BSL.readFile "/home/sandy/01-index.tar"
   let es = Tar.read bs
   flip evalStateT (mempty @(MonoidalMap PackageIdentifier RevState)) $
@@ -81,7 +85,7 @@ main = do
         case revtype of
           MetadataRev -> do
             -- liftIO $ putStrLn $ Pretty.prettyShow pid
-            liftIO $ putStrLn $ showStatement $ newMetaRev pid (maybe 0 metaRev me) e
+            (either (error . show) (const $ pure ()) =<<) $ liftIO $ flip run conn $ statement () $ Rel8.run $ runSqlM $ newMetaRev pid (maybe 0 metaRev me) e
           TarballRev -> pure ()
 
         modify' $ mappend $ MM.singleton pid $

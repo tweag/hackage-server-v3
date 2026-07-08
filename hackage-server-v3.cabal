@@ -88,6 +88,7 @@ library
     , ede
     , filepath
     , gdp
+    , generic-lens
     , hashable
     , hasql
     , http-client
@@ -156,6 +157,7 @@ test-suite tests
     , ede
     , filepath
     , gdp
+    , generic-lens
     , hackage-server-v3
     , hashable
     , hasql

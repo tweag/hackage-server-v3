@@ -64,6 +64,7 @@ dependencies:
 - http-media
 - zlib
 - monoidal-containers
+- generic-lens
 
 # for schema-profunctor
 - vector
