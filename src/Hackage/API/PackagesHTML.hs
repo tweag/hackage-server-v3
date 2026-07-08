@@ -104,16 +104,16 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
         "packages" :> Capture "package" PackageLocator
           :> CaptureExt "tarball" PackageIdentifier "tar.gz" :> Get '[Tarball] BL.ByteString
     , htmlTarballs :: mode :-
-        NegotiableContent :> "packages" :> Capture "package" PackageName
+        NegotiableContent :> "package" :> Capture "package" PackageName
           :> "distro-monitor" :> Get '[HTML] (WithPackageName AllTarballs)
-    , htmlMirrorUploader :: mode :- "packages" :> Capture "package" PackageLocator :> "uploader" :> Get '[PlainText] UserName
-    , htmlMirrorUploadTime :: mode :- "packages" :> Capture "package" PackageLocator :> "upload-time" :> Get '[PlainText] UTCTime
-    , htmlPackageDeps :: mode :- "packages" :> Capture "package" PackageLocator :> "dependencies" :> Get '[HTML] (WithPackage Dependencies)
-    , htmlPackageVersions :: mode :- "packages" :> CaptureExt "package" PackageName "json" :> Get '[JSON] PackageVersions
-    , htmlPackageMetadata :: mode :- "packages" :> CaptureExt "package" PackageIdentifier "json" :> Get '[JSON] PackageBasicDescriptionDTO
-    , htmlPackageCabalFile :: mode :- "packages" :> Capture "package" PackageName :> CaptureExt "package" PackageName "cabal" :> Get '[PlainText] StrictByteString
+    , htmlMirrorUploader :: mode :- "package" :> Capture "package" PackageLocator :> "uploader" :> Get '[PlainText] UserName
+    , htmlMirrorUploadTime :: mode :- "package" :> Capture "package" PackageLocator :> "upload-time" :> Get '[PlainText] UTCTime
+    , htmlPackageDeps :: mode :- "package" :> Capture "package" PackageLocator :> "dependencies" :> Get '[HTML] (WithPackage Dependencies)
+    , htmlPackageVersions :: mode :- "package" :> CaptureExt "package" PackageName "json" :> Get '[JSON] PackageVersions
+    , htmlPackageMetadata :: mode :- "package" :> CaptureExt "package" PackageIdentifier "json" :> Get '[JSON] PackageBasicDescriptionDTO
+    , htmlPackageCabalFile :: mode :- "package" :> Capture "package" PackageName :> CaptureExt "package" PackageName "cabal" :> Get '[PlainText] StrictByteString
     , htmlPackagePreferredVersions :: mode :-
-        NegotiableContent :> "packages" :> Capture "package" PackageName :> "preferred" :> Get '[HTML, JSON] (WithPackageName PreferredVersions)
+        NegotiableContent :> "package" :> Capture "package" PackageName :> "preferred" :> Get '[HTML, JSON] (WithPackageName PreferredVersions)
     }
     deriving stock (Generic)
 
