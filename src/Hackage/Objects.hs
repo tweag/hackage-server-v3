@@ -28,7 +28,10 @@ data PackageLocator
   deriving stock (Eq, Ord, Show, Generic)
 
 instance FromHttpApiData PackageLocator where
-  parseUrlPiece = fmap (either Latest Specific) . parseUrlPiece
+  parseUrlPiece x =
+    case parseUrlPiece x of
+      Right pkg -> pure $ Latest pkg
+      Left _ -> fmap Specific $ parseUrlPiece x
 
 
 --------------------------------------------------------------------------------
