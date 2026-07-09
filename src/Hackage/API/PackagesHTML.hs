@@ -90,7 +90,7 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
     , htmlPackagesUploadForm :: mode :- "packages" :> "upload" :> Get '[HTML] PackageUpload
     , htmlPackageRevisions :: mode :-
         NegotiableContent :> "package" :> Capture "package" PackageLocator
-          :> "revisions" :> "revisions" :> "" :> Get '[HTML, JSON] (WithPackage Revisions)
+          :> "revisions" :> "" :> Get '[HTML, JSON] (WithPackage Revisions)
     -- , htmlPackagesPreferred :: mode :- "packages" :> "preferred.html" :> Get '[HTML] ()
     -- , htmlPackagesRecentHtml :: mode :- "packages" :> "recent.html" :> Get '[HTML] ()
     -- , htmlPackagesRecentRss :: mode :- "packages" :> "recent.rss" :> Get '[RSS] ()
@@ -354,6 +354,7 @@ packageMetadataEndpoint pid = do
     where_ $ userId user ==. metadataUploader rev
     pure (rev, userName user)
 
+
   let parseResult = PkgDescr.parseGenericPackageDescription $ metadataCabalFile rev
   case PkgDescr.runParseResult parseResult of
     (_, Right pkg) -> do
@@ -582,7 +583,7 @@ packageDependencies pname = do
 -- /package/:package/revisions
 
 newtype Revisions = Revisions
-  { unRevisions :: [Revision]
+  { _unRevisions :: [Revision]
   }
   deriving newtype (Eq, Ord, Show, Arbitrary)
 
