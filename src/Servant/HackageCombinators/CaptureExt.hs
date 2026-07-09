@@ -6,7 +6,7 @@ module Servant.HackageCombinators.CaptureExt where
 import Data.Kind (Type)
 import Data.Proxy (Proxy (..))
 import Data.Text qualified as T
-import GHC.TypeLits (KnownSymbol, Symbol, symbolVal, ErrorMessage(..), TypeError)
+import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import Servant.API
 import Servant.Server hiding (respond)
 import Servant.Server.Internal.Delayed
@@ -14,6 +14,7 @@ import Servant.Server.Internal.Router
 import Servant.Server.Internal (delayedFail, mkContextWithErrorFormatter, MkContextWithErrorFormatter)
 import Data.Typeable (Typeable, typeRep)
 import Servant.Server.Internal.DelayedIO (withRequest)
+import Servant.Links
 
 
 -- | A 'Capture'-able segment corresponding to hackage v2's
@@ -46,9 +47,13 @@ instance ( Typeable a
       hint = CaptureHint (T.pack $ symbolVal $ Proxy @hint) (typeRep (Proxy :: Proxy a))
 
 
-instance (TypeError ('Text "Due to servant#1887, we can't yet implement this instance"))
+instance (HasLink sub, ToHttpApiData v, KnownSymbol ext)
     => HasLink (CaptureExt sym v ext :> sub)
   where
     type MkLink (CaptureExt sym v ext :> sub) a = v -> MkLink sub a
-    toLink = undefined
+    toLink toA _ l v =
+      toLink toA (Proxy :: Proxy sub) $
+        addSegment
+          (escaped $ T.unpack (toUrlPiece v) <> "." <> symbolVal (Proxy @ext))
+          l
 

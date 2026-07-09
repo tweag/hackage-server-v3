@@ -13,7 +13,7 @@ import Data.Coerce
 import GHC.Generics
 import Distribution.Types.PackageId
 import Codec.Archive.Tar qualified as Tar
-import Codec.Archive.Tar.Types qualified as Tar
+import Codec.Archive.Tar.Entry qualified as Tar
 import Codec.Compression.Zlib qualified as Zlib
 import Data.ByteString.Lazy qualified as BSL
 import Data.ByteString (ByteString)

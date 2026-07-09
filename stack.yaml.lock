@@ -23,6 +23,19 @@ packages:
   original:
     url: https://github.com/isovector/servant-ede/archive/5aaf380ce2b02a01823a7abb81b184e71316b391.tar.gz
 - completed:
+    name: servant
+    pantry-tree:
+      sha256: d0fe11aa14149726989251fbbe68d49afed5f9744989e695317d5d736ffac876
+      size: 3457
+    sha256: dc37f0d1987711fdc5615a01d11fa3f0769d8c9aeec41ed2c50e364b5b0872fd
+    size: 552846
+    subdir: servant
+    url: https://github.com/haskell-servant/servant/archive/066fe373e731e96a04fb3469af15d325c8c01771.tar.gz
+    version: 0.20.3.0
+  original:
+    subdir: servant
+    url: https://github.com/haskell-servant/servant/archive/066fe373e731e96a04fb3469af15d325c8c01771.tar.gz
+- completed:
     hackage: Cabal-3.16.1.0@sha256:39873317ab895194547c3fd72c91cdb97c800a49b2656920854747ee466627ca,14459
     pantry-tree:
       sha256: b6ac49163659ec305805fc0d2c0564c35fac7132f4c5be6689d0c80a6405ecf0
