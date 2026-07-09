@@ -6,20 +6,30 @@
 
 module DBArbitrary where
 
-import Hackage.Objects
-import Hackage.API.PackagesHTML
-import Servant.API
-import System.Random (randomRIO, randomIO)
+import Control.Monad (replicateM_)
 import Control.Monad.Except
-import TestAPI hiding (main)
-import Hackage.Utils
+import Data.BlobStorage qualified as Blob
 import Data.Kind (Constraint, Type)
-import Hackage.Schemas.Packages
+import Data.Pool
+import Data.Proxy (Proxy(..))
+import Data.String (fromString)
 import Distribution.Package (PackageName, PackageIdentifier(..))
 import Distribution.Version (Version)
-import Rel8
-import Network.HTTP.Request (get, Response(..))
+import Hackage.API.PackagesHTML
+import Hackage.Objects
+import Hackage.Schemas.Packages
+import Hackage.ServerM
+import Hackage.Utils
+import Network.HTTP.Request qualified as Req
+import Rel8 hiding (with)
+import Servant.API
 import Servant.Links (fieldLink, linkURI)
+import Servant.Server
+import System.FilePath ((</>))
+import System.Random (randomRIO, randomIO)
+import Test.Hspec
+import Test.Hspec.Wai
+import TestAPI hiding (main)
 
 
 type DBArbitrary :: Type -> Constraint
@@ -65,6 +75,41 @@ instance DBArbitrary PackageLocator where
 randomQueryArbitrary :: forall a. DBArbitrary a => Word -> Query (DBArbitraryExpr a)
 randomQueryArbitrary off = limit 1 $ offset off $ queryArbitrary @a
 
+hackageBase :: String
+hackageBase = "http://hackage.haskell.org"
+
+verify
+  :: ( FillLink (MkLink endpoint Link)
+     , HasLink endpoint
+     , Filled (MkLink endpoint Link) ~ Link
+     , IsElem endpoint (ToServantApi routes)
+     , GenericServant routes AsApi
+     )
+  => (routes AsApi -> endpoint)
+  -> WaiSession st ()
+verify field = do
+  replicateM_ 100 $ do
+    link <- liftIO $ mkConn $ \conn -> fillLink conn $ fieldLink field
+    let uri = show (linkURI link)
+    annotate uri $ do
+      Req.Response _ _ body <- liftIO $ Req.get @String $ hackageBase </> uri
+      get (fromString uri) `shouldRespondWith` fromString body
+
+spec :: Spec
+spec =
+  with (do
+      pool <- newPool connPool
+      blobStore <- Blob.open "blobs"
+      runServerM
+        (Proxy @(NamedRoutes PackagesHtmlAPI))
+        EmptyContext
+        (ServerCtx pool blobStore)
+        packagesHtmlServer
+      ) $ do
+    xit "htmlMirrorUploadTime" $ verify htmlMirrorUploadTime
+    it "htmlTarballs" $ verify htmlPackageMetadata
+    xit "htmlTarballs" $ verify htmlPackageRevisions
+
 
 dbArbitrary
   :: forall a
@@ -84,10 +129,10 @@ dbArbitrary conn = runExceptT $ do
 
 main :: IO ()
 main = do
-  link  <- mkConn $ \conn -> fillLink conn $ fieldLink htmlMirrorUploadTime
+  link  <- mkConn $ \conn -> fillLink conn $ fieldLink htmlPackageDeps
   let uri = "http://hackage.haskell.org/" <> show (linkURI link)
   putStrLn uri
-  Response _ _ body <- get @String uri
+  Req.Response _ _ body <- Req.get @String uri
   putStrLn body
 
 

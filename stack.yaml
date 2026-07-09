@@ -11,6 +11,8 @@ extra-deps:
   - github: haskell-servant/servant
     commit: 066fe373e731e96a04fb3469af15d325c8c01771
     subdir: servant
+  - github: tweag/hspec-wai
+    commit: ca36d3f068e729acb0dc278c4c0c259e21131289
   - Cabal-3.16.1.0
   - Cabal-syntax-3.16.1.0
   - tar-0.7.1.0
