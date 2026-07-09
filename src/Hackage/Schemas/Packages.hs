@@ -24,6 +24,7 @@ import Rel8
   , ReadShow(..)
   , DBType
   , Rel8able
+  , Result
   )
 
 data Compressed a
@@ -36,6 +37,8 @@ data PackageNameRow f = PackageNameRow
   }
   deriving stock (Generic)
   deriving anyclass (Rel8able)
+
+deriving stock instance Show (PackageNameRow Result)
 
 packageNameSchema :: TableSchema (PackageNameRow Name)
 packageNameSchema = TableSchema
@@ -67,6 +70,8 @@ data PkgInfoRow f = PkgInfoRow
   }
   deriving stock (Generic)
   deriving anyclass (Rel8able)
+
+deriving stock instance Show (PkgInfoRow Result)
 
 pkgInfoSchema :: TableSchema (PkgInfoRow Name)
 pkgInfoSchema = TableSchema
@@ -100,6 +105,8 @@ data MetadataRevisionRow f = MetadataRevisionRow
   }
   deriving stock (Generic)
   deriving anyclass (Rel8able)
+
+deriving stock instance Show (MetadataRevisionRow Result)
 
 
 
@@ -139,6 +146,8 @@ data TarballRevisionRow f = TarballRevisionRow
   }
   deriving stock (Generic)
   deriving anyclass (Rel8able)
+
+deriving stock instance Show (TarballRevisionRow Result)
 
 
 packageTarballRevisionsSchema :: TableSchema (TarballRevisionRow Name)
@@ -186,6 +195,8 @@ data PackageMaintainerRow f = PackageMaintainerRow
   deriving stock (Generic)
   deriving anyclass (Rel8able)
 
+deriving stock instance Show (PackageMaintainerRow Result)
+
 packageMaintainersSchema :: TableSchema (PackageMaintainerRow Name)
 packageMaintainersSchema = TableSchema
   { name = "package_maintainers"
@@ -221,6 +232,8 @@ data TagRow f = TagRow
   deriving stock (Generic)
   deriving anyclass (Rel8able)
 
+deriving stock instance Show (TagRow Result)
+
 
 tagsSchema :: TableSchema (TagRow Name)
 tagsSchema = TableSchema
@@ -253,6 +266,8 @@ data PackageTagRow f = PackageTagRow
   deriving stock (Generic)
   deriving anyclass (Rel8able)
 
+deriving stock instance Show (PackageTagRow Result)
+
 packageTagsSchema :: TableSchema (PackageTagRow Name)
 packageTagsSchema = TableSchema
   { name = "package_tags"
@@ -281,6 +296,8 @@ data TarIndexRow f = TarIndexRow
   }
   deriving stock (Generic)
   deriving anyclass (Rel8able)
+
+deriving stock instance Show (TarIndexRow Result)
 
 tarIndexSchema :: TableSchema (TarIndexRow Name)
 tarIndexSchema = TableSchema

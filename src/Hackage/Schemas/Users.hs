@@ -72,6 +72,8 @@ data UsersRow f = UsersRow
   deriving stock (Generic)
   deriving anyclass (Rel8able)
 
+deriving stock instance Show (UsersRow Result)
+
 type User = UsersRow Result
 
 usersSchema :: TableSchema (UsersRow Name)
@@ -121,6 +123,8 @@ data UserRoleRow f = UserRoleRow
   deriving stock (Generic)
   deriving anyclass (Rel8able)
 
+deriving stock instance Show (UserRoleRow Result)
+
 userRolesSchema :: TableSchema (UserRoleRow Name)
 userRolesSchema = TableSchema
   { name = "user_roles"
@@ -150,6 +154,8 @@ data UserAuthTokenRow f = UserAuthTokenRow
   }
   deriving stock (Generic)
   deriving anyclass (Rel8able)
+
+deriving stock instance Show (UserAuthTokenRow Result)
 
 userAuthTokensSchema :: TableSchema (UserAuthTokenRow Name)
 userAuthTokensSchema = TableSchema
