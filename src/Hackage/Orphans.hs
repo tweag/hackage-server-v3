@@ -3,6 +3,7 @@
 
 module Hackage.Orphans where
 
+import Data.Time.Format.ISO8601
 import Data.ByteString (StrictByteString)
 import Data.ByteString.Lazy.Char8 qualified as LBS
 import Data.Functor.Contravariant
@@ -110,7 +111,7 @@ instance ToHttpApiData PackageIdentifier where
   toUrlPiece = T.pack . Pretty.prettyShow
 
 instance MimeRender PlainText UTCTime where
-  mimeRender _ = LBS.pack . show
+  mimeRender _ = LBS.pack . formatShow iso8601Format
 
 instance MimeRender PlainText StrictByteString where
   mimeRender _ = LBS.fromStrict
