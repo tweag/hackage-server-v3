@@ -30,8 +30,8 @@ data PackageLocator
 instance FromHttpApiData PackageLocator where
   parseUrlPiece x =
     case parseUrlPiece x of
-      Right pkg -> pure $ Latest pkg
-      Left _ -> fmap Specific $ parseUrlPiece x
+      Right pkg -> pure $ Specific pkg
+      Left _ -> fmap Latest $ parseUrlPiece x
 
 instance ToHttpApiData PackageLocator where
   toUrlPiece (Latest pkg) = toUrlPiece pkg

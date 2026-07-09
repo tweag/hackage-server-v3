@@ -24,7 +24,7 @@ import Distribution.Types.PackageName
 import Distribution.Types.UnqualComponentName
 import Distribution.Types.Version
 import Distribution.Types.VersionRange
-import Rel8 hiding (Enum)
+import Rel8 hiding (Enum, null)
 import Servant.API
 import Test.QuickCheck
 
@@ -100,7 +100,11 @@ instance ToHttpApiData PackageName where
   toUrlPiece = T.pack . unPackageName
 
 instance FromHttpApiData PackageIdentifier where
-  parseUrlPiece = maybe (Left "Can't parse package identifier") Right . simpleParsec . T.unpack
+  parseUrlPiece t = do
+    pid <- maybe (Left "Can't parse package identifier") Right . simpleParsec . T.unpack $ t
+    case null $ versionNumbers $ pkgVersion pid of
+      True -> Left "Package identifier has no version"
+      False -> pure pid
 
 instance ToHttpApiData PackageIdentifier where
   toUrlPiece = T.pack . Pretty.prettyShow
