@@ -85,7 +85,9 @@ main = mkConn $ \conn -> do
         case revtype of
           MetadataRev -> do
             -- liftIO $ putStrLn $ Pretty.prettyShow pid
-            (either (error . show) (const $ pure ()) =<<) $ liftIO $ flip run conn $ statement () $ Rel8.run $ runSqlM $ newMetaRev pid (maybe 0 metaRev me) e
+            (either (error . show) (const $ pure ()) =<<) $ liftIO $ flip run conn $ statement () $ Rel8.run $ runSqlM $ do
+              mkUser (UserId $ fromIntegral $ Tar.ownerId o) (T.pack $ Tar.ownerName o)
+              newMetaRev pid (maybe 0 metaRev me) e
           TarballRev -> pure ()
 
         modify' $ mappend $ MM.singleton pid $

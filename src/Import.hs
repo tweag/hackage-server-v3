@@ -17,9 +17,11 @@ import Distribution.Package (PackageIdentifier(..))
 import Distribution.Package qualified as Cabal
 import GHC.Generics (Generically(..), Generic)
 import Hackage.Schemas.Packages
+import Hackage.Schemas.Users
 import Hackage.Types
 import Hackage.Types.PrimaryKey
 import Rel8 hiding (run)
+import Rel8.Expr.Time (now)
 import Data.Map qualified as M
 
 -- import Data.Acid (openLocalStateFrom, query, closeAcidState)
@@ -97,6 +99,30 @@ caching prop mk key = do
       b <- mk key
       add $ mempty & prop . at key .~ Just b
       pure b
+
+
+-- | Insert a mostly empty user into 'usersSchema'.
+mkUser :: UserId -> UserName -> SqlM (Query (Expr UserId))
+mkUser uid name =
+  sql $
+    insert $
+      Insert
+        { into = usersSchema
+        , rows = values @_ @[]
+            [ UsersRow
+                { userId = lit uid
+                , userName = lit name
+                , userEmail = lit Nothing
+                , userRealName = lit Nothing
+                , userStatus = lit Enabled
+                , userAdminNotes = lit mempty
+                , userAuth = lit $ PasswdHash ""
+                , userCreatedTime = now
+                }
+            ]
+        , onConflict = returnKeyOnConflict userId
+        , returning = Returning userId
+        }
 
 
 -- | Insert a 'PackageName' into the 'packageNameSchema' table
