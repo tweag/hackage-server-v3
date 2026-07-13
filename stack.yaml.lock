@@ -25,16 +25,16 @@ packages:
 - completed:
     name: servant
     pantry-tree:
-      sha256: d0fe11aa14149726989251fbbe68d49afed5f9744989e695317d5d736ffac876
-      size: 3457
-    sha256: dc37f0d1987711fdc5615a01d11fa3f0769d8c9aeec41ed2c50e364b5b0872fd
-    size: 552846
+      sha256: b5daf6e8652ce37316196a6b427903dad9c4aa453ed4979ec13c265d6e04ce0d
+      size: 3527
+    sha256: 78129b7e774643167b753c56e5a9786afb476cf53f02512aa971f77511db2611
+    size: 552999
     subdir: servant
-    url: https://github.com/haskell-servant/servant/archive/066fe373e731e96a04fb3469af15d325c8c01771.tar.gz
+    url: https://github.com/tweag/servant/archive/ef5255707d4e53eec0d641470374b27423e8e193.tar.gz
     version: 0.20.3.0
   original:
     subdir: servant
-    url: https://github.com/haskell-servant/servant/archive/066fe373e731e96a04fb3469af15d325c8c01771.tar.gz
+    url: https://github.com/tweag/servant/archive/ef5255707d4e53eec0d641470374b27423e8e193.tar.gz
 - completed:
     name: hspec-wai
     pantry-tree:

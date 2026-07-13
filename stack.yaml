@@ -8,8 +8,8 @@ extra-deps:
   - rel8-1.7.0.0
   - github: isovector/servant-ede
     commit: 5aaf380ce2b02a01823a7abb81b184e71316b391
-  - github: haskell-servant/servant
-    commit: 066fe373e731e96a04fb3469af15d325c8c01771
+  - github: tweag/servant
+    commit: ef5255707d4e53eec0d641470374b27423e8e193
     subdir: servant
   - github: tweag/hspec-wai
     commit: ca36d3f068e729acb0dc278c4c0c259e21131289

@@ -71,6 +71,9 @@ instance DBArbitrary PackageLocator where
       False -> Latest $ pkgName pid
       True -> Specific pid
 
+instance DBArbitrary String where
+  queryArbitrary = pure "json"
+
 
 randomQueryArbitrary :: forall a. DBArbitrary a => Word -> Query (DBArbitraryExpr a)
 randomQueryArbitrary off = limit 1 $ offset off $ queryArbitrary @a
@@ -107,8 +110,8 @@ spec =
         packagesHtmlServer
       ) $ do
     xit "htmlMirrorUploadTime" $ verify htmlMirrorUploadTime
-    it "htmlTarballs" $ verify htmlPackageMetadata
-    xit "htmlTarballs" $ verify htmlPackageRevisions
+    xit "htmlTarballs" $ verify htmlPackageMetadata
+    it "htmlTarballs" $ verify htmlPackageRevisions
 
 
 dbArbitrary

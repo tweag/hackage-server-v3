@@ -3,7 +3,7 @@
 
 module Servant.HackageCombinators.NegotiableContent (NegotiableContent) where
 
-import Control.Lens (over, _last, preview)
+import Control.Lens (over, _last, preview, (%~), (&))
 import Data.Maybe (fromMaybe)
 import Data.Proxy (Proxy (..))
 import Data.Text qualified as T
@@ -12,6 +12,7 @@ import Network.HTTP.Types (hAccept)
 import Network.Mime (MimeType, defaultMimeLookup)
 import Network.Wai (Request, requestHeaders, pathInfo)
 import Servant.API
+import Servant.Internal.Links
 import Servant.Server hiding (respond)
 import Servant.Server.Internal.Router
 import System.FilePath (dropExtensions)
@@ -27,8 +28,9 @@ import System.FilePath (dropExtensions)
 data NegotiableContent
 
 instance HasLink api => HasLink (NegotiableContent :> api) where
-  type MkLink (NegotiableContent :> api) a = MkLink api a
-  toLink f _ = toLink f (Proxy @api)
+  type MkLink (NegotiableContent :> api) a = String -> MkLink api a
+  toLink toA _ l v =
+    toLink (toA . (\(Link a b c) -> Link (a & _last %~ escaped . (\z -> z <> "." <> v) . getEscaped) b c)) (Proxy :: Proxy api) l
 
 instance HasServer api context => HasServer (NegotiableContent :> api) context where
   type ServerT (NegotiableContent :> api) m = ServerT api m
