@@ -57,7 +57,7 @@ main = do
       (Proxy @(
         NamedRoutes PackagesHtmlAPI
         :<|> "bootstrap" :> NamedRoutes BootstrapAPI
-        :<|> NotYetPorted))
+        ))
       (client
         :. hackageAuthHandler hackageRealm pool
         :. EmptyContext
@@ -65,7 +65,6 @@ main = do
       (ServerCtx pool blobStore)
       $ packagesHtmlServer
         :<|> bootstrap
-        :<|> NotYetPorted
   run 8000 app
 
 
