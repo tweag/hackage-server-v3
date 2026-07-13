@@ -78,7 +78,6 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
       :> "package"
       :> Capture "package" PackageLocator
       :> "revisions"
-      :> ""
       :> Get '[HTML, JSON] (WithPackage Revisions)
   , htmlTarball :: mode
       :- "packages"
