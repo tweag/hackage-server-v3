@@ -58,67 +58,75 @@ import Servant.Tarball
 import Test.QuickCheck
 import Hackage.Objects
 
--- `/packages/.:format`                                   | GET    | html    | html                     |
--- `/packages/.:format`                                   | POST   | html    | html                     |
--- `/packages/browse`                                     | GET    | html    | html                     |
--- `/packages/deprecated.:format`                         | GET    | html    | html                     |
--- `/packages/graph`                                      | GET    | html    | html                     |
--- `/packages/graph.json`                                 | GET    | json    | html                     |
--- `/packages/names`                                      | GET    | html    | html                     |
--- `/packages/preferred.:format`                          | GET    | html    | html                     |
--- `/packages/recent.:format`                             | GET    | html    | html                     |
--- `/packages/recent.:format`                             | GET    | rss     | html                     |
--- `/packages/recent/revisions.:format`                   | GET    | html    | html                     |
--- `/packages/recent/revisions.:format`                   | GET    | rss     | html                     |
--- `/packages/reverse.:format`                            | GET    | html    | html                     |
--- `/packages/search.:format`                             | GET    | html    | html                     |
--- `/packages/tag/:tag.:format`                           | GET    | html    | html                     |
--- `/packages/tag/:tag/alias`                             | PUT    | html    | html                     |
--- `/packages/tag/:tag/alias/edit`                        | GET    | html    | html                     |
--- `/packages/tags/.:format`                              | GET    | html    | html                     |
--- `/packages/top.:format`                                | GET    | html    | html                     |
 data PackagesHtmlAPI mode = PackagesHtmlAPI
-    -- { htmlPackagesGet :: mode :- "packages" :> Get '[HTML] ()
-    -- , htmlPackagesPost :: mode :- "packages" :> Post '[HTML] ()
-    -- , htmlPackagesBrowse :: mode :- "packages" :> "browse" :> Get '[HTML] ()
-    -- , htmlPackagesDeprecated :: mode :- "packages" :> "deprecated.html" :> Get '[HTML] ()
-    -- , htmlPackagesGraph :: mode :- "packages" :> "graph" :> Get '[HTML] ()
-    -- , htmlPackagesGraphJson :: mode :- "packages" :> "graph.json" :> Get '[JSON] ()
-    { htmlPackagesNames :: mode :- "packages" :> "names" :> Get '[HTML] PackageNames
-    , htmlPackagesTrustees :: mode :- "packages" :> "trustees" :> Get '[HTML] TrusteesObject
-    , htmlPackagesHelp :: mode :- "upload" :> Get '[HTML] UploadHelp
-    , htmlPackagesUploadForm :: mode :- "packages" :> "upload" :> Get '[HTML] PackageUpload
-    , htmlPackageRevisions :: mode :-
-        NegotiableContent :> "package" :> Capture "package" PackageLocator
-          :> "revisions" :> "" :> Get '[HTML, JSON] (WithPackage Revisions)
-    -- , htmlPackagesPreferred :: mode :- "packages" :> "preferred.html" :> Get '[HTML] ()
-    -- , htmlPackagesRecentHtml :: mode :- "packages" :> "recent.html" :> Get '[HTML] ()
-    -- , htmlPackagesRecentRss :: mode :- "packages" :> "recent.rss" :> Get '[RSS] ()
-    -- , htmlPackagesRecentRevisionsHtml :: mode :- "packages" :> "recent" :> "revisions.html" :> Get '[HTML] ()
-    -- , htmlPackagesRecentRevisionsRss :: mode :- "packages" :> "recent" :> "revisions.rss" :> Get '[RSS] ()
-    -- , htmlPackagesReverse :: mode :- "packages" :> "reverse.html" :> Get '[HTML] ()
-    -- , htmlPackagesSearch :: mode :- "packages" :> "search.html" :> Get '[HTML] ()
-    -- , htmlPackagesTagGet :: mode :- "packages" :> "tag" :> CaptureExt "tag" Tag "html" :> Get '[HTML] ()
-    -- , htmlPackagesTagAliasPut :: mode :- "packages" :> "tag" :> Capture "tag" Tag :> "alias" :> Put '[HTML] ()
-    -- , htmlPackagesTagAliasEdit :: mode :- "packages" :> "tag" :> Capture "tag" Tag :> "alias" :> "edit" :> Get '[HTML] ()
-    -- , htmlPackagesTagsGet :: mode :- "packages" :> "tags" :> Get '[HTML] ()
-    -- , htmlPackagesTop :: mode :- "packages" :> "top.html" :> Get '[HTML] ()
-    , htmlTarball :: mode :-
-        "packages" :> Capture "package" PackageLocator
-          :> CaptureExt "tarball" PackageIdentifier "tar.gz" :> Get '[Tarball] BL.ByteString
-    , htmlTarballs :: mode :-
-        NegotiableContent :> "package" :> Capture "package" PackageName
-          :> "distro-monitor" :> Get '[HTML] (WithPackageName AllTarballs)
-    , htmlMirrorUploader :: mode :- "package" :> Capture "package" PackageLocator :> "uploader" :> Get '[PlainText] UserName
-    , htmlMirrorUploadTime :: mode :- "package" :> Capture "package" PackageLocator :> "upload-time" :> Get '[PlainText] UTCTime
-    , htmlPackageDeps :: mode :- "package" :> Capture "package" PackageLocator :> "dependencies" :> Get '[HTML] (WithPackage Dependencies)
-    , htmlPackageVersions :: mode :- "package" :> CaptureExt "package" PackageName "json" :> Get '[JSON] PackageVersions
-    , htmlPackageMetadata :: mode :- "package" :> CaptureExt "package" PackageIdentifier "json" :> Get '[JSON] PackageBasicDescriptionDTO
-    , htmlPackageCabalFile :: mode :- "package" :> Capture "package" PackageName :> CaptureExt "package" PackageName "cabal" :> Get '[PlainText] StrictByteString
-    , htmlPackagePreferredVersions :: mode :-
-        NegotiableContent :> "package" :> Capture "package" PackageName :> "preferred" :> Get '[HTML, JSON] (WithPackageName PreferredVersions)
-    }
-    deriving stock (Generic)
+  { htmlPackagesNames :: mode
+      :- "packages"
+      :> "names"
+      :> Get '[HTML] PackageNames
+  , htmlPackagesTrustees :: mode
+      :- "packages"
+      :> "trustees"
+      :> Get '[HTML] TrusteesObject
+  , htmlPackagesHelp :: mode
+      :- "upload" :> Get '[HTML] UploadHelp
+  , htmlPackagesUploadForm :: mode
+      :- "packages"
+      :> "upload"
+      :> Get '[HTML] PackageUpload
+  , htmlPackageRevisions :: mode
+      :- NegotiableContent
+      :> "package"
+      :> Capture "package" PackageLocator
+      :> "revisions"
+      :> ""
+      :> Get '[HTML, JSON] (WithPackage Revisions)
+  , htmlTarball :: mode
+      :- "packages"
+      :> Capture "package" PackageLocator
+      :> CaptureExt "tarball" PackageIdentifier "tar.gz"
+      :> Get '[Tarball] BL.ByteString
+  , htmlTarballs :: mode
+      :- NegotiableContent
+      :> "package"
+      :> Capture "package" PackageName
+      :> "distro-monitor"
+      :> Get '[HTML] (WithPackageName AllTarballs)
+  , htmlMirrorUploader :: mode
+      :- "package"
+      :> Capture "package" PackageLocator
+      :> "uploader"
+      :> Get '[PlainText] UserName
+  , htmlMirrorUploadTime :: mode
+      :- "package"
+      :> Capture "package" PackageLocator
+      :> "upload-time"
+      :> Get '[PlainText] UTCTime
+  , htmlPackageDeps :: mode
+      :- "package"
+      :> Capture "package" PackageLocator
+      :> "dependencies"
+      :> Get '[HTML] (WithPackage Dependencies)
+  , htmlPackageVersions :: mode
+      :- "package"
+      :> CaptureExt "package" PackageName "json"
+      :> Get '[JSON] PackageVersions
+  , htmlPackageMetadata :: mode
+      :- "package"
+      :> CaptureExt "package" PackageIdentifier "json"
+      :> Get '[JSON] PackageBasicDescriptionDTO
+  , htmlPackageCabalFile :: mode
+      :- "package"
+      :> Capture "package" PackageName
+      :> CaptureExt "package" PackageName "cabal"
+      :> Get '[PlainText] StrictByteString
+  , htmlPackagePreferredVersions :: mode
+      :- NegotiableContent
+      :> "package"
+      :> Capture "package" PackageName
+      :> "preferred"
+      :> Get '[HTML, JSON] (WithPackageName PreferredVersions)
+  }
+  deriving stock (Generic)
 
 
 
