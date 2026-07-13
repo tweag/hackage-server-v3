@@ -76,12 +76,16 @@ spec =
       get "/auth" `shouldRespondWith` 401
 
   describe "negotiable content" $ do
+    it "should dispatch without an extension" $ do
+      get "/negotiable/hello" `shouldRespondWith` "hello"
     it "should dispatch txt based on extension" $ do
       get "/negotiable/hello.txt" `shouldRespondWith` "hello"
     it "should dispatch json based on extension" $ do
       get "/negotiable/hello.json" `shouldRespondWith` "\"hello\""
     it "should not dispatch html based on extension" $ do
       get "/negotiable/hello.html" `shouldRespondWith` 406
+    it "should still dispatch with an empty segment" $ do
+      get "/negotiable/hello/.json" `shouldRespondWith` "\"hello\""
 
   describe "cache control" $ do
     it "should return etags and cache control settings" $ do
