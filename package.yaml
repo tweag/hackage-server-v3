@@ -95,6 +95,17 @@ default-extensions:
 library:
   source-dirs: src
 
+executables:
+  hackage-server-v3:
+    main:                Main.hs
+    source-dirs:         app
+    dependencies:
+    - hackage-server-v3
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+
 tests:
   tests:
     main:                Spec.hs

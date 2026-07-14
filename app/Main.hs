@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Lib
+import TestAPI qualified as API
 
 main :: IO ()
-main = someFunc
+main = API.main

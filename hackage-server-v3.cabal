@@ -124,6 +124,73 @@ library
     , zlib
   default-language: GHC2024
 
+executable hackage-server-v3
+  main-is: Main.hs
+  other-modules:
+      Paths_hackage_server_v3
+  autogen-modules:
+      Paths_hackage_server_v3
+  hs-source-dirs:
+      app
+  default-extensions:
+      DerivingVia
+      DeriveAnyClass
+      GeneralizedNewtypeDeriving
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      Cabal-syntax
+    , QuickCheck
+    , aeson
+    , base >=4.7 && <5
+    , base16-bytestring
+    , base64-bytestring
+    , bifunctors
+    , bytestring
+    , cereal
+    , comonad
+    , containers
+    , crypton
+    , directory
+    , ede
+    , filepath
+    , gdp
+    , generic-lens
+    , hackage-server-v3
+    , hashable
+    , hasql
+    , http-client
+    , http-client-tls
+    , http-media
+    , http-reverse-proxy
+    , http-types
+    , lens
+    , memory
+    , mime-types
+    , monoidal-containers
+    , mtl
+    , openapi3
+    , profunctors
+    , quickcheck-text
+    , random
+    , rel8
+    , request
+    , resource-pool
+    , resourcet
+    , servant
+    , servant-ede
+    , servant-server
+    , tagged
+    , tar
+    , text
+    , time
+    , transformers
+    , unordered-containers
+    , vector
+    , wai
+    , warp
+    , zlib
+  default-language: GHC2024
+
 test-suite tests
   type: exitcode-stdio-1.0
   main-is: Spec.hs
