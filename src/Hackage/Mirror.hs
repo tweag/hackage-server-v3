@@ -2,34 +2,30 @@
 
 module Hackage.Mirror where
 
-import GHC.Generics
-import qualified Rel8 as Rel8
-import Hasql.Session (statement, run)
-import TestAPI (mkConn)
-import Import
-import Control.Monad (when, void)
-import Distribution.Pretty qualified as Pretty
-import Data.Coerce
-import GHC.Generics
-import Distribution.Types.PackageId
 import Codec.Archive.Tar qualified as Tar
 import Codec.Archive.Tar.Entry qualified as Tar
-import Codec.Compression.Zlib qualified as Zlib
-import Data.ByteString.Lazy qualified as BSL
-import Data.ByteString (ByteString)
-import Data.ByteString qualified as BS
-import Data.Map.Monoidal qualified as MM
-import Data.Map.Monoidal (MonoidalMap)
+import Control.Monad (when, void)
 import Control.Monad.State
-import Hackage.Types
-import Data.Monoid(Sum(..))
+import Data.ByteString qualified as BS
+import Data.ByteString.Lazy qualified as BSL
+import Data.Coerce
 import Data.Int
+import Data.Map.Monoidal (MonoidalMap)
+import Data.Map.Monoidal qualified as MM
+import Data.Monoid(Sum(..))
 import Data.Text qualified as T
-import Distribution.Types.Version (mkVersion)
-import Distribution.Types.PackageName
-import Rel8 hiding (run)
 import Data.Time.Clock.POSIX
+import Distribution.Types.PackageId
+import Distribution.Types.PackageName
+import Distribution.Types.Version (mkVersion)
+import GHC.Generics
 import Hackage.Schemas.Packages (PkgRevId)
+import Hackage.Types
+import Hasql.Session (statement, run)
+import Import
+import Rel8 hiding (run)
+import Rel8 qualified as Rel8
+import TestAPI (mkConn)
 
 
 
@@ -46,15 +42,19 @@ metaRev = coerce . rs_meta_rev
 tarRev :: RevState -> TarballRevIx
 tarRev = coerce . rs_tar_rev
 
-newMetaRev :: PackageIdentifier -> MetadataRevIx -> Tar.GenEntry BSL.ByteString b c -> SqlM (Query (Expr PkgRevId))
+newMetaRev
+    :: PackageIdentifier
+    -> MetadataRevIx
+    -> Tar.GenEntry BSL.ByteString b c
+    -> SqlM (Query (Expr PkgRevId))
 newMetaRev pid rev e = do
   pkgid <- mkPkgIdentifier pid
   mkMetadataRev
     pkgid
     rev
     (case Tar.entryContent e of
-       Tar.NormalFile x y -> BS.toStrict x
-       _ -> error "something else"
+       Tar.NormalFile x _ -> BS.toStrict x
+       _ -> error "Found something in the Tar that isn't a file"
     )
     ( posixSecondsToUTCTime $ fromIntegral $ Tar.entryTime e
     , UserId $ fromIntegral $ Tar.ownerId $ Tar.entryOwnership e
@@ -86,7 +86,7 @@ main = mkConn $ \conn -> do
           MetadataRev -> do
             -- liftIO $ putStrLn $ Pretty.prettyShow pid
             (either (error . show) (const $ pure ()) =<<) $ liftIO $ flip run conn $ statement () $ Rel8.run $ runSqlM $ do
-              mkUser (UserId $ fromIntegral $ Tar.ownerId o) (T.pack $ Tar.ownerName o)
+              void $ mkUser (UserId $ fromIntegral $ Tar.ownerId o) (T.pack $ Tar.ownerName o)
               newMetaRev pid (maybe 0 metaRev me) e
           TarballRev -> pure ()
 
@@ -94,11 +94,5 @@ main = mkConn $ \conn -> do
           case revtype of
             TarballRev -> mempty { rs_tar_rev = 1 }
             MetadataRev -> mempty { rs_meta_rev = 1 }
-        -- liftIO $ putStrLn $ unwords
-        --   [ Tar.entryPath e
-        --   , Tar.ownerName o
-        --   , show $ Tar.ownerId o
-        --   ]
-      m
-                    ) (pure ()) (liftIO . print) es
+      m) (pure ()) (liftIO . print) es
 
