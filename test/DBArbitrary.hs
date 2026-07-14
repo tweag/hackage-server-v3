@@ -6,6 +6,11 @@
 
 module DBArbitrary where
 
+
+import Data.Aeson (Value (..), decode, fromJSON, toJSON, Result (..))
+import Data.Aeson.KeyMap qualified as KM
+import Data.Time (UTCTime (..))
+import Data.Vector qualified as V
 import Control.Monad (replicateM_)
 import Control.Monad.Except
 import Data.BlobStorage qualified as Blob
@@ -21,7 +26,7 @@ import Hackage.Schemas.Packages
 import Hackage.ServerM
 import Hackage.Utils
 import Network.HTTP.Request qualified as Req
-import Rel8 hiding (with)
+import Rel8 (Serializable, FromExprs, Query, Expr, countRows, offset, limit, (==.), each, where_)
 import Servant.API
 import Servant.Links (fieldLink, linkURI)
 import Servant.Server
@@ -30,6 +35,7 @@ import System.Random (randomRIO, randomIO)
 import Test.Hspec
 import Test.Hspec.Wai
 import TestAPI hiding (main)
+import Data.ByteString.Lazy (ByteString)
 
 
 type DBArbitrary :: Type -> Constraint
@@ -95,8 +101,24 @@ verify field = do
     link <- liftIO $ mkConn $ \conn -> fillLink conn $ fieldLink field
     let uri = show (linkURI link)
     annotate uri $ do
-      Req.Response _ _ body <- liftIO $ Req.get @String $ hackageBase </> uri
-      get (fromString uri) `shouldRespondWith` fromString body
+      Req.Response _ _ bsv2 <- liftIO $ Req.get @ByteString $ hackageBase </> uri
+      get (fromString uri) `shouldRespondWith` ResponseMatcher 200 [] (MatchBody $ \_ bsv3 ->
+        case (,) <$> decode @Value bsv2 <*> decode @Value bsv3 of
+          Just (v2, v3) ->
+            case roughlyEq v2 v3 of
+              True -> Nothing
+              False -> Just $ unlines
+                [ show v2
+                , show v3
+                ]
+          Nothing ->
+            case bsv2 == bsv3 of
+              True -> Nothing
+              False -> Just $ unlines
+                [ show bsv2
+                , show bsv3
+                ]
+        )
 
 spec :: Spec
 spec =
@@ -110,8 +132,8 @@ spec =
         packagesHtmlServer
       ) $ do
     xit "htmlMirrorUploadTime" $ verify htmlMirrorUploadTime
-    xit "htmlTarballs" $ verify htmlPackageMetadata
-    it "htmlTarballs" $ verify htmlPackageRevisions
+    it "htmlTarballs" $ verify htmlPackageMetadata
+    xit "htmlTarballs" $ verify htmlPackageRevisions
 
 
 dbArbitrary
@@ -130,15 +152,6 @@ dbArbitrary conn = runExceptT $ do
     Right a -> fmap Right $ fromIntermediary a
 
 
-main :: IO ()
-main = do
-  link  <- mkConn $ \conn -> fillLink conn $ fieldLink htmlPackageDeps
-  let uri = "http://hackage.haskell.org/" <> show (linkURI link)
-  putStrLn uri
-  Req.Response _ _ body <- Req.get @String uri
-  putStrLn body
-
-
 class FillLink a where
   type Filled a
   fillLink :: Connection -> a -> IO (Filled a)
@@ -152,4 +165,25 @@ instance (DBArbitrary a, Serializable (DBArbitraryExpr a) (FromExprs (DBArbitrar
 instance FillLink Link where
   type Filled Link = Link
   fillLink _ l = pure l
+
+
+-- | Compare two 'Value's for equality, truncating any 'UTCTime's down to the
+-- nearest second. Hackage v2 responds with picosecond precision, but we've
+-- imported v3 data from the index tarball which has only second precision ---
+-- thus, this function quotients by that difference.
+roughlyEq :: Value -> Value -> Bool
+roughlyEq (Object a) (Object b) =
+  KM.keys a == KM.keys b &&
+    and (KM.intersectionWith roughlyEq a b)
+roughlyEq (Array a) (Array b) =
+  V.length a == V.length b
+    && and (V.zipWith roughlyEq a b)
+roughlyEq a b = truncateTime a == truncateTime b
+
+
+truncateTime :: Value -> Value
+truncateTime v
+  | Success (UTCTime day dt) <- fromJSON @UTCTime v
+  = toJSON $ UTCTime day $ fromIntegral $ floor @_ @Int dt
+  | otherwise = v
 
