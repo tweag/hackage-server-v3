@@ -43,7 +43,7 @@ connPool =
       (acquire (pure $ DB.connection $ DB.string "postgresql://sandy@/sandy") >>= either (error . show) pure)
       release
       30
-      10
+      100
 
 
 
