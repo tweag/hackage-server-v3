@@ -2,7 +2,6 @@ snapshot: lts-24.35
 
 packages:
 - .
-# - ../hackage-server
 
 extra-deps:
   - rel8-1.7.0.0
@@ -13,6 +12,8 @@ extra-deps:
     subdir: servant
   - github: tweag/hspec-wai
     commit: ca36d3f068e729acb0dc278c4c0c259e21131289
+  - github: tweag/hackage-server
+    commit: b9323fbe44f532e31bdbcc7cdbc1e7f8f3d77dae
   - Cabal-3.16.1.0
   - Cabal-syntax-3.16.1.0
   - tar-0.7.1.0

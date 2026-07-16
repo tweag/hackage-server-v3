@@ -74,6 +74,7 @@ library
   build-depends:
       Cabal-syntax
     , QuickCheck
+    , acid-state
     , aeson
     , base >=4.7 && <5
     , base16-bytestring
@@ -89,6 +90,7 @@ library
     , filepath
     , gdp
     , generic-lens
+    , hackage-server
     , hashable
     , hasql
     , http-client
@@ -140,6 +142,7 @@ executable hackage-server-v3
   build-depends:
       Cabal-syntax
     , QuickCheck
+    , acid-state
     , aeson
     , base >=4.7 && <5
     , base16-bytestring
@@ -155,6 +158,7 @@ executable hackage-server-v3
     , filepath
     , gdp
     , generic-lens
+    , hackage-server
     , hackage-server-v3
     , hashable
     , hasql
@@ -212,6 +216,7 @@ test-suite tests
   build-depends:
       Cabal-syntax
     , QuickCheck
+    , acid-state
     , aeson
     , base >=4.7 && <5
     , base16-bytestring
@@ -227,6 +232,7 @@ test-suite tests
     , filepath
     , gdp
     , generic-lens
+    , hackage-server
     , hackage-server-v3
     , hashable
     , hasql
