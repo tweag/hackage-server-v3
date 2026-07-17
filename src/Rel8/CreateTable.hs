@@ -70,6 +70,8 @@ data DbConstraint table where
   Index :: Selector table a -> DbConstraint table
   Unique :: Selector table a -> DbConstraint table
   Unique2 :: Selector table a -> Selector table b -> DbConstraint table
+  TextPatternOps :: Selector table T.Text -> DbConstraint table
+
 
 
 class DBAutoInc a
@@ -161,6 +163,15 @@ mkConstraints (TableSchema (QualifiedName table_name _) table) (Index f) =
     , table_name
     , "("
     , nameToString $ f table
+    , ")"
+    ]
+mkConstraints (TableSchema (QualifiedName table_name _) table) (TextPatternOps f) =
+  sql $ BS8.pack $ unwords
+    [ "CREATE INDEX ON"
+    , table_name
+    , "("
+    , nameToString $ f table
+    , "text_pattern_ops"
     , ")"
     ]
 
