@@ -315,5 +315,7 @@ tarIndexTable :: DbTable TarIndexRow
 tarIndexTable = DbTable tarIndexSchema
   [ PK tarIndexId
   , AutoInc tarIndexId
+  , Unique2 tarIndexBlob tarIndexPath
+  , TextPatternOps tarIndexPath
   ]
 
