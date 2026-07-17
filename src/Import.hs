@@ -6,12 +6,18 @@
 
 module Import where
 
+import Codec.Archive.Tar qualified as Tar
+import Codec.Archive.Tar.Entry qualified as Tar
 import Control.Lens (Lens', at, view, (&), (.~))
 import Control.Monad.Accum
 import Control.Monad.State
 import Data.ByteString
+import Data.ByteString.Lazy qualified as BSL
 import Data.Generics.Labels ()
+import Data.Int (Int64)
 import Data.Map (Map)
+import Data.Map qualified as M
+import Data.Text qualified as T
 import Data.Time (UTCTime)
 import Distribution.Package (PackageIdentifier(..))
 import Distribution.Package qualified as Cabal
@@ -22,7 +28,7 @@ import Hackage.Types
 import Hackage.Types.PrimaryKey
 import Rel8 hiding (run)
 import Rel8.Expr.Time (now)
-import Data.Map qualified as M
+import Servant.Tarball
 
 -- import Data.Acid (openLocalStateFrom, query, closeAcidState)
 -- import Data.TarIndex
@@ -190,6 +196,27 @@ mkMetadataRev qpkgid (revix) cabal (time, uid) = sql $
     , onConflict = DoNothing
     , returning = Returning metadataId
     }
+
+
+newtype TarOffset = TarOffset { unTarOffset :: Int64 }
+  deriving newtype (Eq, Ord, Show, Num)
+
+indexTarEntry :: BlobId Tarball -> TarOffset -> Tar.GenEntry BSL.ByteString Tar.TarPath c -> SqlM (Query (Expr TarIndexId))
+indexTarEntry bid o e = do
+  sql $ insert $
+    Insert
+      { into = tarIndexSchema
+      , rows = values @_ @[]
+          [ TarIndexRow
+              { tarIndexId = newPrimaryKey
+              , tarIndexBlob = lit bid
+              , tarIndexPath = lit $ T.pack $ Tar.entryPath e
+              , tarIndexOffset = lit $ unTarOffset o
+              }
+          ]
+      , onConflict = DoNothing
+      , returning = Returning tarIndexId
+      }
 
 
 --------------------------------------------------------------------------------

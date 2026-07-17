@@ -19,7 +19,7 @@ import Distribution.Types.PackageId
 import Distribution.Types.PackageName
 import Distribution.Types.Version (mkVersion)
 import GHC.Generics
-import Hackage.Schemas.Packages (PkgRevId)
+import Hackage.Schemas.Packages (PkgRevId, TarIndexId, TarIndexRow(..), tarIndexSchema)
 import Hackage.Types
 import Hasql.Session (statement, run)
 import Import
@@ -59,6 +59,8 @@ newMetaRev pid rev e = do
     ( posixSecondsToUTCTime $ fromIntegral $ Tar.entryTime e
     , UserId $ fromIntegral $ Tar.ownerId $ Tar.entryOwnership e
     )
+
+
 
 
 data UpdateType = TarballRev | MetadataRev
