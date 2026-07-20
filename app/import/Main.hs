@@ -2,7 +2,7 @@ module Main where
 
 import Options.Applicative
 import SetupDB qualified
-import Hackage.Mirror
+import Mirror
 
 
 data Command

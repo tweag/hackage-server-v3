@@ -75,9 +75,6 @@ dependencies:
 
 - request
 
-- hackage-server
-- acid-state
-
 ghc-options:
 - -Wall
 - -Wcompat

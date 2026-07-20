@@ -34,7 +34,6 @@ library
       Hackage.Auth.AuthToken
       Hackage.Auth.Maintainer
       Hackage.Auth.Nonce
-      Hackage.Mirror
       Hackage.Objects
       Hackage.Orphans
       Hackage.Schemas.Packages
@@ -44,7 +43,6 @@ library
       Hackage.Types
       Hackage.Types.PrimaryKey
       Hackage.Utils
-      Import
       Lib
       Rel8.CreateTable
       Servant.HackageAuth
@@ -58,7 +56,6 @@ library
       Servant.HackageCombinators.UserDomain
       Servant.HackageCombinators.WhitelistDigest
       Servant.Tarball
-      SetupDB
       TestAPI
   other-modules:
       Paths_hackage_server_v3
@@ -74,7 +71,6 @@ library
   build-depends:
       Cabal-syntax
     , QuickCheck
-    , acid-state
     , aeson
     , base >=4.7 && <5
     , base16-bytestring
@@ -90,7 +86,6 @@ library
     , filepath
     , gdp
     , generic-lens
-    , hackage-server
     , hashable
     , hasql
     , http-client
@@ -129,6 +124,9 @@ library
 executable hackage-server-v2-import
   main-is: Main.hs
   other-modules:
+      Import
+      Mirror
+      SetupDB
       Paths_hackage_server_v3
   autogen-modules:
       Paths_hackage_server_v3
@@ -212,7 +210,6 @@ executable hackage-server-v3
   build-depends:
       Cabal-syntax
     , QuickCheck
-    , acid-state
     , aeson
     , base >=4.7 && <5
     , base16-bytestring
@@ -228,7 +225,6 @@ executable hackage-server-v3
     , filepath
     , gdp
     , generic-lens
-    , hackage-server
     , hackage-server-v3
     , hashable
     , hasql
@@ -286,7 +282,6 @@ test-suite tests
   build-depends:
       Cabal-syntax
     , QuickCheck
-    , acid-state
     , aeson
     , base >=4.7 && <5
     , base16-bytestring
@@ -302,7 +297,6 @@ test-suite tests
     , filepath
     , gdp
     , generic-lens
-    , hackage-server
     , hackage-server-v3
     , hashable
     , hasql
