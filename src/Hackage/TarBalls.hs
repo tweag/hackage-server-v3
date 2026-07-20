@@ -2,10 +2,6 @@
 
 module Hackage.TarBalls where
 
-import Distribution.Utils.MD5 (md5)
-import Codec.Archive.Tar qualified as Tar
-import Data.ByteString.Lazy qualified as BSL
-import Codec.Compression.Zlib
 import Control.Monad.Except
 import Data.Map qualified as M
 import Data.TarIndex
@@ -16,7 +12,6 @@ import Hackage.Types.PrimaryKey
 import Hackage.Utils
 import Rel8 (Insert(..), Returning(..), OnConflict(..), lit, values)
 import Servant.Tarball
-import TestAPI (mkConn)
 
 
 data InsertTarEntriesError e
@@ -48,10 +43,4 @@ insertTarEntries bid es conn = runExceptT $ do
       , onConflict = DoNothing
       , returning = Returning tarIndexId
       }
-
-main :: IO ()
-main = mkConn $ \conn -> do
-  x <- BSL.readFile "/home/sandy/rel8-1.0.0.0.tar"
-  let z = Tar.read x
-  print =<< insertTarEntries (BlobId $ md5 "rel8-1.0.0.0.tar.gz") z conn
 

@@ -20,7 +20,7 @@ import Distribution.Types.PackageId
 import Distribution.Types.PackageName
 import Distribution.Types.Version (mkVersion)
 import GHC.Generics
-import Hackage.Schemas.Packages (PkgRevId)
+import Hackage.Schemas.Packages (PkgRevId, TarballRevisionRow(..), packageTarballRevisionsSchema)
 import Hackage.Types
 import Hasql.Session (statement, run)
 import Import
@@ -30,7 +30,9 @@ import TestAPI (mkConn)
 
 import Data.Acid (openLocalStateFrom, query, closeAcidState)
 import Distribution.Server.Features.Core.State (initialPackagesState, GetPackagesState(..), PackagesState(..))
+import Distribution.Server.Framework.BlobStorage qualified as Blob
 import Distribution.Server.Packages.PackageIndex (PackageIndex(..))
+import Hackage.TarBalls (insertTarEntries)
 import System.FilePath
 
 
@@ -122,4 +124,18 @@ backfillPackageDB = do
           Rel8.run $ runSqlM $ do
             for_ pkgs $ traverse insertPkgInfo
             pure $ pure $ lit True
+
+backfillTarIndex :: IO ()
+backfillTarIndex = do
+  mkConn $ \conn -> do
+    Right nogzs <-
+      flip run conn $ statement () $ Rel8.run $ select $ do
+        r <- each packageTarballRevisionsSchema
+        pure $ tarballBlobNoGz r
+    store <- Blob.open "../hackage-server/state/blobs"
+    for_ nogzs $ \blob -> do
+      Right bid <- pure $ Blob.readBlobId $ show $ getBlobId blob
+      bs <- BSL.readFile $ Blob.filepath store bid
+      let es = Tar.read bs
+      insertTarEntries blob es conn
 
