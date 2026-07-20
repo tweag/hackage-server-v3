@@ -6,7 +6,7 @@ module Hackage.API.PackagesHTML
   , packagesHtmlServer
   ) where
 
-
+import Hackage.API.Query
 import Data.ByteString (StrictByteString)
 import Distribution.Utils.MD5 (md5, showMD5)
 import Distribution.Types.VersionRange (anyVersion)
@@ -295,36 +295,13 @@ instance ToJSON PackageVersions where
 packageVersionsEndpoint :: PackageName -> ServerM PackageVersions
 packageVersionsEndpoint pname = do
   versions <- liftDB $ doSelect $ do
-    pkg <- each packageNameSchema
-    where_ $ packageName pkg ==. lit pname
-    pkgv <- each pkgInfoSchema
-    where_ $ pkgId pkgv ==. packageNameId pkg
+    pkgv <- getAllVersions $ lit pname
     pure (packageVersion pkgv, pkgInfoDeprecated pkgv)
   pure $ PackageVersions $ M.fromList $ fmap (fmap $ bool Normal Deprecated) versions
 
 
 --------------------------------------------------------------------------------
 -- /package/:packageid.json
-
-
-getAllRevs :: PackageIdentifier -> Query (MetadataRevisionRow Expr)
-getAllRevs pid = do
-  pkg <- each packageNameSchema
-  where_ $ packageName pkg ==. lit (pkgName pid)
-  pkgv <- each pkgInfoSchema
-  where_ $ pkgId pkgv ==. packageNameId pkg
-  where_ $ packageVersion pkgv ==. lit (pkgVersion pid)
-  rev <- each metadataRevisionsSchema
-  where_ $ metadataPkgId rev ==. pkgInfoId pkgv
-  pure rev
-
-getLatestRev :: PackageId -> Query (MetadataRevisionRow Expr)
-getLatestRev = onlyLatestRev . getAllRevs
-
-
-onlyLatestRev :: Query (MetadataRevisionRow Expr) -> Query (MetadataRevisionRow Expr)
-onlyLatestRev = limit 1 . orderBy (metadataTime >$< desc)
-
 
 data PackageBasicDescriptionDTO = PackageBasicDescriptionDTO
   { license           :: !License
@@ -356,7 +333,7 @@ instance ToJSON PackageBasicDescriptionDTO where
 packageMetadataEndpoint :: PackageId -> ServerM PackageBasicDescriptionDTO
 packageMetadataEndpoint pid = do
   (rev, user) <- liftDB $ doSelect1 $ do
-    rev <- getLatestRev pid
+    rev <- getLatestRev $ Specific pid
     user <- each usersSchema
     where_ $ userId user ==. metadataUploader rev
     pure (rev, userName user)
@@ -384,33 +361,12 @@ packageMetadataEndpoint pid = do
 --------------------------------------------------------------------------------
 -- /package/:package/:package.cabal
 
-getLatestVersionAndRev :: Expr PackageName -> Query (MetadataRevisionRow Expr)
-getLatestVersionAndRev = onlyLatestRev . getLatestVersionRevs
-
-getLatestVersion :: Expr PackageName -> Query (PkgInfoRow Expr)
-getLatestVersion pname =
-  limit 1 $ orderBy (packageVersion >$< desc) $ do
-    pkg <- each packageNameSchema
-    where_ $ packageName pkg ==. pname
-    pkgv <- each pkgInfoSchema
-    where_ $ pkgId pkgv ==. packageNameId pkg
-    pure pkgv
-
-getLatestVersionRevs :: Expr PackageName -> Query (MetadataRevisionRow Expr)
-getLatestVersionRevs pname = do
-  version <- getLatestVersion pname
-  rev <- each metadataRevisionsSchema
-  where_ $ metadataPkgId rev ==. pkgInfoId version
-  pure rev
-
-
-
 packageCabalFileEndpoint :: PackageName -> PackageName -> ServerM StrictByteString
 packageCabalFileEndpoint pname1 pname2 = do
   -- For legacy reasons, this path requires both package names to be the same
   unless (pname1 == pname2) $ throwError err404
   liftDB $ doSelect1 $ do
-    rev <- getLatestVersionAndRev $ lit pname1
+    rev <- getLatestRev $ Latest pname1
     pure $ metadataCabalFile rev
 
 
@@ -444,10 +400,7 @@ instance HasTemplate HTML PreferredVersions where
 packagePreferredVersionsEndpoint :: PackageName -> ServerM (WithPackageName PreferredVersions)
 packagePreferredVersionsEndpoint pname = do
   versions <- liftDB $ doSelect $ do
-    pkg <- each packageNameSchema
-    where_ $ packageName pkg ==. lit pname
-    pkgv <- each pkgInfoSchema
-    where_ $ pkgId pkgv ==. packageNameId pkg
+    pkgv <- getAllVersions $ lit pname
     pure (packageVersion pkgv, pkgInfoDeprecated pkgv)
   pure $ WithPackageName pname $ PreferredVersions $ M.fromList $ fmap (fmap $ bool Normal Deprecated) versions
 
@@ -455,14 +408,10 @@ packagePreferredVersionsEndpoint pname = do
 --------------------------------------------------------------------------------
 -- /package/:package/uploader
 
-lookupLocatorRevs :: PackageLocator -> Query (MetadataRevisionRow Expr)
-lookupLocatorRevs (Latest x) = getLatestVersionRevs $ lit x
-lookupLocatorRevs (Specific x) = getAllRevs x
-
 packageMirrorUploader :: PackageLocator -> ServerM UserName
 packageMirrorUploader pname =
   liftDB $ doSelect1 $ do
-    pkgv <- onlyLatestRev $ lookupLocatorRevs pname
+    pkgv <- onlyLatestRev $ getAllRevs pname
     u <- each usersSchema
     where_ $ metadataUploader pkgv ==. userId u
     pure $ userName u
@@ -474,24 +423,12 @@ packageMirrorUploader pname =
 packageMirrorUploadTime :: PackageLocator -> ServerM UTCTime
 packageMirrorUploadTime pname =
   liftDB $ doSelect1 $ do
-    pkgv <- onlyLatestRev $ lookupLocatorRevs pname
+    pkgv <- onlyLatestRev $ getAllRevs pname
     pure $ metadataTime pkgv
 
 
 --------------------------------------------------------------------------------
 -- /package/:package/:tarball.tar.gz
-
-getLatestTarball :: PackageIdentifier -> Query (TarballRevisionRow Expr)
-getLatestTarball pid = do
-  pkg <- each packageNameSchema
-  where_ $ packageName pkg ==. lit (pkgName pid)
-  pkgv <- each pkgInfoSchema
-  where_ $ pkgId pkgv ==. packageNameId pkg
-  where_ $ packageVersion pkgv ==. lit (pkgVersion pid)
-  limit 1 $ orderBy (tarballTime >$< desc) $ do
-    rev <- each packageTarballRevisionsSchema
-    where_ $ tarballPkgId rev ==. pkgInfoId pkgv
-    pure rev
 
 packageTarball
     :: PackageLocator
@@ -509,7 +446,7 @@ packageTarball epname tarball = do
     _ -> throwError err404
 
   mblob <-
-    liftDB $ doSelect1 $ optional $ fmap tarballBlobGz $ getLatestTarball tarball
+    liftDB $ doSelect1 $ optional $ fmap tarballBlobGz $ getLatestTarball $ Specific tarball
   case mblob of
     Just blob -> do
       store <- asks serverBlobStore
@@ -575,7 +512,7 @@ instance ToObject Dependencies where
 packageDependencies :: PackageLocator -> ServerM (WithPackage Dependencies)
 packageDependencies pname = do
   rev <- liftDB $ doSelect1 $ do
-    pkgv <- onlyLatestRev $ lookupLocatorRevs pname
+    pkgv <- onlyLatestRev $ getAllRevs pname
     pure pkgv
 
   let parseResult = PkgDescr.parseGenericPackageDescription $ metadataCabalFile rev
@@ -625,23 +562,12 @@ instance ToJSON Revision where
     , "user"   .= user rev
     ]
 
-lookupLocatorAllRevs :: PackageLocator -> Query (MetadataRevisionRow Expr)
-lookupLocatorAllRevs (Latest x) = getLatestVersionRevs $ lit x
-lookupLocatorAllRevs (Specific x) = getAllRevs x
-
-
-locatorToPackageId :: PackageLocator -> Query (Expr PackageName, Expr Version)
-locatorToPackageId (Specific p) = pure $ lit (pkgName p, pkgVersion p)
-locatorToPackageId (Latest p) = do
-  version <- getLatestVersion $ lit p
-  pure (lit p, packageVersion version)
-
 
 packageRevisions :: PackageLocator -> ServerM (WithPackage Revisions)
 packageRevisions loc = do
   (name, version) <- liftDB $ doSelect1 $ locatorToPackageId loc
   revs <- liftDB $ doSelect $ do
-    rev <- lookupLocatorRevs loc
+    rev <- getAllRevs loc
     u <- each usersSchema
     where_ $ userId u ==. metadataUploader rev
     pure (rev, userName u)
