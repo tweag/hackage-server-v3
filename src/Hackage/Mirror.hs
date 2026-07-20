@@ -107,10 +107,8 @@ importIndexTar = mkConn $ \conn -> do
       m) (pure ()) (liftIO . print) es
 
 
-backfillPackageDB :: IO ()
-backfillPackageDB = do
-  let dbDir = ".." </> "hackage-server" </> "state" </> "db"
-
+backfillPackageDB :: FilePath -> IO ()
+backfillPackageDB dbDir = do
   packagesH <- openLocalStateFrom (dbDir </> "PackagesState") (initialPackagesState False)
 
   PackagesState (PackageIndex pkgs) _ <- query packagesH GetPackagesState
@@ -125,14 +123,15 @@ backfillPackageDB = do
             for_ pkgs $ traverse insertPkgInfo
             pure $ pure $ lit True
 
-backfillTarIndex :: IO ()
-backfillTarIndex = do
+
+backfillTarIndex :: FilePath -> IO ()
+backfillTarIndex blobPath = do
   mkConn $ \conn -> do
     Right nogzs <-
       flip run conn $ statement () $ Rel8.run $ select $ do
         r <- each packageTarballRevisionsSchema
         pure $ tarballBlobNoGz r
-    store <- Blob.open "../hackage-server/state/blobs"
+    store <- Blob.open blobPath
     for_ nogzs $ \blob -> do
       Right bid <- pure $ Blob.readBlobId $ show $ getBlobId blob
       bs <- BSL.readFile $ Blob.filepath store bid
