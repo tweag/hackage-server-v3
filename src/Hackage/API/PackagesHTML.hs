@@ -6,23 +6,21 @@ module Hackage.API.PackagesHTML
   , packagesHtmlServer
   ) where
 
-import Hackage.API.Query
-import Data.ByteString (StrictByteString)
-import Distribution.Utils.MD5 (md5, showMD5)
-import Distribution.Types.VersionRange (anyVersion)
-import Distribution.Types.Dependency as Cabal
-import Control.Monad.Reader
-import Hackage.ServerM
+import Codec.Archive.Tar qualified as Tar
+import Codec.Archive.Tar.Entry qualified as Tar
 import Control.Monad (unless)
 import Control.Monad.Except (throwError)
+import Control.Monad.Reader
 import Data.Aeson hiding (Result(..))
 import Data.BlobStorage qualified as Blob
 import Data.Bool
-import Data.ByteString.Lazy qualified as BL
+import Data.ByteString (StrictByteString)
+import Data.ByteString.Lazy qualified as BSL
 import Data.Coerce
 import Data.Functor
 import Data.Functor.Contravariant
 import Data.Hashable
+import Data.Int (Int64)
 import Data.Kind (Type)
 import Data.List (partition)
 import Data.Map (Map)
@@ -31,20 +29,28 @@ import Data.String (fromString)
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Arbitrary ()
+import Data.Text.Lazy (toStrict)
+import Data.Text.Lazy.Encoding (decodeUtf8)
 import Data.Time (UTCTime)
 import Distribution.License (licenseToSPDX)
 import Distribution.PackageDescription.Parsec qualified as PkgDescr
 import Distribution.Pretty qualified as Pretty
 import Distribution.SPDX.License (License)
+import Distribution.Types.Dependency as Cabal
 import Distribution.Types.GenericPackageDescription qualified as PkgDescr
 import Distribution.Types.PackageDescription qualified as PkgDescr
 import Distribution.Types.PackageId
 import Distribution.Types.PackageName
+import Distribution.Types.VersionRange (anyVersion)
+import Distribution.Utils.MD5 (md5, showMD5)
 import Distribution.Utils.ShortText (fromShortText)
 import GHC.Generics (Generic)
 import GHC.TypeLits
+import Hackage.API.Query
+import Hackage.Objects
 import Hackage.Schemas.Packages
 import Hackage.Schemas.Users
+import Hackage.ServerM
 import Hackage.Types
 import Hackage.Utils
 import Rel8 hiding (Lift, bool)
@@ -55,8 +61,9 @@ import Servant.HackageCombinators.NegotiableContent
 import Servant.Server (err404, err500)
 import Servant.Server.Generic (AsServerT)
 import Servant.Tarball
+import System.IO
 import Test.QuickCheck
-import Hackage.Objects
+
 
 data PackagesHtmlAPI mode = PackagesHtmlAPI
   { htmlPackagesNames :: mode
@@ -83,7 +90,7 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
       :- "packages"
       :> Capture "package" PackageLocator
       :> CaptureExt "tarball" PackageIdentifier "tar.gz"
-      :> Get '[Tarball] BL.ByteString
+      :> Get '[Tarball] BSL.ByteString
   , htmlTarballs :: mode
       :- NegotiableContent
       :> "package"
@@ -124,6 +131,13 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
       :> Capture "package" PackageName
       :> "preferred"
       :> Get '[HTML, JSON] (WithPackageName PreferredVersions)
+  , htmlPackageTarballContent :: mode
+      -- TODO(sandy): Must be userdomained
+      :- "package"
+      :> Capture "package" PackageLocator
+      :> "src"
+      :> CaptureAll "src" Text
+      :> Get '[PlainText] Text
   }
   deriving stock (Generic)
 
@@ -145,6 +159,7 @@ packagesHtmlServer = PackagesHtmlAPI
   , htmlTarballs = packageTarballs
   , htmlPackageDeps = packageDependencies
   , htmlPackageRevisions = packageRevisions
+  , htmlPackageTarballContent = tarballContent
   }
 
 
@@ -433,7 +448,7 @@ packageMirrorUploadTime pname =
 packageTarball
     :: PackageLocator
     -> PackageIdentifier
-    -> ServerM BL.ByteString
+    -> ServerM BSL.ByteString
 packageTarball epname tarball = do
   -- We want to ensure that the tarball name lines up with the package we were
   -- given. If we have only a 'PackageName', then ensure it's the same package
@@ -452,6 +467,7 @@ packageTarball epname tarball = do
       store <- asks serverBlobStore
       liftIO $ Blob.get store blob
     Nothing -> throwError err404
+
 
 --------------------------------------------------------------------------------
 -- /package/:package/distro-monitor[.html]
@@ -578,4 +594,42 @@ packageRevisions loc = do
       , time = metadataTime rev
       , user = user
       }
+
+
+--------------------------------------------------------------------------------
+-- /package/:package/src/...
+
+tarballContent :: PackageLocator -> [Text] -> ServerM Text
+tarballContent loc ps = do
+  mstuff <- liftDB $ doSelect1 $ optional $ do
+    tar <- getLatestTarball loc
+    (pname, pid) <- locatorToPackageId loc
+    off <- each tarIndexSchema
+    where_ $ tarIndexBlob off ==. tarballBlobNoGz tar
+    where_ $ like (unsafeCastExpr pname <>. "-" <>. showVersionExpr pid <>. "/" <>. lit (T.intercalate "/" ps)) $ tarIndexPath off
+    pure (tarballBlobNoGz tar, tarIndexOffset off)
+  case mstuff of
+    Nothing -> throwError err404
+    Just (blob, off) -> do
+      store <- asks serverBlobStore
+      liftIO (loadTarEntry_ (Blob.filepath store blob) off) >>= \case
+        Right (_, e) -> pure $ toStrict $ decodeUtf8 e
+        Left _ -> throwError err500
+
+loadTarEntry_
+  :: FilePath
+  -- ^ Tarball
+  -> Int64
+  -> IO (Either String (Tar.FileSize, BSL.ByteString))
+loadTarEntry_ tarfile off = do
+  htar <- openFile tarfile ReadMode
+  hSeek htar AbsoluteSeek $ fromIntegral $ off * 512
+  header <- BSL.hGet htar 512
+  case Tar.read header of
+    (Tar.Next Tar.Entry{Tar.entryContent = Tar.NormalFile _ size} _) -> do
+         body <- BSL.hGet htar (fromIntegral size)
+         pure $ Right (size, body)
+    z -> pure $ Left $ fail $  "failed to read entry from tar file: " <> show (tarfile, off, show z)
+
+
 

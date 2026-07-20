@@ -51,7 +51,7 @@ main :: IO ()
 main = do
   client <- newTlsManager
   pool <- newPool connPool
-  blobStore <- Blob.open "blobs"
+  blobStore <- Blob.open "../hackage-server/state/blobs"
   app <-
     runServerM
       (Proxy @(

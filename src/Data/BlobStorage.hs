@@ -71,10 +71,10 @@ add store a = do
   BS.writeFile (filepath store bid) encoded
   pure bid
 
-get' :: BlobStorage -> BlobId a -> IO BS.ByteString
+get' :: BlobStorage -> BlobId a -> IO BS.StrictByteString
 get' store = BS.readFile . filepath store
 
-get :: BlobStorage -> BlobId a -> IO BSL.ByteString
+get :: BlobStorage -> BlobId a -> IO BSL.LazyByteString
 get store = BSL.readFile . filepath store
 
 fetch :: Serialize a => BlobStorage -> BlobId a -> IO (Either String a)

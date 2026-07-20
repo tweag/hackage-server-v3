@@ -3,6 +3,7 @@
 
 module Hackage.API.Query where
 
+import Data.Text (Text)
 import Data.Functor.Contravariant
 import Distribution.Types.PackageId
 import Distribution.Types.PackageName
@@ -53,6 +54,12 @@ getAllRevs loc = do
 
 getLatestRev :: PackageLocator -> Query (MetadataRevisionRow Expr)
 getLatestRev = onlyLatestRev . getAllRevs
+
+
+-- | SQL function that converts an @'Expr' 'Version'@ into 'Text', by
+-- intercalating the versions with dots.
+showVersionExpr :: Expr Version -> Expr Text
+showVersionExpr v = function "array_to_string" (v, lit @_ @Text ".")
 
 
 onlyLatestRev
