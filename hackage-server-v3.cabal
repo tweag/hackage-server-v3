@@ -39,7 +39,6 @@ library
       Hackage.Schemas.Packages
       Hackage.Schemas.Users
       Hackage.ServerM
-      Hackage.TarBalls
       Hackage.Types
       Hackage.Types.PrimaryKey
       Hackage.Utils
@@ -127,6 +126,7 @@ executable hackage-server-v2-import
       Import
       Mirror
       SetupDB
+      Tarballs
       Paths_hackage_server_v3
   autogen-modules:
       Paths_hackage_server_v3

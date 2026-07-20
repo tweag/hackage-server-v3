@@ -2,11 +2,11 @@
 
 module Mirror where
 
-import Hackage.Utils (Connection)
 import Codec.Archive.Tar qualified as Tar
 import Codec.Archive.Tar.Entry qualified as Tar
 import Control.Monad (when)
 import Control.Monad.State
+import Data.Acid (openLocalStateFrom, query, closeAcidState)
 import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as BSL
 import Data.Coerce
@@ -17,24 +17,23 @@ import Data.Map.Monoidal qualified as MM
 import Data.Monoid(Sum(..))
 import Data.Text qualified as T
 import Data.Time.Clock.POSIX
+import Distribution.Server.Features.Core.State (initialPackagesState, GetPackagesState(..), PackagesState(..))
+import Distribution.Server.Framework.BlobStorage qualified as Blob
+import Distribution.Server.Packages.PackageIndex (PackageIndex(..))
 import Distribution.Types.PackageId
 import Distribution.Types.PackageName
 import Distribution.Types.Version (mkVersion)
 import GHC.Generics
 import Hackage.Schemas.Packages (PkgRevId, TarballRevisionRow(..), packageTarballRevisionsSchema)
 import Hackage.Types
+import Hackage.Utils (Connection)
 import Hasql.Session (statement, run)
 import Import
 import Rel8 hiding (run)
 import Rel8 qualified as Rel8
-import TestAPI (mkConn)
-
-import Data.Acid (openLocalStateFrom, query, closeAcidState)
-import Distribution.Server.Features.Core.State (initialPackagesState, GetPackagesState(..), PackagesState(..))
-import Distribution.Server.Framework.BlobStorage qualified as Blob
-import Distribution.Server.Packages.PackageIndex (PackageIndex(..))
-import Hackage.TarBalls (insertTarEntries)
 import System.FilePath
+import Tarballs (insertTarEntries)
+import TestAPI (mkConn)
 
 
 

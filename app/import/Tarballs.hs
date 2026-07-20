@@ -1,10 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PackageImports    #-}
 
-module Hackage.TarBalls where
+module Tarballs where
 
 import Control.Monad.Except
 import Data.Map qualified as M
-import Data.TarIndex
+import "hackage-server-v3" Data.TarIndex
 import Data.Text qualified as T
 import Hackage.Schemas.Packages
 import Hackage.Types
