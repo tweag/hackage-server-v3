@@ -2,6 +2,7 @@
 
 module Mirror where
 
+import Hackage.Utils (Connection)
 import Codec.Archive.Tar qualified as Tar
 import Codec.Archive.Tar.Entry qualified as Tar
 import Control.Monad (when)
@@ -107,34 +108,32 @@ importIndexTar = mkConn $ \conn -> do
       m) (pure ()) (liftIO . print) es
 
 
-backfillPackageDB :: FilePath -> IO ()
-backfillPackageDB dbDir = do
+backfillPackageDB :: Connection -> FilePath -> IO ()
+backfillPackageDB conn dbDir = do
   packagesH <- openLocalStateFrom (dbDir </> "PackagesState") (initialPackagesState False)
 
   PackagesState (PackageIndex pkgs) _ <- query packagesH GetPackagesState
 
   closeAcidState packagesH
 
-  mkConn $ \conn -> do
-    flip evalStateT (mempty @(MonoidalMap PackageIdentifier RevState)) $
-      (either (error . show) (const $ pure ()) =<<) $ liftIO $
-        flip run conn $ statement () $
-          Rel8.run $ runSqlM $ do
-            for_ pkgs $ traverse insertPkgInfo
-            pure $ pure $ lit True
+  flip evalStateT (mempty @(MonoidalMap PackageIdentifier RevState)) $
+    (either (error . show) (const $ pure ()) =<<) $ liftIO $
+      flip run conn $ statement () $
+        Rel8.run $ runSqlM $ do
+          for_ pkgs $ traverse insertPkgInfo
+          pure $ pure $ lit True
 
 
-backfillTarIndex :: FilePath -> IO ()
-backfillTarIndex blobPath = do
-  mkConn $ \conn -> do
-    Right nogzs <-
-      flip run conn $ statement () $ Rel8.run $ select $ do
-        r <- each packageTarballRevisionsSchema
-        pure $ tarballBlobNoGz r
-    store <- Blob.open blobPath
-    for_ nogzs $ \blob -> do
-      Right bid <- pure $ Blob.readBlobId $ show $ getBlobId blob
-      bs <- BSL.readFile $ Blob.filepath store bid
-      let es = Tar.read bs
-      insertTarEntries blob es conn
+backfillTarIndex :: Connection -> FilePath -> IO ()
+backfillTarIndex conn blobPath = do
+  Right nogzs <-
+    flip run conn $ statement () $ Rel8.run $ select $ do
+      r <- each packageTarballRevisionsSchema
+      pure $ tarballBlobNoGz r
+  store <- Blob.open blobPath
+  for_ nogzs $ \blob -> do
+    Right bid <- pure $ Blob.readBlobId $ show $ getBlobId blob
+    bs <- BSL.readFile $ Blob.filepath store bid
+    let es = Tar.read bs
+    insertTarEntries blob es conn
 

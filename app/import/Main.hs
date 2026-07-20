@@ -3,6 +3,10 @@ module Main where
 import Options.Applicative
 import SetupDB qualified
 import Mirror
+import Hasql.Connection.Setting.Connection qualified as DB
+import Hasql.Connection.Setting qualified as DB
+import TestAPI (withConn)
+import Data.Text qualified as T
 
 
 data Command
@@ -13,7 +17,8 @@ data Command
 
 
 data Options = Options
-  { optCommand :: Command
+  { optDb :: T.Text
+  , optCommand :: Command
   } deriving stock (Show, Eq)
 
 
@@ -52,9 +57,17 @@ commandParser =
     ]
 
 
+dbOption :: Parser T.Text
+dbOption = fmap T.pack $
+  strOption $ mconcat
+    [ long "db"
+    , metavar "CONNECTION_STRING"
+    , help "PostgreSQL connection string"
+    ]
+
 
 optionsParser :: Parser Options
-optionsParser = Options <$> commandParser
+optionsParser = Options <$> dbOption <*> commandParser
 
 
 opts :: ParserInfo Options
@@ -67,9 +80,12 @@ opts = info (optionsParser <**> helper) $ mconcat
 
 main :: IO ()
 main = do
-  Options{optCommand} <- execParser opts
-  case optCommand of
-    MakeDb -> SetupDB.main
-    BackfillPackages acidDir -> backfillPackageDB acidDir
-    BackfillBlobstore blobDir -> backfillTarIndex blobDir
+  Options{optDb, optCommand} <- execParser opts
+  withConn (pure $ DB.connection $ DB.string optDb) $ \conn ->
+    case optCommand of
+      MakeDb -> SetupDB.main conn
+      BackfillPackages acidDir ->
+          backfillPackageDB conn acidDir
+      BackfillBlobstore blobDir ->
+        backfillTarIndex conn blobDir
 
