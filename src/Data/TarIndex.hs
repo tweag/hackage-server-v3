@@ -22,7 +22,7 @@ unfoldEntries (Next e es) = fmap (e :) $ unfoldEntries es
 construct :: Entries e -> Either e (Map FilePath TarEntryOffset)
 construct entries = do
   es <- unfoldEntries entries
-  let offsets = scanr (\e offset -> offset + sizeOf e + 1) 0 es
+  let offsets = scanl (\offset e -> offset + sizeOf e + 1) 0 es
   pure $ mconcat $ do
     (e, offset) <- zip es offsets
     pure $ M.singleton (entryPath e) offset
