@@ -49,6 +49,7 @@ library
       Servant.HackageCombinators
       Servant.HackageCombinators.CacheControl
       Servant.HackageCombinators.CaptureExt
+      Servant.HackageCombinators.DynamicGet
       Servant.HackageCombinators.HackageAuth
       Servant.HackageCombinators.NegotiableContent
       Servant.HackageCombinators.NotYetPorted

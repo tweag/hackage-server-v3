@@ -3,9 +3,11 @@
 
 module HackageCombinatorsSpec where
 
+import Crypto.Hash qualified as Crypto
 import Data.ByteString (ByteString)
 import Data.Proxy (Proxy(..))
 import Data.Set qualified as S
+import Data.Text qualified as T
 import GHC.Generics
 import Servant.API
 import Servant.HackageAuth (hackageRealm)
@@ -14,7 +16,6 @@ import Servant.Links (fieldLink)
 import Servant.Server
 import Test.Hspec
 import Test.Hspec.Wai
-import qualified Crypto.Hash as Crypto
 
 
 data API mode = API
@@ -27,6 +28,7 @@ data API mode = API
   , userDomain        :: mode :- "user" :> UserDomain :> Get '[JSON] ()
   , negotiableContent :: mode :- NegotiableContent :> "negotiable" :> Capture "something" String :> Get '[PlainText, JSON] String
   , whitelistDigest   :: mode :- "whitelist" :> Capture "something" String :> WhitelistDigest '[JSON] String
+  , dynamicGet        :: mode :- "dynamic" :> Capture "switch" Bool :> DynamicGet '[ '(JSON, Int), '(PlainText, T.Text)]
   }
   deriving stock Generic
 
@@ -52,6 +54,9 @@ spec =
             WithWhitelistDigest
               (S.singleton $ Crypto.hashWith @ByteString Crypto.SHA256 $ "\"acceptable\"")
               (pure str)
+        , dynamicGet = \case
+            False -> pure $ HHere Proxy 15
+            True  -> pure $ HThere $ HHere Proxy "hello"
         }
       )) $ do
 
@@ -115,4 +120,18 @@ spec =
       get "/whitelist/acceptable" `shouldRespondWith` 200
     it "should return 403 for \"unacceptable\"" $ do
       get "/whitelist/unacceptable" `shouldRespondWith` 403
+
+  describe "dynamic get" $ do
+    it "should return JSON for False" $ do
+      get "/dynamic/False" `shouldRespondWith` "15"
+        { matchHeaders =
+            [ "Content-Type" <:> "application/json"
+            ]
+        }
+    it "should return plaintext for True" $ do
+      get "/dynamic/True" `shouldRespondWith` "hello"
+        { matchHeaders =
+            [ "Content-Type" <:> "text/plain;charset=utf-8"
+            ]
+        }
 
