@@ -1,4 +1,5 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE QuantifiedConstraints #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module Servant.HackageCombinators.DynamicGet
   ( DynamicGet
@@ -33,7 +34,7 @@ data OneOf ts where
   -- | 'HHere' is the base case of 'OneOf'. It creates a pair in the hlist with
   -- a polymorphic tail.
   HHere
-      :: MimeRender ct a
+      :: (LoadedTemplates => MimeRender ct a)
       => Proxy ct
       -> a
       -> OneOf ( '(ct, a) ': as )
@@ -51,7 +52,7 @@ data OneOf ts where
 mimeRenderOneOf
     :: forall k (ts :: [(k, Type)]) r
      . OneOf ts
-    -> (forall (ct :: k) a. MimeRender ct a => Proxy ct -> a -> r)
+    -> (forall (ct :: k) a. (LoadedTemplates => MimeRender ct a) => Proxy ct -> a -> r)
     -> r
 mimeRenderOneOf (HHere ct a) k = k ct a
 mimeRenderOneOf (HThere as) k = mimeRenderOneOf as k
@@ -62,7 +63,7 @@ mimeRenderOneOf (HThere as) k = mimeRenderOneOf as k
 type DynamicGet :: [(k, Type)] -> Type
 data DynamicGet ts
 
-instance HasServer (DynamicGet ts) ctx where
+instance LoadedTemplates => HasServer (DynamicGet ts) ctx where
   type ServerT (DynamicGet ts) m = m (OneOf ts)
   hoistServerWithContext _ _ nt = nt
   route _ _ handler = RawRouter $ \env req resp -> runResourceT $ do
@@ -81,15 +82,16 @@ instance HasServer (DynamicGet ts) ctx where
                 [(hContentType, renderHeader $ contentType ct)] $
                 mimeRender ct a
 
+
 instance TemplateFiles (DynamicGet '[]) where
   templateFiles = mempty
 
-instance ( ContentTemplateFiles ct a
+instance ( ContentTemplateFiles '[ct] a
          , TemplateFiles (DynamicGet ts)
          ) => TemplateFiles (DynamicGet ('(ct, a) ': ts))
     where
   templateFiles _ = mconcat
-    [ contentTemplatesFor (Proxy @ct) (Proxy @a)
+    [ contentTemplatesFor (Proxy @'[ct]) (Proxy @a)
     , templateFiles $ Proxy @(DynamicGet ts)
     ]
 

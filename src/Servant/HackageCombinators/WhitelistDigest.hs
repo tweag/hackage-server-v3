@@ -15,6 +15,7 @@ import Network.Wai (responseToStream, responseLBS, Response)
 import Servant.Server hiding (respond)
 import Servant.Server.Internal.Router
 import Servant.API
+import Servant.EDE
 import Data.ByteString.Builder (toLazyByteString)
 import Data.ByteString (toStrict)
 
@@ -88,4 +89,7 @@ responseBodyDigest resp = do
     ( responseLBS status headers body
     , Crypto.hashWith Crypto.SHA256 $ toStrict body
     )
+
+instance TemplateFiles (Get ct a) => TemplateFiles (WhitelistDigest ct a) where
+  templateFiles _ = templateFiles $ Proxy @(Get ct a)
 

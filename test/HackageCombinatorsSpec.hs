@@ -3,6 +3,7 @@
 
 module HackageCombinatorsSpec where
 
+import Servant.EDE (LoadedTemplates, unsafeLoadTemplates)
 import Crypto.Hash qualified as Crypto
 import Data.ByteString (ByteString)
 import Data.Proxy (Proxy(..))
@@ -32,33 +33,41 @@ data API mode = API
   }
   deriving stock Generic
 
+
+unsafeIgnoreTemplates :: (LoadedTemplates => r) -> IO r
+unsafeIgnoreTemplates k = do
+  Right x <- unsafeLoadTemplates (Proxy @EmptyAPI) [] "." $ pure k
+  pure x
+
+
 spec :: Spec
 spec =
-  with (pure $
-    serveWithContext
-      (Proxy @(NamedRoutes API))
-      (UserDomain "my.user.domain"
-        :. hackageAuthHandler hackageRealm undefined
-        :. EmptyContext
-      )
-      (API
-        { redirect = fieldLink redirectTarget
-        , redirectTarget = pure
-        , formatJson = pure
-        , formatTarGz = pure
-        , auth = const $ pure ()
-        , cacheControl = WithCacheControl [MaxAge 1234, SharedMaxAge 4321] $ pure ()
-        , userDomain = pure ()
-        , negotiableContent = pure
-        , whitelistDigest = \str ->
-            WithWhitelistDigest
-              (S.singleton $ Crypto.hashWith @ByteString Crypto.SHA256 $ "\"acceptable\"")
-              (pure str)
-        , dynamicGet = \case
-            False -> pure $ HHere Proxy 15
-            True  -> pure $ HThere $ HHere Proxy "hello"
-        }
-      )) $ do
+  with (
+    unsafeIgnoreTemplates $
+      serveWithContext
+        (Proxy @(NamedRoutes API))
+        (UserDomain "my.user.domain"
+          :. hackageAuthHandler hackageRealm undefined
+          :. EmptyContext
+        )
+        (API
+          { redirect = fieldLink redirectTarget
+          , redirectTarget = pure
+          , formatJson = pure
+          , formatTarGz = pure
+          , auth = const $ pure ()
+          , cacheControl = WithCacheControl [MaxAge 1234, SharedMaxAge 4321] $ pure ()
+          , userDomain = pure ()
+          , negotiableContent = pure
+          , whitelistDigest = \str ->
+              WithWhitelistDigest
+                (S.singleton $ Crypto.hashWith @ByteString Crypto.SHA256 $ "\"acceptable\"")
+                (pure str)
+          , dynamicGet = \case
+              False -> pure $ HHere Proxy 15
+              True  -> pure $ HThere $ HHere Proxy "hello"
+          }
+        )) $ do
 
   describe "redirect" $ do
     it "should redirect" $ do

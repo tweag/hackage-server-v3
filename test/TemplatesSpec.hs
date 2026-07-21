@@ -5,7 +5,6 @@
 -- | Tests that that prove we can render the templates described in our API.
 module TemplatesSpec where
 
-import Data.Typeable (Typeable, typeRep)
 import Data.Aeson.Key qualified as Key
 import Data.Aeson.KeyMap qualified as KeyMap
 import Data.Bifunctor (first)
@@ -14,14 +13,16 @@ import Data.Foldable
 import Data.HashMap.Strict (fromList)
 import Data.Kind (Type, Constraint)
 import Data.Proxy (Proxy(..))
+import Data.Typeable (Typeable, typeRep)
 import Hackage.API.PackagesHTML
+import Hackage.ServerM (filters)
 import Servant.API
 import Servant.EDE
+import Servant.HackageCombinators.DynamicGet
 import System.FilePath ((</>))
 import Test.Hspec
 import Test.QuickCheck (Arbitrary, forAll, property, arbitrary)
 import Text.EDE (parseFile, renderWith, eitherResult)
-import Hackage.ServerM (filters)
 
 
 spec :: Spec
@@ -87,6 +88,18 @@ instance (GetTemplates api) => GetTemplates (a :> api) where
 
 instance GetContentTemplates c a => GetTemplates (Verb m s c a) where
   getTemplates _ = getContentTemplates (Proxy @c) (Proxy @a)
+
+instance GetTemplates (DynamicGet '[]) where
+  getTemplates _ = mempty
+
+instance ( GetTemplates (DynamicGet as)
+         , GetContentTemplates '[ct] a
+         ) => GetTemplates (DynamicGet ('(ct, a) ': as))
+    where
+  getTemplates _ = mconcat
+    [ getTemplates (Proxy @(DynamicGet as))
+    , getContentTemplates (Proxy @'[ct]) (Proxy @a)
+    ]
 
 instance GetTemplates Raw where
   getTemplates _ = mempty

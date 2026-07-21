@@ -14,14 +14,14 @@ packages:
 - completed:
     name: servant-ede
     pantry-tree:
-      sha256: 4889f5a3bf32b1521128d93f4e8dc74ad5babbca8ff8605217332830032d5a80
+      sha256: 4baa3f49f663871f555fa48774279f7005f3fc2394aa0ac65c965cdb74587b62
       size: 915
-    sha256: fec978fb672622d51f57f351108d907ac8fcd8e3e31130839d4ee7d58a443389
-    size: 9836
-    url: https://github.com/alpmestan/servant-ede/archive/56225d0a278f39eecb102cec5481479f4522e220.tar.gz
+    sha256: aa17101cc6940070de5cc940b358cefec13f9e7f9e28c2caa3becb5f8b27926b
+    size: 9843
+    url: https://github.com/alpmestan/servant-ede/archive/8258b2057dbe42de3014c72b43127d6d5a14971d.tar.gz
     version: 1.0.0.0
   original:
-    url: https://github.com/alpmestan/servant-ede/archive/56225d0a278f39eecb102cec5481479f4522e220.tar.gz
+    url: https://github.com/alpmestan/servant-ede/archive/8258b2057dbe42de3014c72b43127d6d5a14971d.tar.gz
 - completed:
     name: servant
     pantry-tree:
