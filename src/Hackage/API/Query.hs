@@ -61,6 +61,15 @@ getLatestRev = onlyLatestRev . getAllRevs
 showVersionExpr :: Expr Version -> Expr Text
 showVersionExpr v = function "array_to_string" (v, lit @_ @Text ".")
 
+-- | SQL function @starts_with@.
+startsWith
+    :: Expr Text
+    -- ^ Haystack
+    -> Expr Text
+    -- ^ Needle
+    -> Expr Bool
+startsWith haystack needle = function "starts_with" (haystack, needle)
+
 
 onlyLatestRev
     :: Query (MetadataRevisionRow Expr)

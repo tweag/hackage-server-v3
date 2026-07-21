@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedLists   #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Hackage.API.PackagesHTML
   ( PackagesHtmlAPI (..)
@@ -8,7 +9,7 @@ module Hackage.API.PackagesHTML
 
 import Codec.Archive.Tar qualified as Tar
 import Codec.Archive.Tar.Entry qualified as Tar
-import Control.Monad (unless)
+import Control.Monad (unless, guard)
 import Control.Monad.Except (throwError)
 import Control.Monad.Reader
 import Data.Aeson hiding (Result(..))
@@ -23,8 +24,10 @@ import Data.Hashable
 import Data.Int (Int64)
 import Data.Kind (Type)
 import Data.List (partition)
+import Data.List qualified as List
 import Data.Map (Map)
 import Data.Map qualified as M
+import Data.Proxy (Proxy(..))
 import Data.String (fromString)
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -32,6 +35,7 @@ import Data.Text.Arbitrary ()
 import Data.Text.Lazy (toStrict)
 import Data.Text.Lazy.Encoding (decodeUtf8)
 import Data.Time (UTCTime)
+import Data.Trie
 import Distribution.License (licenseToSPDX)
 import Distribution.PackageDescription.Parsec qualified as PkgDescr
 import Distribution.Pretty qualified as Pretty
@@ -53,12 +57,15 @@ import Hackage.Schemas.Users
 import Hackage.ServerM
 import Hackage.Types
 import Hackage.Utils
+import Network.HTTP.Types.Header (hLocation)
 import Rel8 hiding (Lift, bool)
 import Servant.API
 import Servant.EDE
 import Servant.HackageCombinators.CaptureExt
+import Servant.HackageCombinators.DynamicGet
 import Servant.HackageCombinators.NegotiableContent
-import Servant.Server (err404, err500)
+import Servant.Links
+import Servant.Server (err303, err404, err500, ServerError(..))
 import Servant.Server.Generic (AsServerT)
 import Servant.Tarball
 import System.IO
@@ -137,7 +144,10 @@ data PackagesHtmlAPI mode = PackagesHtmlAPI
       :> Capture "package" PackageLocator
       :> "src"
       :> CaptureAll "src" Text
-      :> Get '[PlainText] Text
+      :> DynamicGet
+           '[ '(PlainText, Text)
+            , '(HTML, DirectoryListing)
+            ]
   }
   deriving stock (Generic)
 
@@ -599,22 +609,104 @@ packageRevisions loc = do
 --------------------------------------------------------------------------------
 -- /package/:package/src/...
 
-tarballContent :: PackageLocator -> [Text] -> ServerM Text
+newtype DirectoryListing = DirectoryListing (Trie Text)
+  deriving newtype (Eq, Ord, Show, ToJSON, Arbitrary)
+
+instance HasTemplate HTML DirectoryListing where
+  templateFor _ _ = "packages/list-dir.html"
+
+-- | We use 'ToObject' to generate EDE bindings, which in turn is used to
+-- render HTML. However, EDE doesn't support recursion, but our trie is
+-- arbitrarily recursive. Rather than serializing the trie itself, we instead
+-- flatten it into a series of stack instructions which EDE can happily loop
+-- over. It's a bit janky but it works.
+instance ToObject DirectoryListing where
+  toObject (DirectoryListing t) =
+    [ "trie_cmds" .= flattenTrie t
+    ]
+
+tarballContent
+    :: PackageLocator
+    -> [Text]
+    -> ServerM (OneOf '[ '(PlainText, Text)
+                       , '(HTML, DirectoryListing)
+                       ])
 tarballContent loc ps = do
-  mstuff <- liftDB $ doSelect1 $ optional $ do
+  -- Since all the paths in the package tarballs are prefixed by their pretty
+  -- packageid, we must first resolve the locator.
+  (pname, pid) <- liftDB $ doSelect1 $ locatorToPackageId loc
+  let pkg = T.pack $ Pretty.prettyShow $ PackageIdentifier pname pid
+  let actualPath = T.intercalate "/" $ pkg : ps
+
+  -- Now get offsets for everything in the tarball that is under the requested
+  -- path.
+  mstuff <- liftDB $ doSelect $ do
     tar <- getLatestTarball loc
-    (pname, pid) <- locatorToPackageId loc
     off <- each tarIndexSchema
     where_ $ tarIndexBlob off ==. tarballBlobNoGz tar
-    where_ $ like (unsafeCastExpr pname <>. "-" <>. showVersionExpr pid <>. "/" <>. lit (T.intercalate "/" ps)) $ tarIndexPath off
-    pure (tarballBlobNoGz tar, tarIndexOffset off)
+    -- Look only for files whose path starts with @actualPath@. In principle
+    -- this could incorrectly interpret the final path segment as a prefix
+    -- glob, but that doesn't actuall occur due to the 303 redirect discussed
+    -- below.
+    where_ $ startsWith (tarIndexPath off) $ lit actualPath
+    pure ((tarballBlobNoGz tar, tarIndexOffset off), tarIndexPath off)
+
+  -- Branch on what's going on:
   case mstuff of
-    Nothing -> throwError err404
-    Just (blob, off) -> do
-      store <- asks serverBlobStore
-      liftIO (loadTarEntry_ (Blob.filepath store blob) off) >>= \case
-        Right (_, e) -> pure $ toStrict $ decodeUtf8 e
-        Left _ -> throwError err500
+    -- We didn't find anything under the given path, so return 404.
+    [] -> throwError err404
+
+    -- We found a single file under the given path. Since we've only done
+    -- a prefix check, now determine whether the file is exactly the requested
+    -- path. If so, we can serve the file. If not, it's a false positive and we
+    -- should still return 404.
+    [((blob, off), path)]
+      | path == actualPath -> do
+          -- Lookup the file in the tarball...
+          store <- asks serverBlobStore
+          liftIO (loadTarEntry_ (Blob.filepath store blob) off) >>= \case
+            Right (_, e) ->
+              -- ...and serve it as plaintext.
+              pure $ HHere Proxy $ toStrict $ decodeUtf8 e
+            Left _ -> throwError err500
+      | otherwise -> throwError err404
+
+    -- Otherwise we have many matches and should serve a directory listing.
+    _ ->
+      -- Check if there is an empty segment in the request path. This is
+      -- desirable for two reasons:
+      --
+      -- 1. If the current URL ends in a slash (eg "blah/"), browsers resolve
+      --    bare URIs (eg "ex") as child resources (eg "blah/ex").
+      -- 2. By inserting an empty final segment, our 'startsWith' sql query
+      --    ends in a @/@, and therefore doesn't perform accidental prefix
+      --    matches on directory names.
+      --
+      -- If there isn't an empty final path segment, we want to 303 redirect to
+      -- it.
+      case List.isSuffixOf [""] ps of
+        False -> throwError err303
+          { errHeaders = pure
+              ( hLocation
+              , mappend "/" $ toHeader $ fieldLink htmlPackageTarballContent loc $ ps <> [""]
+              )
+          }
+        True -> do
+          -- Finally, if we've made it here, we have a real set of files
+          -- underneath the requested path. We can serve this as an HTML
+          -- directory listing.
+          pure $ HThere $ HHere Proxy $ DirectoryListing $ mconcat $ do
+            (_, pathp) <- mstuff
+            -- The paths we found have the entire request path as a prefix.
+            -- Since we only want relative paths at this point, we must strip
+            -- off that prefix.
+            Just path <- pure $ T.stripPrefix actualPath pathp
+            -- And then eliminate any directories from the file listing, since
+            -- these automatically get generated by the trie.
+            guard $ not $ T.isSuffixOf "/" path
+            guard $ path /= mempty
+            pure $ pathToTrie $ T.split (== '/') path
+
 
 loadTarEntry_
   :: FilePath
@@ -630,6 +722,4 @@ loadTarEntry_ tarfile off = do
          body <- BSL.hGet htar (fromIntegral size)
          pure $ Right (size, body)
     z -> pure $ Left $ fail $  "failed to read entry from tar file: " <> show (tarfile, off, show z)
-
-
 

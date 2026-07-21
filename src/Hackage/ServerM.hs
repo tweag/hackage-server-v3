@@ -14,6 +14,7 @@ import Hasql.Connection (Connection)
 import Control.Monad.Trans.Reader (ReaderT(..))
 import Control.Monad.Except
 import Servant
+import Text.EDE.Internal.Filters (qlist1)
 import Data.Pool
 import Servant.EDE
 import Data.BlobStorage (BlobStorage)
@@ -74,6 +75,8 @@ filters =
   [ "toPackageUrl" @: toPackageUrl
   , "packageName" @: pkgName
   , "packagePretty" @: (T.pack . Pretty.prettyShow @PackageIdentifier)
+  , "intercalate" @: \x y -> T.intercalate y x
+  , qlist1 "cat" (<>) (<>)
   ]
 
 toPackageUrl :: PackageIdentifier -> Text

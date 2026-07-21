@@ -1,0 +1,30 @@
+{% include "../header.html" with title = "{{package}}: list dir" %}
+
+<h1>Dependencies for
+</h1>
+
+
+<ul class="directory-list">
+  {% for cmd in trie_cmds %}
+    {% case cmd.value | at(0) %}
+
+      {% when "push" %}
+        <li>
+          <a href="{{ cmd.value | at(1) | cat(cmd.value | at(2) | singleton ) | intercalate("/") }}/">{{ cmd.value | at(2) }}</>
+          <ul class="directory-list">
+
+      {% when "pop" %}
+          </ul>
+        </li>
+
+      {% when "item" %}
+        <li>
+          <a href="{{ cmd.value | at(1) | cat(cmd.value | at(2) | singleton ) | intercalate("/") }}">{{ cmd.value | at(2) }}</a>
+        </li>
+
+    {% endcase %}
+  {% endfor %}
+</ul>
+
+{% include "../footer.html" %}
+
