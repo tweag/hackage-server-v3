@@ -28,6 +28,7 @@ library
       Data.BlobStorage
       Data.Schema
       Data.TarIndex
+      Data.Trie
       Hackage.API
       Hackage.API.PackagesHTML
       Hackage.API.Query
@@ -271,6 +272,7 @@ test-suite tests
       HackageCombinatorsSpec
       MD5Spec
       TemplatesSpec
+      TrieSpec
       Paths_hackage_server_v3
   autogen-modules:
       Paths_hackage_server_v3
