@@ -27,6 +27,7 @@ import Servant.EDE
 import Servant.HackageCombinators.CaptureExt
 import Servant.HackageCombinators.DynamicGet
 import Servant.HackageCombinators.NegotiableContent
+import Servant.HackageCombinators.UserDomain
 import Servant.Tarball
 import Test.QuickCheck
 
@@ -84,8 +85,8 @@ data PackageDbApi mode = PackageDbApi
       :> "preferred"
       :> Get '[HTML, JSON] (WithPackageName PreferredVersions)
   , pkgdb_api_tarballContent :: mode
-      -- TODO(sandy): Must be userdomained
-      :- "package"
+      :- UserDomain
+      :> "package"
       :> Capture "package" PackageLocator
       :> "src"
       :> CaptureAll "src" Text
@@ -244,5 +245,4 @@ instance ToJSON Revision where
 
 newtype DirectoryListing = DirectoryListing (Trie Text)
   deriving newtype (Eq, Ord, Show, Arbitrary)
-
 

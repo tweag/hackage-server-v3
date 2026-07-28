@@ -51,3 +51,7 @@ instance ( HasServer api context
                   { errHeaders = [(hLocation, userDomain <> rawPathInfo req)]
                   }
 
+instance HasLink api => HasLink (UserDomain :> api) where
+  type MkLink (UserDomain :> api) a = MkLink api a
+  toLink toA _ = toLink toA (Proxy @api)
+

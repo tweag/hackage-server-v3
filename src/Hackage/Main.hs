@@ -1,3 +1,6 @@
+{-# LANGUAGE ApplicativeDo   #-}
+{-# LANGUAGE RecordWildCards #-}
+
 module Hackage.Main
   ( main
   , mainImpl
@@ -6,6 +9,7 @@ module Hackage.Main
   ) where
 
 import Data.BlobStorage qualified as Blob
+import Data.ByteString (StrictByteString)
 import Data.Pool
 import Data.Proxy
 import Data.Text qualified as T
@@ -19,6 +23,7 @@ import Network.HTTP.Client.TLS
 import Network.Wai.Handler.Warp
 import Options.Applicative
 import Servant.API
+import Servant.HackageCombinators.UserDomain (UserDomain(..))
 import Servant.Server
 
 
@@ -37,6 +42,7 @@ mainImpl opts = do
         NamedRoutes PackageDbApi
         ))
       (client
+        :. UserDomain (optUserDomain opts)
         :. EmptyContext
       )
       (ServerCtx pool blobStore)
@@ -49,6 +55,7 @@ data Options = Options
   , optBlobStore :: FilePath
   , optConnections :: Int
   , optPort :: Port
+  , optUserDomain :: StrictByteString
   }
 
 
@@ -81,19 +88,24 @@ parseConnections =
 
 
 parseOptions :: Parser Options
-parseOptions =
-  Options
-    <$> parseDb
-    <*> parseBlobStore
-    <*> parseConnections
-    <*> option auto
-          (mconcat
-            [ long "port"
-            , metavar "PORT"
-            , help "The port to serve hackage server on."
-            , value 8000
-            ]
-          )
+parseOptions = do
+  optDb <- parseDb
+  optBlobStore <- parseBlobStore
+  optConnections <- parseConnections
+  optPort <- option auto $
+    mconcat
+      [ long "port"
+      , metavar "PORT"
+      , help "The port to serve hackage server on."
+      , value 8000
+      ]
+  optUserDomain <- option auto $
+    mconcat
+      [ long "user-content-uri"
+      , metavar "URI"
+      , help "The domain to serve user content from."
+      ]
+  pure $ Options {..}
 
 
 connPool :: Options -> PoolConfig Connection
