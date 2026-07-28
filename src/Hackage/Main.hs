@@ -7,17 +7,18 @@ module Hackage.Main
 import Data.BlobStorage qualified as Blob
 import Data.Pool
 import Data.Proxy
-import Hackage.API.PackagesHTML
+import Data.Text qualified as T
+import Hackage.API.PackageDb
+import Hackage.API.Type
 import Hackage.ServerM
 import Hasql.Connection
 import Hasql.Connection.Setting qualified as DB
 import Hasql.Connection.Setting.Connection qualified as DB
 import Network.HTTP.Client.TLS
 import Network.Wai.Handler.Warp
+import Options.Applicative
 import Servant.API
 import Servant.Server
-import Options.Applicative
-import Data.Text qualified as T
 
 
 main :: IO ()
@@ -32,13 +33,13 @@ mainImpl opts = do
   app <-
     runServerM
       (Proxy @(
-        NamedRoutes PackagesHtmlAPI
+        NamedRoutes PackageDbApi
         ))
       (client
         :. EmptyContext
       )
       (ServerCtx pool blobStore)
-      $ packagesHtmlServer
+      $ packageDbServer
   run (optPort opts) app
 
 

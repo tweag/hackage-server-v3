@@ -30,8 +30,10 @@ library
       Data.TarIndex
       Data.Trie
       Hackage.API
-      Hackage.API.PackagesHTML
+      Hackage.API.MoreAPI
+      Hackage.API.PackageDb
       Hackage.API.Query
+      Hackage.API.Type
       Hackage.Auth.Admin
       Hackage.Auth.AuthToken
       Hackage.Auth.Maintainer

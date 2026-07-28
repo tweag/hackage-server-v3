@@ -1,12 +1,13 @@
 {-# LANGUAGE OverloadedLists   #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -Wno-orphans   #-}
 
-module Hackage.API.PackagesHTML
-  ( PackagesHtmlAPI (..)
-  , packagesHtmlServer
+module Hackage.API.PackageDb
+  ( packageDbServer
   ) where
 
+import Hackage.API.Type
 import Codec.Archive.Tar qualified as Tar
 import Codec.Archive.Tar.Entry qualified as Tar
 import Control.Monad (unless, guard)
@@ -17,15 +18,10 @@ import Data.BlobStorage qualified as Blob
 import Data.Bool
 import Data.ByteString (StrictByteString)
 import Data.ByteString.Lazy qualified as BSL
-import Data.Coerce
 import Data.Functor
 import Data.Functor.Contravariant
-import Data.Hashable
 import Data.Int (Int64)
-import Data.Kind (Type)
-import Data.List (partition)
 import Data.List qualified as List
-import Data.Map (Map)
 import Data.Map qualified as M
 import Data.Proxy (Proxy(..))
 import Data.String (fromString)
@@ -39,7 +35,6 @@ import Data.Trie
 import Distribution.License (licenseToSPDX)
 import Distribution.PackageDescription.Parsec qualified as PkgDescr
 import Distribution.Pretty qualified as Pretty
-import Distribution.SPDX.License (License)
 import Distribution.Types.Dependency as Cabal
 import Distribution.Types.GenericPackageDescription qualified as PkgDescr
 import Distribution.Types.PackageDescription qualified as PkgDescr
@@ -48,8 +43,6 @@ import Distribution.Types.PackageName
 import Distribution.Types.VersionRange (anyVersion)
 import Distribution.Utils.MD5 (md5, showMD5)
 import Distribution.Utils.ShortText (fromShortText)
-import GHC.Generics (Generic)
-import GHC.TypeLits
 import Hackage.API.Query
 import Hackage.Objects
 import Hackage.Schemas.Packages
@@ -61,264 +54,34 @@ import Network.HTTP.Types.Header (hLocation)
 import Rel8 hiding (Lift, bool)
 import Servant.API
 import Servant.EDE
-import Servant.HackageCombinators.CaptureExt
 import Servant.HackageCombinators.DynamicGet
-import Servant.HackageCombinators.NegotiableContent
 import Servant.Links
 import Servant.Server (err303, err404, err500, ServerError(..))
 import Servant.Server.Generic (AsServerT)
-import Servant.Tarball
 import System.IO
-import Test.QuickCheck
 
 
-data PackagesHtmlAPI mode = PackagesHtmlAPI
-  { htmlPackagesNames :: mode
-      :- "packages"
-      :> "names"
-      :> Get '[HTML] PackageNames
-  , htmlPackagesTrustees :: mode
-      :- "packages"
-      :> "trustees"
-      :> Get '[HTML] TrusteesObject
-  , htmlPackagesHelp :: mode
-      :- "upload" :> Get '[HTML] UploadHelp
-  , htmlPackagesUploadForm :: mode
-      :- "packages"
-      :> "upload"
-      :> Get '[HTML] PackageUpload
-  , htmlPackageRevisions :: mode
-      :- NegotiableContent
-      :> "package"
-      :> Capture "package" PackageLocator
-      :> "revisions"
-      :> Get '[HTML, JSON] (WithPackage Revisions)
-  , htmlTarball :: mode
-      :- "packages"
-      :> Capture "package" PackageLocator
-      :> CaptureExt "tarball" PackageIdentifier "tar.gz"
-      :> Get '[Tarball] BSL.ByteString
-  , htmlTarballs :: mode
-      :- NegotiableContent
-      :> "package"
-      :> Capture "package" PackageName
-      :> "distro-monitor"
-      :> Get '[HTML] (WithPackageName AllTarballs)
-  , htmlMirrorUploader :: mode
-      :- "package"
-      :> Capture "package" PackageLocator
-      :> "uploader"
-      :> Get '[PlainText] UserName
-  , htmlMirrorUploadTime :: mode
-      :- "package"
-      :> Capture "package" PackageLocator
-      :> "upload-time"
-      :> Get '[PlainText] UTCTime
-  , htmlPackageDeps :: mode
-      :- "package"
-      :> Capture "package" PackageLocator
-      :> "dependencies"
-      :> Get '[HTML] (WithPackage Dependencies)
-  , htmlPackageVersions :: mode
-      :- "package"
-      :> CaptureExt "package" PackageName "json"
-      :> Get '[JSON] PackageVersions
-  , htmlPackageMetadata :: mode
-      :- "package"
-      :> CaptureExt "package" PackageIdentifier "json"
-      :> Get '[JSON] PackageBasicDescriptionDTO
-  , htmlPackageCabalFile :: mode
-      :- "package"
-      :> Capture "package" PackageName
-      :> CaptureExt "package" PackageName "cabal"
-      :> Get '[PlainText] StrictByteString
-  , htmlPackagePreferredVersions :: mode
-      :- NegotiableContent
-      :> "package"
-      :> Capture "package" PackageName
-      :> "preferred"
-      :> Get '[HTML, JSON] (WithPackageName PreferredVersions)
-  , htmlPackageTarballContent :: mode
-      -- TODO(sandy): Must be userdomained
-      :- "package"
-      :> Capture "package" PackageLocator
-      :> "src"
-      :> CaptureAll "src" Text
-      :> DynamicGet
-           '[ '(PlainText, Text)
-            , '(HTML, DirectoryListing)
-            ]
-  }
-  deriving stock (Generic)
-
-
-
-packagesHtmlServer :: PackagesHtmlAPI (AsServerT ServerM)
-packagesHtmlServer = PackagesHtmlAPI
-  { htmlPackagesNames = namesStub
-  , htmlPackagesTrustees = trusteesEndpoint
-  , htmlPackagesHelp = staticHTML
-  , htmlPackageVersions = packageVersionsEndpoint
-  , htmlPackagesUploadForm = staticHTML
-  , htmlPackageCabalFile = packageCabalFileEndpoint
-  , htmlPackageMetadata = packageMetadataEndpoint
-  , htmlPackagePreferredVersions = packagePreferredVersionsEndpoint
-  , htmlMirrorUploader = packageMirrorUploader
-  , htmlMirrorUploadTime = packageMirrorUploadTime
-  , htmlTarball = packageTarball
-  , htmlTarballs = packageTarballs
-  , htmlPackageDeps = packageDependencies
-  , htmlPackageRevisions = packageRevisions
-  , htmlPackageTarballContent = tarballContent
+packageDbServer :: PackageDbApi (AsServerT ServerM)
+packageDbServer = PackageDbApi
+  { pkgdb_api_versions = packageVersions
+  , pkgdb_api_cabalFile = packageCabalFile
+  , pkgdb_api_metadata = packageMetadata
+  , pkgdb_api_preferredVersions = packagePreferredVersions
+  , pkgdb_api_uploader = packageUploader
+  , pkgdb_api_uploadTime = packageUploadTime
+  , pkgdb_api_tarball = packageTarball
+  , pkgdb_api_distroMonitor = packageDistroMonitor
+  , pkgdb_api_dependencies = packageDependencies
+  , pkgdb_api_revisions = packageRevisions
+  , pkgdb_api_tarballContent = packageTarballContent
   }
 
-
---------------------------------------------------------------------------------
--- /packages/names
-
-instance HasTemplate HTML PackageNames where
-  templateFor _ _ = "packages/names.html"
-
-data PackageNames = PackageNames
-  { packages :: Map Text PackageNameData
-  }
-  deriving stock (Show, Generic)
-  deriving anyclass ToObject
-
-instance Arbitrary PackageNames where
-  arbitrary = fmap PackageNames arbitrary
-
-
-data PackageNameData = PackageNameData
-  { pkgDesc :: Text
-  , pkgTags :: [Tag]
-  }
-  deriving stock (Show, Generic)
-  deriving anyclass ToJSON
-
-instance Arbitrary PackageNameData where
-  arbitrary = PackageNameData <$> arbitrary <*> arbitrary
-
-
-namesStub :: ServerM PackageNames
-namesStub = pure $ PackageNames $ M.fromList
-  [ ("hello", PackageNameData "from space" ["a", "b", "c"])
-  , ("goodbye", PackageNameData "my dude" ["a", "b"])
-  ]
-
---------------------------------------------------------------------------------
--- /packages/trustees
-data TrusteesObject = TrusteesObject (Map UserId UserName)
-  deriving stock (Eq, Show, Generic)
-  deriving anyclass Hashable
-
-instance Arbitrary TrusteesObject where
-  arbitrary = fmap TrusteesObject arbitrary
-
-instance ToJSON TrusteesObject where
-  toJSON ts = Object $ toObject ts <>
-    [ "title" .= id @String "Package trustees"
-    , "description" .= id @String "The role of trustees is to help to curate the whole package collection. Trustees have a limited ability to edit package information, for the entire package database (as opposed to package maintainers who have full control over individual packages). Trustees can edit .cabal files, edit other package metadata and upload documentation but they cannot upload new package versions."
-    ]
-
-instance ToObject TrusteesObject where
-  toObject (TrusteesObject ts) =
-    [ "members" .= (M.toList ts <&> \(uid, name) ->
-        object
-          [ "userid" .= uid
-          , "username" .= name
-          ]
-      )
-    ]
-
-instance HasTemplate HTML TrusteesObject where
-  templateFor _ _ = "upload/trustees.html"
-
-
-trusteesEndpoint :: ServerM TrusteesObject
-trusteesEndpoint = do
-  ts <- liftDB $ doSelect $ do
-    r <- each userRolesSchema
-    where_ $ userRoleRole r ==. lit Trustee
-    u <- activeUsers
-    where_ $ userId u ==. userRoleUserId r
-    pure (userRoleUserId r, userName u)
-
-  pure $ TrusteesObject $ M.fromList ts
-
-
---------------------------------------------------------------------------------
--- | A @'StaticHTML' template@ uses the statically known type-level symbol
--- @template@ for its template. As suggested by its name, it can be used to
--- serve static HTML templates. In order to use this type, you should @newtype@
--- wrap it, and @newtype@ derive 'Eq', 'Show', 'Arbitrary', 'ToObject', and
--- @'HasTemplate' 'HTML'@. You can get a free handler for it via 'staticHTML'
---
--- The advantage of newtype-wrapping this type is that doing so prevents the
--- template names from leaking into the API contract. Furthermore, it provides
--- a forward-compatable means of making the endpoint /less/ static in the
--- future :)
-type StaticHTML :: Symbol -> Type
-data StaticHTML template = StaticHTML
-  deriving stock (Eq, Show, Generic)
-  deriving anyclass Hashable
-
-instance Arbitrary (StaticHTML a) where
-  arbitrary = pure StaticHTML
-
-instance ToObject (StaticHTML a) where
-  toObject _ = mempty
-
-instance KnownSymbol a => HasTemplate HTML (StaticHTML a) where
-  templateFor _ _ = symbolVal @a undefined
-
--- | Get a handler for a newtype-wrapped 'StaticHTML' value.
-staticHTML :: Coercible (StaticHTML a) b => ServerM b
-staticHTML = pure $ coerce StaticHTML
-
-
---------------------------------------------------------------------------------
--- /upload
-newtype UploadHelp = UploadHelp (StaticHTML "upload/help.html")
-  deriving newtype (Eq, Show, Hashable, Arbitrary, ToObject, HasTemplate HTML)
-
---------------------------------------------------------------------------------
--- /package/upload
-
-newtype PackageUpload = PackageUpload (StaticHTML "upload/form.html")
-  deriving newtype (Eq, Show, Hashable, Arbitrary, ToObject, HasTemplate HTML)
 
 --------------------------------------------------------------------------------
 -- /package/:packagename.json
 
-data VersionStatus = Normal | Deprecated
-  deriving stock (Eq, Ord, Show, Generic)
-
-instance ToJSON VersionStatus where
-  toJSON Normal = "normal"
-  toJSON Deprecated = "deprecated"
-
-instance Arbitrary VersionStatus where
-  arbitrary = elements [Normal, Deprecated]
-
-data PackageVersions = PackageVersions
-  { getPackageVersions :: Map Version VersionStatus
-  }
-  deriving stock (Eq, Ord, Show, Generic)
-
-instance Arbitrary PackageVersions where
-  arbitrary = fmap PackageVersions arbitrary
-
-instance ToJSON PackageVersions where
-  toJSON
-    = object
-    . fmap (\(v, s) -> fromString (Pretty.prettyShow v) .= s)
-    . M.toList
-    . getPackageVersions
-
-
-packageVersionsEndpoint :: PackageName -> ServerM PackageVersions
-packageVersionsEndpoint pname = do
+packageVersions :: PackageName -> ServerM PackageVersions
+packageVersions pname = do
   versions <- liftDB $ doSelect $ do
     pkgv <- getAllVersions $ lit pname
     pure (packageVersion pkgv, pkgInfoDeprecated pkgv)
@@ -328,35 +91,8 @@ packageVersionsEndpoint pname = do
 --------------------------------------------------------------------------------
 -- /package/:packageid.json
 
-data PackageBasicDescriptionDTO = PackageBasicDescriptionDTO
-  { license           :: !License
-  , copyright         :: !Text
-  , synopsis          :: !Text
-  , description       :: !Text
-  , author            :: !Text
-  , homepage          :: !Text
-  , metadata_revision :: !MetadataRevIx
-  , uploaded_at       :: !UTCTime
-  , uploader          :: !UserName
-  } deriving stock (Eq, Show, Generic)
-
-
-instance ToJSON PackageBasicDescriptionDTO where
-  toJSON dto =
-    object
-      [ "license"           .= Pretty.prettyShow (license dto)
-      , "copyright"         .= copyright dto
-      , "synopsis"          .= synopsis dto
-      , "description"       .= description dto
-      , "author"            .= author dto
-      , "homepage"          .= homepage dto
-      , "metadata_revision" .= metadata_revision dto
-      , "uploaded_at"       .= uploaded_at dto
-      , "uploader"          .= uploader dto
-      ]
-
-packageMetadataEndpoint :: PackageId -> ServerM PackageBasicDescriptionDTO
-packageMetadataEndpoint pid = do
+packageMetadata :: PackageId -> ServerM PackageBasicDescriptionDTO
+packageMetadata pid = do
   (rev, user) <- liftDB $ doSelect1 $ do
     rev <- getLatestRev $ Specific pid
     user <- each usersSchema
@@ -386,8 +122,8 @@ packageMetadataEndpoint pid = do
 --------------------------------------------------------------------------------
 -- /package/:package/:package.cabal
 
-packageCabalFileEndpoint :: PackageName -> PackageName -> ServerM StrictByteString
-packageCabalFileEndpoint pname1 pname2 = do
+packageCabalFile :: PackageName -> PackageName -> ServerM StrictByteString
+packageCabalFile pname1 pname2 = do
   -- For legacy reasons, this path requires both package names to be the same
   unless (pname1 == pname2) $ throwError err404
   liftDB $ doSelect1 $ do
@@ -398,22 +134,6 @@ packageCabalFileEndpoint pname1 pname2 = do
 --------------------------------------------------------------------------------
 -- /package/:package/preferred
 
-newtype PreferredVersions = PreferredVersions
-  { getPreferredVersions :: Map Version VersionStatus
-  }
-  deriving stock (Eq, Ord, Show, Generic)
-
-instance Arbitrary PreferredVersions where
-  arbitrary = PreferredVersions <$> arbitrary
-
-instance ToJSON PreferredVersions where
-  toJSON (PreferredVersions vs) = do
-    let (normal, deprecated) = partition ((== Normal) . snd) $ M.toList vs
-    object
-      [ "normal-version" .= fmap (Pretty.prettyShow . fst) normal
-      , "deprecated-version" .= fmap (Pretty.prettyShow . fst) deprecated
-      ]
-
 instance ToObject PreferredVersions where
   toObject (PreferredVersions vs) =
       [ "versions" .= M.mapKeys Pretty.prettyShow vs
@@ -422,8 +142,9 @@ instance ToObject PreferredVersions where
 instance HasTemplate HTML PreferredVersions where
   templateFor _ _ = "packages/preferred.html"
 
-packagePreferredVersionsEndpoint :: PackageName -> ServerM (WithPackageName PreferredVersions)
-packagePreferredVersionsEndpoint pname = do
+
+packagePreferredVersions :: PackageName -> ServerM (WithPackageName PreferredVersions)
+packagePreferredVersions pname = do
   versions <- liftDB $ doSelect $ do
     pkgv <- getAllVersions $ lit pname
     pure (packageVersion pkgv, pkgInfoDeprecated pkgv)
@@ -433,8 +154,8 @@ packagePreferredVersionsEndpoint pname = do
 --------------------------------------------------------------------------------
 -- /package/:package/uploader
 
-packageMirrorUploader :: PackageLocator -> ServerM UserName
-packageMirrorUploader pname =
+packageUploader :: PackageLocator -> ServerM UserName
+packageUploader pname =
   liftDB $ doSelect1 $ do
     pkgv <- onlyLatestRev $ getAllRevs pname
     u <- each usersSchema
@@ -445,8 +166,8 @@ packageMirrorUploader pname =
 --------------------------------------------------------------------------------
 -- /package/:package/upload-time
 
-packageMirrorUploadTime :: PackageLocator -> ServerM UTCTime
-packageMirrorUploadTime pname =
+packageUploadTime :: PackageLocator -> ServerM UTCTime
+packageUploadTime pname =
   liftDB $ doSelect1 $ do
     pkgv <- onlyLatestRev $ getAllRevs pname
     pure $ metadataTime pkgv
@@ -482,26 +203,19 @@ packageTarball epname tarball = do
 --------------------------------------------------------------------------------
 -- /package/:package/distro-monitor[.html]
 
-newtype AllTarballs = AllTarballs
-  { allTarballs :: [PackageIdentifier]
-  }
-  deriving stock (Eq, Ord, Show)
-
 instance ToObject AllTarballs where
   toObject (AllTarballs tbs) =
     [ "versions" .= fmap Pretty.prettyShow tbs
     ]
 
-instance Arbitrary AllTarballs where
-  arbitrary = AllTarballs <$> arbitrary
-
 instance HasTemplate HTML AllTarballs where
   templateFor _ _ = "packages/distro-monitor.html"
 
-packageTarballs
+
+packageDistroMonitor
     :: PackageName
     -> ServerM (WithPackageName AllTarballs)
-packageTarballs pname = do
+packageDistroMonitor pname = do
   fmap (WithPackageName pname . AllTarballs . fmap (uncurry PackageIdentifier)) $ liftDB $ doSelect $ orderBy (snd >$< asc) $ do
     pkg <- each packageNameSchema
     where_ $ packageName pkg ==. lit pname
@@ -512,16 +226,6 @@ packageTarballs pname = do
 
 --------------------------------------------------------------------------------
 -- /package/:package/dependencies
-
-
-data Dependencies = Dependencies
-  { isCandidate :: Bool
-  , dependencies :: [Cabal.Dependency]
-  }
-  deriving stock (Eq, Ord, Show)
-
-instance Arbitrary Dependencies where
-  arbitrary = Dependencies <$> arbitrary <*> arbitrary
 
 instance HasTemplate HTML Dependencies where
   templateFor _ _ = "packages/dependencies.html"
@@ -534,6 +238,7 @@ instance ToObject Dependencies where
         pure $ fromString (Pretty.prettyShow $ Dependency pkg anyVersion libs) .= Pretty.prettyShow vers
         )
     ]
+
 
 packageDependencies :: PackageLocator -> ServerM (WithPackage Dependencies)
 packageDependencies pname = do
@@ -552,40 +257,12 @@ packageDependencies pname = do
 --------------------------------------------------------------------------------
 -- /package/:package/revisions
 
-newtype Revisions = Revisions
-  { _unRevisions :: [Revision]
-  }
-  deriving newtype (Eq, Ord, Show, Arbitrary)
-
 instance HasTemplate HTML Revisions where
   templateFor _ _ = "packages/revisions.html"
-
-
-data Revision = Revision
-  { number :: MetadataRevIx
-  , sha256 :: Text
-  , time :: UTCTime
-  , user :: UserName
-  }
-  deriving stock (Eq, Ord, Show)
-
-instance Arbitrary Revision where
-  arbitrary = Revision <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 instance ToObject Revisions where
   toObject (Revisions revs) =
     [ "revisions" .= revs
-    ]
-
-instance ToJSON Revisions where
-  toJSON (Revisions revs) = toJSON revs
-
-instance ToJSON Revision where
-  toJSON rev = object
-    [ "number" .= number rev
-    , "sha256" .= sha256 rev
-    , "time"   .= time rev
-    , "user"   .= user rev
     ]
 
 
@@ -609,9 +286,6 @@ packageRevisions loc = do
 --------------------------------------------------------------------------------
 -- /package/:package/src/...
 
-newtype DirectoryListing = DirectoryListing (Trie Text)
-  deriving newtype (Eq, Ord, Show, ToJSON, Arbitrary)
-
 instance HasTemplate HTML DirectoryListing where
   templateFor _ _ = "packages/list-dir.html"
 
@@ -625,13 +299,13 @@ instance ToObject DirectoryListing where
     [ "trie_cmds" .= flattenTrie t
     ]
 
-tarballContent
+packageTarballContent
     :: PackageLocator
     -> [Text]
     -> ServerM (OneOf '[ '(PlainText, Text)
                        , '(HTML, DirectoryListing)
                        ])
-tarballContent loc ps = do
+packageTarballContent loc ps = do
   -- Since all the paths in the package tarballs are prefixed by their pretty
   -- packageid, we must first resolve the locator.
   (pname, pid) <- liftDB $ doSelect1 $ locatorToPackageId loc
@@ -688,7 +362,7 @@ tarballContent loc ps = do
         False -> throwError err303
           { errHeaders = pure
               ( hLocation
-              , mappend "/" $ toHeader $ fieldLink htmlPackageTarballContent loc $ ps <> [""]
+              , mappend "/" $ toHeader $ fieldLink pkgdb_api_tarballContent loc $ ps <> [""]
               )
           }
         True -> do
