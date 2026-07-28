@@ -1,12 +1,12 @@
 module Main where
 
+import Data.Text qualified as T
+import Hackage.Utils (withConn)
+import Hasql.Connection.Setting qualified as DB
+import Hasql.Connection.Setting.Connection qualified as DB
+import Mirror
 import Options.Applicative
 import SetupDB qualified
-import Mirror
-import Hasql.Connection.Setting.Connection qualified as DB
-import Hasql.Connection.Setting qualified as DB
-import TestAPI (withConn)
-import Data.Text qualified as T
 
 
 data Command

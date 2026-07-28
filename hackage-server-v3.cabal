@@ -36,6 +36,7 @@ library
       Hackage.Auth.AuthToken
       Hackage.Auth.Maintainer
       Hackage.Auth.Nonce
+      Hackage.Main
       Hackage.Objects
       Hackage.Orphans
       Hackage.Schemas.Packages
@@ -57,7 +58,6 @@ library
       Servant.HackageCombinators.UserDomain
       Servant.HackageCombinators.WhitelistDigest
       Servant.Tarball
-      TestAPI
   other-modules:
       Paths_hackage_server_v3
   autogen-modules:
@@ -100,6 +100,7 @@ library
     , monoidal-containers
     , mtl
     , openapi3
+    , optparse-applicative
     , profunctors
     , quickcheck-text
     , random
@@ -241,6 +242,7 @@ executable hackage-server-v3
     , monoidal-containers
     , mtl
     , openapi3
+    , optparse-applicative
     , profunctors
     , quickcheck-text
     , random
@@ -317,6 +319,7 @@ test-suite tests
     , monoidal-containers
     , mtl
     , openapi3
+    , optparse-applicative
     , profunctors
     , quickcheck-text
     , random

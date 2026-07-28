@@ -7,15 +7,21 @@ module Hackage.Utils
   , SessionError
   ) where
 
-import Data.ByteString.Lazy.Char8 qualified as BSL8
-import Hasql.Connection (Connection)
-import Hasql.Session (SessionError, statement, run)
-import Servant.Server
-import Control.Monad.IO.Class
+import Control.Exception (bracket)
 import Control.Monad.Except
-import Rel8 hiding (null, run, Enum)
-import qualified Rel8 as Rel8
+import Control.Monad.IO.Class
+import Data.ByteString.Lazy.Char8 qualified as BSL8
 import Hackage.ServerM
+import Hasql.Connection
+import Hasql.Connection.Setting qualified as DB
+import Hasql.Session (SessionError, statement, run)
+import Rel8 hiding (null, run, Enum)
+import Rel8 qualified as Rel8
+import Servant.Server
+
+
+withConn :: [DB.Setting] -> (Connection -> IO a) ->  IO a
+withConn ss = bracket (acquire ss >>= either (error . show) pure) release
 
 
 liftDB :: (Connection -> IO (Either SessionError a)) -> ServerM a

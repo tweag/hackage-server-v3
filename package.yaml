@@ -74,6 +74,7 @@ dependencies:
 - openapi3
 
 - request
+- optparse-applicative
 
 ghc-options:
 - -Wall
@@ -107,7 +108,6 @@ executables:
     main:                Main.hs
     source-dirs:         app/import
     dependencies:
-    - optparse-applicative
     - hackage-server-v3
     - hackage-server
     - acid-state
