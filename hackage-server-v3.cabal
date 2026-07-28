@@ -29,7 +29,6 @@ library
       Data.Schema
       Data.TarIndex
       Data.Trie
-      Hackage.API
       Hackage.API.MoreAPI
       Hackage.API.PackageDb
       Hackage.API.Query
