@@ -22,7 +22,6 @@ import Hackage.Auth.AuthToken
 import Hackage.Schemas.Users
 import Hackage.Types
 import Hackage.Utils
-import Hasql.Session (SessionError)
 import Network.HTTP.Types.Header (Header)
 import Network.Wai
 import Rel8 (where_, (==.), lit, optional, each)

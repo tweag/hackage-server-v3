@@ -44,7 +44,6 @@ library
       Hackage.Types
       Hackage.Types.PrimaryKey
       Hackage.Utils
-      Lib
       Rel8.CreateTable
       Servant.HackageAuth
       Servant.HackageCombinators
