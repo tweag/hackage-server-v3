@@ -22,6 +22,16 @@ import Text.EDE.Filters (Quote, Unquote)
 import Test.QuickCheck (Arbitrary(..))
 
 
+-- | A 'PackageLocator' helps us differentiate between the packages @foo@ and
+-- @foo-1.0.0.0@, where in the first case we'd like to implicitly expand out
+-- the version to be the latest version.
+--
+-- In Hackage V2, the first case is represented as @foo-@ (with an empty
+-- version), but not all routes support this implicit lookup. Since routing in
+-- V3 is type-directed, we use a 'PackageLocator' as a single type that
+-- represents both of these cases. We reserve 'PackageName' for cases in which
+-- we need to talk explicitly about a package /without a version/, and
+-- 'PackageIdentifier' for cases in which we have a specific version in mind.
 data PackageLocator
   = Latest PackageName
   | Specific PackageIdentifier
@@ -39,6 +49,8 @@ instance ToHttpApiData PackageLocator where
 
 --------------------------------------------------------------------------------
 
+-- | Helper structure for automatically attaching package metadata to the HTML
+-- templating engine.
 data WithPackage a = WithPackage
   { package :: PackageIdentifier
   , value :: a
@@ -60,6 +72,8 @@ instance HasTemplate c a => HasTemplate c (WithPackage a) where
 
 --------------------------------------------------------------------------------
 
+-- | Helper structure for automatically attaching package metadata to the HTML
+-- templating engine.
 data WithPackageName a = WithPackageName
   { package :: PackageName
   , value :: a
@@ -116,6 +130,8 @@ deriving via Schema Version instance Unquote Version
 
 --------------------------------------------------------------------------------
 
+-- | Helper type for using @deriving via@ to instantiate common typeclass
+-- instances via a 'S.ToSchema' instance.
 newtype Schema a = ViaSchema { unViaSchema :: a }
 
 instance S.ToSchema a => ToJSON (Schema a) where
