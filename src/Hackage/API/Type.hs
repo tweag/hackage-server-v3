@@ -6,9 +6,10 @@ module Hackage.API.Type where
 import Data.Aeson hiding (Result(..))
 import Data.ByteString (StrictByteString)
 import Data.ByteString.Lazy qualified as BSL
-import Data.List (partition)
+import Data.List (partition, sortOn)
 import Data.Map (Map)
 import Data.Map qualified as M
+import Data.Ord (Down(..))
 import Data.String (fromString)
 import Data.Text (Text)
 import Data.Text.Arbitrary ()
@@ -171,11 +172,14 @@ instance Arbitrary PreferredVersions where
 
 instance ToJSON PreferredVersions where
   toJSON (PreferredVersions vs) = do
-    let (normal, deprecated) = partition ((== Normal) . snd) $ M.toList vs
-    object
+    let (normal, deprecated) = partition ((== Normal) . snd) $ sortOn (Down . fst) $ M.toList vs
+    object $
       [ "normal-version" .= fmap (Pretty.prettyShow . fst) normal
-      , "deprecated-version" .= fmap (Pretty.prettyShow . fst) deprecated
-      ]
+        | not $ null normal
+        ] <>
+      [ "deprecated-version" .= fmap (Pretty.prettyShow . fst) deprecated
+        | not $ null deprecated
+        ]
 
 
 --------------------------------------------------------------------------------
