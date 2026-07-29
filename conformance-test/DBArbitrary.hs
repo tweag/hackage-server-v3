@@ -149,9 +149,14 @@ spec =
         (ServerCtx pool blobStore)
         packageDbServer
       ) $ do
-    it "upload time" $ verify pkgdb_api_uploadTime
     it "revisions" $ verify pkgdb_api_revisions
+    it "tarball" $ verify pkgdb_api_tarball
+    it "uploader" $ verify pkgdb_api_uploader
+    it "upload time" $ verify pkgdb_api_uploadTime
+    it "versions" $ verify pkgdb_api_versions
     it "metadata" $ verify pkgdb_api_metadata
+    it "cabalFile" $ verify pkgdb_api_cabalFile
+    it "preferredVersions" $ verify pkgdb_api_preferredVersions
 
 
 dbArbitrary
