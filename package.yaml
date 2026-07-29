@@ -73,7 +73,6 @@ dependencies:
 - comonad
 - openapi3
 
-- request
 - optparse-applicative
 
 ghc-options:
@@ -129,3 +128,16 @@ tests:
     - hspec
     - hspec-discover
     - hspec-wai
+
+  conformance-tests:
+    main:                DBArbitrary.hs
+    source-dirs:         conformance-test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - hackage-server-v3
+    - hspec
+    - hspec-wai
+    - request

@@ -4,23 +4,27 @@
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module DBArbitrary where
+module Main where
 
-
-import Data.Aeson (Value (..), decode, fromJSON, toJSON, Result (..))
-import Data.Aeson.KeyMap qualified as KM
-import Data.Time (UTCTime (..))
-import Data.Vector qualified as V
+import Hasql.Connection.Setting qualified as DB
+import Hasql.Connection.Setting.Connection qualified as DB
 import Control.Monad (replicateM_)
 import Control.Monad.Except
+import Data.Aeson (Value (..), decode, fromJSON, toJSON, Result (..))
+import Data.Aeson.KeyMap qualified as KM
 import Data.BlobStorage qualified as Blob
+import Data.ByteString.Lazy (ByteString)
 import Data.Kind (Constraint, Type)
 import Data.Pool
 import Data.Proxy (Proxy(..))
 import Data.String (fromString)
+import Data.Time (UTCTime (..))
+import Data.Vector qualified as V
 import Distribution.Package (PackageName, PackageIdentifier(..))
 import Distribution.Version (Version)
-import Hackage.API.PackagesHTML
+import Hackage.API.PackageDb
+import Hackage.API.Type
+import Hackage.Main
 import Hackage.Objects
 import Hackage.Schemas.Packages
 import Hackage.ServerM
@@ -34,8 +38,6 @@ import System.FilePath ((</>))
 import System.Random (randomRIO, randomIO)
 import Test.Hspec
 import Test.Hspec.Wai
-import TestAPI hiding (main)
-import Data.ByteString.Lazy (ByteString)
 
 
 type DBArbitrary :: Type -> Constraint
@@ -87,6 +89,16 @@ randomQueryArbitrary off = limit 1 $ offset off $ queryArbitrary @a
 hackageBase :: String
 hackageBase = "http://hackage.haskell.org"
 
+
+testOptions :: Options
+testOptions = Options
+  { optDb = DB.string "postgresql://sandy@/sandy"
+  , optBlobStore = "../hackage-server/state/blobs"
+  , optConnections = 100
+  , optPort = 8000
+  }
+
+
 verify
   :: ( FillLink (MkLink endpoint Link)
      , HasLink endpoint
@@ -97,8 +109,9 @@ verify
   => (routes AsApi -> endpoint)
   -> WaiSession st ()
 verify field = do
+
   replicateM_ 100 $ do
-    link <- liftIO $ mkConn $ \conn -> fillLink conn $ fieldLink field
+    link <- liftIO $ withConn (pure $ DB.connection $ optDb testOptions) $ \conn -> fillLink conn $ fieldLink field
     let uri = show (linkURI link)
     annotate uri $ do
       Req.Response _ _ bsv2 <- liftIO $ Req.get @ByteString $ hackageBase </> uri
@@ -123,17 +136,17 @@ verify field = do
 spec :: Spec
 spec =
   with (do
-      pool <- newPool connPool
+      pool <- newPool $ connPool testOptions
       blobStore <- Blob.open "blobs"
       runServerM
-        (Proxy @(NamedRoutes PackagesHtmlAPI))
+        (Proxy @(NamedRoutes PackageDbApi))
         EmptyContext
         (ServerCtx pool blobStore)
-        packagesHtmlServer
+        packageDbServer
       ) $ do
-    xit "htmlMirrorUploadTime" $ verify htmlMirrorUploadTime
-    it "htmlTarballs" $ verify htmlPackageMetadata
-    xit "htmlTarballs" $ verify htmlPackageRevisions
+    xit "htmlMirrorUploadTime" $ verify pkgdb_api_uploadTime
+    it "htmlTarballs" $ verify pkgdb_api_metadata
+    xit "htmlTarballs" $ verify pkgdb_api_revisions
 
 
 dbArbitrary
@@ -186,4 +199,8 @@ truncateTime v
   | Success (UTCTime day dt) <- fromJSON @UTCTime v
   = toJSON $ UTCTime day $ fromIntegral $ floor @_ @Int dt
   | otherwise = v
+
+
+main :: IO ()
+main = hspec spec
 

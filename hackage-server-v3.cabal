@@ -106,7 +106,6 @@ library
     , quickcheck-text
     , random
     , rel8
-    , request
     , resource-pool
     , resourcet
     , servant
@@ -180,7 +179,6 @@ executable hackage-server-v2-import
     , quickcheck-text
     , random
     , rel8
-    , request
     , resource-pool
     , resourcet
     , servant
@@ -248,6 +246,76 @@ executable hackage-server-v3
     , quickcheck-text
     , random
     , rel8
+    , resource-pool
+    , resourcet
+    , servant
+    , servant-ede
+    , servant-server
+    , tagged
+    , tar
+    , text
+    , time
+    , transformers
+    , unordered-containers
+    , vector
+    , wai
+    , warp
+    , zlib
+  default-language: GHC2024
+
+test-suite conformance-tests
+  type: exitcode-stdio-1.0
+  main-is: DBArbitrary.hs
+  other-modules:
+      Paths_hackage_server_v3
+  autogen-modules:
+      Paths_hackage_server_v3
+  hs-source-dirs:
+      conformance-test
+  default-extensions:
+      DerivingVia
+      DeriveAnyClass
+      GeneralizedNewtypeDeriving
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      Cabal-syntax
+    , QuickCheck
+    , aeson
+    , base >=4.7 && <5
+    , base16-bytestring
+    , base64-bytestring
+    , bifunctors
+    , bytestring
+    , cereal
+    , comonad
+    , containers
+    , crypton
+    , directory
+    , ede
+    , filepath
+    , gdp
+    , generic-lens
+    , hackage-server-v3
+    , hashable
+    , hasql
+    , hspec
+    , hspec-wai
+    , http-client
+    , http-client-tls
+    , http-media
+    , http-reverse-proxy
+    , http-types
+    , lens
+    , memory
+    , mime-types
+    , monoidal-containers
+    , mtl
+    , openapi3
+    , optparse-applicative
+    , profunctors
+    , quickcheck-text
+    , random
+    , rel8
     , request
     , resource-pool
     , resourcet
@@ -270,7 +338,6 @@ test-suite tests
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      DBArbitrary
       HackageCombinatorsSpec
       MD5Spec
       TemplatesSpec
@@ -325,7 +392,6 @@ test-suite tests
     , quickcheck-text
     , random
     , rel8
-    , request
     , resource-pool
     , resourcet
     , servant

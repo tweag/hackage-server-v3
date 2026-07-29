@@ -2,6 +2,7 @@ module Hackage.Main
   ( main
   , mainImpl
   , Options(..)
+  , connPool
   ) where
 
 import Data.BlobStorage qualified as Blob
