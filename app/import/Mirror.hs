@@ -11,12 +11,17 @@ import Data.ByteString.Lazy qualified as BSL
 import Data.Coerce
 import Data.Foldable
 import Data.Int
+import Data.IntMap as IM
 import Data.Map.Monoidal (MonoidalMap)
 import Data.Monoid(Sum(..))
+import Data.Text qualified as T
 import Data.Time.Clock.POSIX
 import Distribution.Server.Features.Core.State (initialPackagesState, GetPackagesState(..), PackagesState(..))
 import Distribution.Server.Framework.BlobStorage qualified as Blob
 import Distribution.Server.Packages.PackageIndex (PackageIndex(..))
+import Distribution.Server.Users.State (GetUserDb(..))
+import Distribution.Server.Users.Types qualified as V2
+import Distribution.Server.Users.Users qualified as Users
 import Distribution.Types.PackageId
 import GHC.Generics
 import Hackage.Schemas.Packages (PkgRevId, TarballRevisionRow(..), packageTarballRevisionsSchema)
@@ -67,16 +72,21 @@ newMetaRev pid rev e = do
 
 backfillPackageDB :: Connection -> FilePath -> IO ()
 backfillPackageDB conn dbDir = do
+  usersH    <- openLocalStateFrom (dbDir </> "Users") Users.emptyUsers
   packagesH <- openLocalStateFrom (dbDir </> "PackagesState") (initialPackagesState False)
 
+  Users.Users users _ _ _ <- query usersH GetUserDb
   PackagesState (PackageIndex pkgs) _ <- query packagesH GetPackagesState
 
   closeAcidState packagesH
+  closeAcidState usersH
 
   flip evalStateT (mempty @(MonoidalMap PackageIdentifier RevState)) $
     (either (error . show) (const $ pure ()) =<<) $ liftIO $
       flip run conn $ statement () $
         Rel8.run $ runSqlM $ do
+          for_ (IM.assocs users) $ \(uid, (V2.UserInfo (V2.UserName uname) _ _)) ->
+            mkUser (UserId $ fromIntegral uid) $ T.pack uname
           for_ pkgs $ traverse insertPkgInfo
           pure $ pure $ lit True
 

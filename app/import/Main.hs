@@ -85,7 +85,7 @@ main = do
     case optCommand of
       MakeDb -> SetupDB.main conn
       BackfillPackages acidDir ->
-          backfillPackageDB conn acidDir
+        backfillPackageDB conn acidDir
       BackfillBlobstore blobDir ->
         backfillTarIndex conn blobDir
 
