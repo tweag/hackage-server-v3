@@ -14,7 +14,8 @@ import Data.HashMap.Strict (fromList)
 import Data.Kind (Type, Constraint)
 import Data.Proxy (Proxy(..))
 import Data.Typeable (Typeable, typeRep)
-import Hackage.API.PackagesHTML
+import Hackage.API.Type
+import Hackage.API.PackageDb ()
 import Hackage.ServerM (filters)
 import Servant.API
 import Servant.EDE
@@ -29,7 +30,7 @@ spec :: Spec
 spec = do
   let test = mkTemplatesSpec "templates"
 
-  test $ Proxy @(ToServantApi PackagesHtmlAPI)
+  test $ Proxy @(ToServantApi PackageDbApi)
 
 
 -- | Given a servant api, test that every template it mentions can be compiled
