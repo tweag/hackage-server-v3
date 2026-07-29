@@ -43,6 +43,9 @@ getAllVersions pname = do
 latestBy :: DBOrd b => (a -> Expr b) -> Query a -> Query a
 latestBy f = limit 1 . orderBy (f >$< desc)
 
+earliestBy :: DBOrd b => (a -> Expr b) -> Query a -> Query a
+earliestBy f = limit 1 . orderBy (f >$< asc)
+
 
 getAllRevs :: PackageLocator -> Query (MetadataRevisionRow Expr)
 getAllRevs loc = do
@@ -70,6 +73,11 @@ startsWith
     -> Expr Bool
 startsWith haystack needle = function "starts_with" (haystack, needle)
 
+
+onlyEarliestRev
+    :: Query (MetadataRevisionRow Expr)
+    -> Query (MetadataRevisionRow Expr)
+onlyEarliestRev = earliestBy metadataTime
 
 onlyLatestRev
     :: Query (MetadataRevisionRow Expr)

@@ -169,7 +169,7 @@ packageUploader pname =
 packageUploadTime :: PackageLocator -> ServerM UTCTime
 packageUploadTime pname =
   liftDB $ doSelect1 $ do
-    pkgv <- onlyLatestRev $ getAllRevs pname
+    pkgv <- onlyEarliestRev $ getAllRevs pname
     pure $ metadataTime pkgv
 
 

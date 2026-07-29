@@ -3,20 +3,23 @@
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ViewPatterns         #-}
 
 module Main where
 
+import Debug.Trace (trace)
 import Control.Monad (replicateM_)
 import Control.Monad.Except
 import Data.Aeson (Value (..), decode, fromJSON, toJSON, Result (..))
 import Data.Aeson.KeyMap qualified as KM
 import Data.BlobStorage qualified as Blob
 import Data.ByteString.Lazy (ByteString)
+import Data.ByteString.Lazy.Char8 qualified as BSL
 import Data.Kind (Constraint, Type)
 import Data.Pool
 import Data.Proxy (Proxy(..))
 import Data.String (fromString)
-import Data.Time (UTCTime (..))
+import Data.Time (UTCTime (..), defaultTimeLocale, parseTimeM, toGregorian)
 import Data.Vector qualified as V
 import Distribution.Package (PackageName, PackageIdentifier(..))
 import Distribution.Version (Version)
@@ -127,7 +130,7 @@ verify field = do
                 , show v3
                 ]
           Nothing ->
-            case bsv2 == bsv3 of
+            case roughlyEqBody bsv2 bsv3 of
               True -> Nothing
               False -> Just $ unlines
                 [ show bsv2
@@ -193,13 +196,38 @@ roughlyEq (Object a) (Object b) =
 roughlyEq (Array a) (Array b) =
   V.length a == V.length b
     && and (V.zipWith roughlyEq a b)
-roughlyEq a b = truncateTime a == truncateTime b
+roughlyEq a b = truncateTime a == truncateTime b || fixStupidTime a b
 
+roughlyEqBody :: ByteString -> ByteString -> Bool
+roughlyEqBody a b =
+  case (parsePlainTime a, parsePlainTime b) of
+    (Just ta, Just tb) -> truncateUTCTime ta == truncateUTCTime tb || isStupidTime ta || isStupidTime tb
+    _ -> a == b
+
+fixStupidTime :: Value -> Value -> Bool
+fixStupidTime a b
+  | Success t <- fromJSON @UTCTime a
+  , isStupidTime t
+  = True
+  | Success t <- fromJSON @UTCTime b
+  , isStupidTime t
+  = True
+  | otherwise = False
+
+isStupidTime :: UTCTime -> Bool
+isStupidTime t@(UTCTime (toGregorian -> (2026, 7, 29)) _) = trace ("Incorrectly backfilled upload time: " <> show t) True
+isStupidTime _ = False
+
+parsePlainTime :: ByteString -> Maybe UTCTime
+parsePlainTime = parseTimeM True defaultTimeLocale "%Y-%m-%dT%H:%M:%S%QZ" . BSL.unpack
+
+truncateUTCTime :: UTCTime -> UTCTime
+truncateUTCTime (UTCTime day dt) = UTCTime day $ fromIntegral $ floor @_ @Int dt
 
 truncateTime :: Value -> Value
 truncateTime v
-  | Success (UTCTime day dt) <- fromJSON @UTCTime v
-  = toJSON $ UTCTime day $ fromIntegral $ floor @_ @Int dt
+  | Success t <- fromJSON @UTCTime v
+  = toJSON $ truncateUTCTime t
   | otherwise = v
 
 
