@@ -6,8 +6,6 @@
 
 module Main where
 
-import Hasql.Connection.Setting qualified as DB
-import Hasql.Connection.Setting.Connection qualified as DB
 import Control.Monad (replicateM_)
 import Control.Monad.Except
 import Data.Aeson (Value (..), decode, fromJSON, toJSON, Result (..))
@@ -29,9 +27,12 @@ import Hackage.Objects
 import Hackage.Schemas.Packages
 import Hackage.ServerM
 import Hackage.Utils
+import Hasql.Connection.Setting qualified as DB
+import Hasql.Connection.Setting.Connection qualified as DB
 import Network.HTTP.Request qualified as Req
 import Rel8 (Serializable, FromExprs, Query, Expr, countRows, offset, limit, (==.), each, where_)
 import Servant.API
+import Servant.HackageCombinators.UserDomain (UserDomain(..))
 import Servant.Links (fieldLink, linkURI)
 import Servant.Server
 import System.FilePath ((</>))
@@ -96,6 +97,7 @@ testOptions = Options
   , optBlobStore = "../hackage-server/state/blobs"
   , optConnections = 100
   , optPort = 8000
+  , optUserDomain = ""
   }
 
 
@@ -140,13 +142,13 @@ spec =
       blobStore <- Blob.open "blobs"
       runServerM
         (Proxy @(NamedRoutes PackageDbApi))
-        EmptyContext
+        (UserDomain (optUserDomain testOptions) :. EmptyContext)
         (ServerCtx pool blobStore)
         packageDbServer
       ) $ do
-    xit "htmlMirrorUploadTime" $ verify pkgdb_api_uploadTime
-    it "htmlTarballs" $ verify pkgdb_api_metadata
-    xit "htmlTarballs" $ verify pkgdb_api_revisions
+    it "upload time" $ verify pkgdb_api_uploadTime
+    it "revisions" $ verify pkgdb_api_revisions
+    it "metadata" $ verify pkgdb_api_metadata
 
 
 dbArbitrary
