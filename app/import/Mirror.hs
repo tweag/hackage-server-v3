@@ -11,20 +11,22 @@ import Data.ByteString.Lazy qualified as BSL
 import Data.Coerce
 import Data.Foldable
 import Data.Int
-import Data.IntMap as IM
+import Data.IntMap qualified as IM
+import Data.Map qualified as M
 import Data.Map.Monoidal (MonoidalMap)
 import Data.Monoid(Sum(..))
 import Data.Text qualified as T
 import Data.Time.Clock.POSIX
 import Distribution.Server.Features.Core.State (initialPackagesState, GetPackagesState(..), PackagesState(..))
+import Distribution.Server.Features.PreferredVersions.State (PreferredVersions(..), PreferredInfo(..), GetPreferredVersions(..), initialPreferredVersions)
 import Distribution.Server.Framework.BlobStorage qualified as Blob
 import Distribution.Server.Packages.PackageIndex (PackageIndex(..))
 import Distribution.Server.Users.State (GetUserDb(..))
 import Distribution.Server.Users.Types qualified as V2
 import Distribution.Server.Users.Users qualified as Users
 import Distribution.Types.PackageId
-import GHC.Generics
-import Hackage.Schemas.Packages (PkgRevId, TarballRevisionRow(..), packageTarballRevisionsSchema)
+import GHC.Generics (Generic, Generically(..))
+import Hackage.Schemas.Packages (PkgRevId, TarballRevisionRow(..), packageTarballRevisionsSchema, pkgInfoSchema, PkgInfoRow(..), packageNameSchema, PackageNameRow(..))
 import Hackage.Types
 import Hackage.Utils (Connection)
 import Hasql.Session (statement, run)
@@ -74,20 +76,43 @@ backfillPackageDB :: Connection -> FilePath -> IO ()
 backfillPackageDB conn dbDir = do
   usersH    <- openLocalStateFrom (dbDir </> "Users") Users.emptyUsers
   packagesH <- openLocalStateFrom (dbDir </> "PackagesState") (initialPackagesState False)
+  preferredH <- openLocalStateFrom (dbDir </> "PreferredVersions") (initialPreferredVersions True)
 
   Users.Users users _ _ _ <- query usersH GetUserDb
   PackagesState (PackageIndex pkgs) _ <- query packagesH GetPackagesState
+  PreferredVersions preferred _deprecated _ <- query preferredH GetPreferredVersions
 
   closeAcidState packagesH
   closeAcidState usersH
+  closeAcidState preferredH
 
   flip evalStateT (mempty @(MonoidalMap PackageIdentifier RevState)) $
     (either (error . show) (const $ pure ()) =<<) $ liftIO $
       flip run conn $ statement () $
         Rel8.run $ runSqlM $ do
-          for_ (IM.assocs users) $ \(uid, (V2.UserInfo (V2.UserName uname) _ _)) ->
+          -- Import all of the users
+          for_ (IM.toList users) $ \(uid, (V2.UserInfo (V2.UserName uname) _ _)) ->
             mkUser (UserId $ fromIntegral uid) $ T.pack uname
+
+          -- Import all pkginfos
           for_ pkgs $ traverse insertPkgInfo
+
+          -- Update the pkginfos to set the deprecated flag if necessary
+          for_ (M.toList preferred) $ \(pkgname, pref) ->
+            for_ (deprecatedVersions pref) $ \v ->
+              sql $ update $ Update
+                { target = pkgInfoSchema
+                , from = do
+                    p <- each packageNameSchema
+                    where_ $ packageName p ==. lit pkgname
+                    pure $ packageNameId p
+                , set = \_ pkginfo ->
+                    pkginfo { pkgInfoDeprecated = lit True }
+                , updateWhere = \pkg pkginfo ->
+                    pkgId pkginfo ==. pkg &&.
+                      packageVersion pkginfo ==. lit v
+                , returning = NoReturning
+                }
           pure $ pure $ lit True
 
 
