@@ -34,9 +34,7 @@ library
       Hackage.API.Query
       Hackage.API.Type
       Hackage.Auth.Admin
-      Hackage.Auth.AuthToken
       Hackage.Auth.Maintainer
-      Hackage.Auth.Nonce
       Hackage.Main
       Hackage.Objects
       Hackage.Orphans
@@ -47,12 +45,10 @@ library
       Hackage.Types.PrimaryKey
       Hackage.Utils
       Rel8.CreateTable
-      Servant.HackageAuth
       Servant.HackageCombinators
       Servant.HackageCombinators.CacheControl
       Servant.HackageCombinators.CaptureExt
       Servant.HackageCombinators.DynamicGet
-      Servant.HackageCombinators.HackageAuth
       Servant.HackageCombinators.NegotiableContent
       Servant.HackageCombinators.NotYetPorted
       Servant.HackageCombinators.PermanentRedirect

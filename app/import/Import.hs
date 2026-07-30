@@ -114,7 +114,6 @@ mkUser uid name =
                 , userRealName = lit Nothing
                 , userStatus = lit Enabled
                 , userAdminNotes = lit mempty
-                , userAuth = lit $ PasswdHash ""
                 , userCreatedTime = now
                 }
             ]
@@ -256,7 +255,6 @@ mkTarballRev _ (V2.TarballRevIx _) e _ = error $ show e
 --           , userName = lit $ T.pack uname
 --           , userEmail = lit $ fmap V2.accountContactEmail details
 --           , userRealName = lit $ fmap V2.accountName details
---           , userAuth = lit $ PasswdHash ""
 --           , userStatus = lit $ Enabled
 --           , userAdminNotes = lit $ ""
 --           , userCreatedTime = now

@@ -25,11 +25,6 @@ module Hackage.Schemas.Users
   , userRolesSchema
   , userRolesTable
 
-    -- * User auth tokens table
-  , UserAuthTokenRow(..)
-  , userAuthTokensSchema
-  , userAuthTokensTable
-
     -- * Role type
   , UserRole(..)
   ) where
@@ -37,7 +32,6 @@ module Hackage.Schemas.Users
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
-import Hackage.Auth.AuthToken
 import Hackage.Types
 import Hackage.Types.PrimaryKey
 
@@ -64,7 +58,6 @@ data UsersRow f = UsersRow
   , userName :: Column f UserName
   , userEmail :: Column f (Maybe Text)
   , userRealName :: Column f (Maybe Text)
-  , userAuth :: Column f PasswdHash
   , userStatus :: Column f UserStatus
   , userAdminNotes :: Column f Text
   , userCreatedTime :: Column f UTCTime
@@ -84,7 +77,6 @@ usersSchema = TableSchema
       , userName = "user_name"
       , userEmail = "user_email"
       , userRealName = "user_real_name"
-      , userAuth = "user_auth"
       , userStatus = "user_status"
       , userAdminNotes = "user_admin_notes"
       , userCreatedTime = "user_created_time"
@@ -143,35 +135,3 @@ userRolesTable = DbTable userRolesSchema
   , FK userRoleUserId usersSchema userId
   ]
 
-type AuthTokenId = PrimaryKey UserAuthTokenRow
-
-data UserAuthTokenRow f = UserAuthTokenRow
-  { authTokenId :: Column f AuthTokenId
-  , authTokenUserId :: Column f UserId
-  , authTokenToken :: Column f AuthToken
-  , authTokenDescription :: Column f (Maybe Text)
-  , authTokenCreatedTime :: Column f UTCTime
-  }
-  deriving stock (Generic)
-  deriving anyclass (Rel8able)
-
-deriving stock instance Show (UserAuthTokenRow Result)
-
-userAuthTokensSchema :: TableSchema (UserAuthTokenRow Name)
-userAuthTokensSchema = TableSchema
-  { name = "user_auth_tokens"
-  , columns = UserAuthTokenRow
-      { authTokenId = "id"
-      , authTokenUserId = "user_id"
-      , authTokenToken = "token"
-      , authTokenDescription = "description"
-      , authTokenCreatedTime = "created_time"
-      }
-  }
-
-
-userAuthTokensTable :: DbTable UserAuthTokenRow
-userAuthTokensTable = DbTable userAuthTokensSchema
-  [ PK authTokenToken
-  , FK authTokenUserId usersSchema userId
-  ]

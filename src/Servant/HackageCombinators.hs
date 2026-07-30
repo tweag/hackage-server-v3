@@ -5,7 +5,6 @@ module Servant.HackageCombinators
 import Servant.HackageCombinators.CacheControl as X
 import Servant.HackageCombinators.CaptureExt as X
 import Servant.HackageCombinators.DynamicGet as X
-import Servant.HackageCombinators.HackageAuth as X
 import Servant.HackageCombinators.NegotiableContent as X
 import Servant.HackageCombinators.NotYetPorted as X
 import Servant.HackageCombinators.PermanentRedirect as X

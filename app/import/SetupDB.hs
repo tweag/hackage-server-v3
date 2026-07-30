@@ -15,7 +15,6 @@ main conn = do
 
   mk usersTable
   mk userRolesTable
-  mk userAuthTokensTable
   mk packageNameTable
   mk pkgInfoTable
   mk metadataRevisionsTable

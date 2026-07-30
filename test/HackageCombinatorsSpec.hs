@@ -11,7 +11,6 @@ import Data.Set qualified as S
 import Data.Text qualified as T
 import GHC.Generics
 import Servant.API
-import Servant.HackageAuth (hackageRealm)
 import Servant.HackageCombinators
 import Servant.Links (fieldLink)
 import Servant.Server
@@ -24,7 +23,6 @@ data API mode = API
   , redirectTarget    :: mode :- "redirect" :> "out" :> Capture "capture" String :> Get '[JSON] String
   , formatJson        :: mode :- "format" :> CaptureExt "something" String "json" :> Get '[JSON] String
   , formatTarGz       :: mode :- "format" :> CaptureExt "something" String "tar.gz" :> Get '[JSON] String
-  , auth              :: mode :- "auth" :> HackageAuth :> Get '[JSON] ()
   , cacheControl      :: mode :- "cache" :> CacheControl :> Get '[JSON] ()
   , userDomain        :: mode :- "user" :> UserDomain :> Get '[JSON] ()
   , negotiableContent :: mode :- NegotiableContent :> "negotiable" :> Capture "something" String :> Get '[PlainText, JSON] String
@@ -47,7 +45,6 @@ spec =
       serveWithContext
         (Proxy @(NamedRoutes API))
         (UserDomain "my.user.domain"
-          :. hackageAuthHandler hackageRealm undefined
           :. EmptyContext
         )
         (API
@@ -55,7 +52,6 @@ spec =
           , redirectTarget = pure
           , formatJson = pure
           , formatTarGz = pure
-          , auth = const $ pure ()
           , cacheControl = WithCacheControl [MaxAge 1234, SharedMaxAge 4321] $ pure ()
           , userDomain = pure ()
           , negotiableContent = const pure
@@ -84,10 +80,6 @@ spec =
       get "/format/hello.tar.gz" `shouldRespondWith` "\"hello\""
     it "should not match when on other formats" $ do
       get "/format/hello.txt" `shouldRespondWith` 404
-
-  describe "auth" $ do
-    it "should do auth" $ do
-      get "/auth" `shouldRespondWith` 401
 
   describe "negotiable content" $ do
     it "should dispatch without an extension" $ do
