@@ -7,12 +7,12 @@ module Hackage.API.PackageDb
   ( packageDbServer
   ) where
 
-import Hackage.API.Type
 import Codec.Archive.Tar qualified as Tar
 import Codec.Archive.Tar.Entry qualified as Tar
 import Control.Monad (unless, guard)
 import Control.Monad.Except (throwError)
 import Control.Monad.Reader
+import Crypto.Hash qualified as Crypto
 import Data.Aeson hiding (Result(..))
 import Data.BlobStorage qualified as Blob
 import Data.Bool
@@ -41,9 +41,9 @@ import Distribution.Types.PackageDescription qualified as PkgDescr
 import Distribution.Types.PackageId
 import Distribution.Types.PackageName
 import Distribution.Types.VersionRange (anyVersion)
-import Distribution.Utils.MD5 (md5, showMD5)
 import Distribution.Utils.ShortText (fromShortText)
 import Hackage.API.Query
+import Hackage.API.Type
 import Hackage.Objects
 import Hackage.Schemas.Packages
 import Hackage.Schemas.Users
@@ -283,7 +283,7 @@ packageRevisions _ loc = do
   pure $ WithPackage (PackageIdentifier name version) $ Revisions $ revs <&> \(rev, user) ->
     Revision
       { number = metadataRevId rev
-      , sha256 = T.pack $ showMD5 $ md5 $ metadataCabalFile rev
+      , sha256 = T.pack $ show $ Crypto.hashWith Crypto.SHA256 $ metadataCabalFile rev
       , time = metadataTime rev
       , user = user
       }
