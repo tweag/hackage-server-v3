@@ -1,7 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
 
-module Servant.HackageCombinators.NegotiableContent (NegotiableContent) where
+module Servant.HackageCombinators.NegotiableContent
+  ( NegotiableContent
+  , NegotiatedContent(..)
+  ) where
 
 import Control.Lens (over, _last, preview, (%~), (&))
 import Data.Maybe (fromMaybe)
@@ -27,20 +30,29 @@ import System.FilePath (dropExtensions)
 -- will use standard content negotiation for the @/resource@ route.
 data NegotiableContent
 
+newtype NegotiatedContent = NegotiatedContent
+  { negotiatedExtention :: T.Text
+  }
+
 instance HasLink api => HasLink (NegotiableContent :> api) where
-  type MkLink (NegotiableContent :> api) a = String -> MkLink api a
-  toLink toA _ l v =
-    toLink (toA . (\(Link a b c) -> Link (a & _last %~ escaped . (\z -> z <> "." <> v) . getEscaped) b c)) (Proxy :: Proxy api) l
+  type MkLink (NegotiableContent :> api) a = Maybe NegotiatedContent -> MkLink api a
+  toLink toA _ l (Just (NegotiatedContent v)) =
+    toLink
+      (toA . (\(Link a b c) -> Link (a & _last %~ escaped . (\z -> z <> "." <> T.unpack v) . getEscaped) b c))
+      (Proxy :: Proxy api)
+      l
+  toLink toA _ l Nothing = toLink toA (Proxy :: Proxy api) l
 
 instance HasServer api context => HasServer (NegotiableContent :> api) context where
-  type ServerT (NegotiableContent :> api) m = ServerT api m
-  hoistServerWithContext _ = hoistServerWithContext (Proxy @api)
-  route _ ctx app = RawRouter $ \env req respond ->
+  type ServerT (NegotiableContent :> api) m = Maybe NegotiatedContent -> ServerT api m
+  hoistServerWithContext _ p f m = hoistServerWithContext (Proxy @api) p f . m
+  route _ ctx app = RawRouter $ \env req respond -> do
+    let (content, req') = negotiateContentFromExtension req
     runRouterEnv
       (notFoundErrorFormatter defaultErrorFormatters)
-      (route (Proxy @api) ctx app)
+      (route (Proxy @api) ctx $ fmap ($ content) app)
       env
-      (negotiateContentFromExtension req)
+      req'
       respond
 
 
@@ -56,11 +68,11 @@ extensionToMime segment =
 -- | Parse the extension off the last segment of a 'Request', remove it, and set
 -- the @Accept@ header to be the associated mimetype. This allows us to
 -- negotiate a content type based on an extension.
-negotiateContentFromExtension :: Request -> Request
-negotiateContentFromExtension req = fromMaybe req $ do
+negotiateContentFromExtension :: Request -> (Maybe NegotiatedContent, Request)
+negotiateContentFromExtension req = fromMaybe (Nothing, req) $ do
   lastSeg <- preview _last $ pathInfo req
   mime <- extensionToMime lastSeg
-  pure $
+  pure $ (Just (NegotiatedContent lastSeg),)
     req
       { requestHeaders
           = (hAccept, mime)

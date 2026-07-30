@@ -55,6 +55,7 @@ import Rel8 hiding (Lift, bool)
 import Servant.API
 import Servant.EDE
 import Servant.HackageCombinators.DynamicGet
+import Servant.HackageCombinators.NegotiableContent
 import Servant.Links
 import Servant.Server (err303, err404, err500, ServerError(..))
 import Servant.Server.Generic (AsServerT)
@@ -143,8 +144,11 @@ instance HasTemplate HTML PreferredVersions where
   templateFor _ _ = "packages/preferred.html"
 
 
-packagePreferredVersions :: PackageName -> ServerM (WithPackageName PreferredVersions)
-packagePreferredVersions pname = do
+packagePreferredVersions
+    :: Maybe NegotiatedContent
+    -> PackageName
+    -> ServerM (WithPackageName PreferredVersions)
+packagePreferredVersions _ pname = do
   versions <- liftDB $ doSelect $ do
     pkgv <- getAllVersions $ lit pname
     pure (packageVersion pkgv, pkgInfoDeprecated pkgv)
@@ -213,9 +217,10 @@ instance HasTemplate HTML AllTarballs where
 
 
 packageDistroMonitor
-    :: PackageName
+    :: Maybe NegotiatedContent
+    -> PackageName
     -> ServerM (WithPackageName AllTarballs)
-packageDistroMonitor pname = do
+packageDistroMonitor _ pname = do
   fmap (WithPackageName pname . AllTarballs . fmap (uncurry PackageIdentifier)) $ liftDB $ doSelect $ orderBy (snd >$< asc) $ do
     pkg <- each packageNameSchema
     where_ $ packageName pkg ==. lit pname
@@ -266,8 +271,8 @@ instance ToObject Revisions where
     ]
 
 
-packageRevisions :: PackageLocator -> ServerM (WithPackage Revisions)
-packageRevisions loc = do
+packageRevisions :: Maybe NegotiatedContent -> PackageLocator -> ServerM (WithPackage Revisions)
+packageRevisions _ loc = do
   (name, version) <- liftDB $ doSelect1 $ locatorToPackageId loc
   revs <- liftDB $ doSelect $ do
     rev <- getAllRevs loc
