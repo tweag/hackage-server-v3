@@ -35,6 +35,7 @@ import Hasql.Connection.Setting.Connection qualified as DB
 import Network.HTTP.Request qualified as Req
 import Rel8 (Serializable, FromExprs, Query, Expr, countRows, offset, limit, (==.), each, where_, present)
 import Servant.API
+import Servant.HackageCombinators.NegotiableContent
 import Servant.HackageCombinators.UserDomain (UserDomain(..))
 import Servant.Links (fieldLink, linkURI)
 import Servant.Server
@@ -94,7 +95,7 @@ randomQueryArbitrary :: forall a. DBArbitrary a => Word -> Query (DBArbitraryExp
 randomQueryArbitrary off = limit 1 $ offset off $ queryArbitrary @a
 
 hackageBase :: String
-hackageBase = "http://localhost:8081"
+hackageBase = "http://localhost:8080"
 
 
 testOptions :: Options
@@ -150,7 +151,7 @@ spec =
       ) $ do
     it "revisions" $ verify $ \conn -> do
       Right a <- dbArbitrary conn
-      pure $ fieldLink pkgdb_api_revisions "json" a
+      pure $ fieldLink pkgdb_api_revisions_redirect (Just $ NegotiatedContent "json") a
     it "tarball" $ verify $ \conn -> do
       Right a <- dbArbitrary conn
       pure $ fieldLink pkgdb_api_tarball (Specific a) a
@@ -171,7 +172,7 @@ spec =
       pure $ fieldLink pkgdb_api_cabalFile a a
     it "preferredVersions" $ verify $ \conn -> do
       Right a <- dbArbitrary conn
-      pure $ fieldLink pkgdb_api_preferredVersions "json" a
+      pure $ fieldLink pkgdb_api_preferredVersions (Just $ NegotiatedContent "json") a
 
 
 

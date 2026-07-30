@@ -28,6 +28,10 @@ instance HasServer PermanentRedirect context where
     liftIO $ resp $ delayed <&> \link ->
       responseLBS permanentRedirect308 [(hLocation, "/" <> toHeader link)] mempty
 
+instance HasLink PermanentRedirect where
+  type MkLink PermanentRedirect r = r
+  toLink toA _ = toA
+
 instance TemplateFiles PermanentRedirect where
   templateFiles = mempty
 

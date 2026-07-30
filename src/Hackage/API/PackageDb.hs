@@ -64,7 +64,9 @@ import System.IO
 
 packageDbServer :: PackageDbApi (AsServerT ServerM)
 packageDbServer = PackageDbApi
-  { pkgdb_api_versions = packageVersions
+  { pkgdb_api_revisions_redirect = fieldLink pkgdb_api_revisions
+  , pkgdb_api_revisions = packageRevisions
+  , pkgdb_api_versions = packageVersions
   , pkgdb_api_cabalFile = packageCabalFile
   , pkgdb_api_metadata = packageMetadata
   , pkgdb_api_preferredVersions = packagePreferredVersions
@@ -73,7 +75,6 @@ packageDbServer = PackageDbApi
   , pkgdb_api_tarball = packageTarball
   , pkgdb_api_distroMonitor = packageDistroMonitor
   , pkgdb_api_dependencies = packageDependencies
-  , pkgdb_api_revisions = packageRevisions
   , pkgdb_api_tarballContent = packageTarballContent
   }
 

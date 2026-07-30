@@ -28,13 +28,21 @@ import Servant.EDE
 import Servant.HackageCombinators.CaptureExt
 import Servant.HackageCombinators.DynamicGet
 import Servant.HackageCombinators.NegotiableContent
+import Servant.HackageCombinators.PermanentRedirect
 import Servant.HackageCombinators.UserDomain
 import Servant.Tarball
 import Test.QuickCheck
 
 
 data PackageDbApi mode = PackageDbApi
-  { pkgdb_api_revisions :: mode
+  { pkgdb_api_revisions_redirect :: mode
+      :- NegotiableContent
+      :> "package"
+      :> Capture "package" PackageLocator
+      :> "revisions"
+      :> ""
+      :> PermanentRedirect
+  , pkgdb_api_revisions :: mode
       :- NegotiableContent
       :> "package"
       :> Capture "package" PackageLocator

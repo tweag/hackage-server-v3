@@ -95,7 +95,7 @@ instance Arbitrary Version where
   arbitrary = mkVersion <$> fmap (fmap getNonNegative) arbitrary
 
 instance FromHttpApiData PackageName where
-  parseUrlPiece = maybe (Left "Can't parse package name") Right . simpleParsec . T.unpack
+  parseUrlPiece x = maybe (Left $ "Can't parse package name: " <> x) Right . simpleParsec $ T.unpack x
 
 instance ToHttpApiData PackageName where
   toUrlPiece = T.pack . unPackageName

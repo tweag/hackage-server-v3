@@ -58,7 +58,7 @@ spec =
           , auth = const $ pure ()
           , cacheControl = WithCacheControl [MaxAge 1234, SharedMaxAge 4321] $ pure ()
           , userDomain = pure ()
-          , negotiableContent = pure
+          , negotiableContent = const pure
           , whitelistDigest = \str ->
               WithWhitelistDigest
                 (S.singleton $ Crypto.hashWith @ByteString Crypto.SHA256 $ "\"acceptable\"")

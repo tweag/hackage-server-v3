@@ -20,6 +20,7 @@ import Hackage.ServerM (filters)
 import Servant.API
 import Servant.EDE
 import Servant.HackageCombinators.DynamicGet
+import Servant.HackageCombinators.PermanentRedirect
 import System.FilePath ((</>))
 import Test.Hspec
 import Test.QuickCheck (Arbitrary, forAll, property, arbitrary)
@@ -103,6 +104,9 @@ instance ( GetTemplates (DynamicGet as)
     ]
 
 instance GetTemplates Raw where
+  getTemplates _ = mempty
+
+instance GetTemplates PermanentRedirect where
   getTemplates _ = mempty
 
 instance GetTemplates (ToServantApi a) => GetTemplates (NamedRoutes a) where
