@@ -41,7 +41,7 @@ data PackageDbApi mode = PackageDbApi
       :> "revisions"
       :> Get '[HTML, JSON] (WithPackage Revisions)
   , pkgdb_api_tarball :: mode
-      :- "packages"
+      :- "package"
       :> Capture "package" PackageLocator
       :> CaptureExt "tarball" PackageIdentifier "tar.gz"
       :> Get '[Tarball] BSL.ByteString

@@ -33,7 +33,7 @@ import Hackage.Utils
 import Hasql.Connection.Setting qualified as DB
 import Hasql.Connection.Setting.Connection qualified as DB
 import Network.HTTP.Request qualified as Req
-import Rel8 (Serializable, FromExprs, Query, Expr, countRows, offset, limit, (==.), each, where_)
+import Rel8 (Serializable, FromExprs, Query, Expr, countRows, offset, limit, (==.), each, where_, present)
 import Servant.API
 import Servant.HackageCombinators.UserDomain (UserDomain(..))
 import Servant.Links (fieldLink, linkURI)
@@ -64,11 +64,14 @@ instance DBArbitrary PackageName where
 
 instance DBArbitrary PackageIdentifier where
   type DBArbitraryExpr PackageIdentifier = (Expr PackageName, Expr Version)
-
   queryArbitrary = do
     pkginfo <- each pkgInfoSchema
     pkg <- each packageNameSchema
     where_ $ packageNameId pkg ==. pkgId pkginfo
+    -- Ensure we actually have a tarball for this pkgid.
+    present $ do
+      tar <- each packageTarballRevisionsSchema
+      where_ $ tarballPkgId tar ==. pkgInfoId pkginfo
     pure (packageName pkg, packageVersion pkginfo)
 
   fromIntermediary = pure . uncurry PackageIdentifier
@@ -91,7 +94,7 @@ randomQueryArbitrary :: forall a. DBArbitrary a => Word -> Query (DBArbitraryExp
 randomQueryArbitrary off = limit 1 $ offset off $ queryArbitrary @a
 
 hackageBase :: String
-hackageBase = "http://hackage.haskell.org"
+hackageBase = "http://localhost:8081"
 
 
 testOptions :: Options
@@ -105,58 +108,71 @@ testOptions = Options
 
 
 verify
-  :: ( FillLink (MkLink endpoint Link)
-     , HasLink endpoint
-     , Filled (MkLink endpoint Link) ~ Link
-     , IsElem endpoint (ToServantApi routes)
-     , GenericServant routes AsApi
-     )
-  => (routes AsApi -> endpoint)
+  :: (Connection -> IO Link)
   -> WaiSession st ()
-verify field = do
-
+verify mklink = do
   replicateM_ 100 $ do
-    link <- liftIO $ withConn (pure $ DB.connection $ optDb testOptions) $ \conn -> fillLink conn $ fieldLink field
+    link <- liftIO $ withConn (pure $ DB.connection $ optDb testOptions) mklink
     let uri = show (linkURI link)
     annotate uri $ do
-      Req.Response _ _ bsv2 <- liftIO $ Req.get @ByteString $ hackageBase </> uri
+      Req.Response _code _ bsv2 <- liftIO $ Req.get @ByteString $ hackageBase </> uri
       get (fromString uri) `shouldRespondWith` ResponseMatcher 200 [] (MatchBody $ \_ bsv3 ->
-        case (,) <$> decode @Value bsv2 <*> decode @Value bsv3 of
-          Just (v2, v3) ->
-            case roughlyEq v2 v3 of
-              True -> Nothing
-              False -> Just $ unlines
-                [ show v2
-                , show v3
-                ]
-          Nothing ->
-            case roughlyEqBody bsv2 bsv3 of
-              True -> Nothing
-              False -> Just $ unlines
-                [ show bsv2
-                , show bsv3
-                ]
+        -- case code == 404 of
+        --   True -> Nothing
+        --   False ->
+            case (,) <$> decode @Value bsv2 <*> decode @Value bsv3 of
+              Just (v2, v3) ->
+                case roughlyEq v2 v3 of
+                  True -> Nothing
+                  False -> Just $ unlines
+                    [ show v2
+                    , show v3
+                    ]
+              Nothing ->
+                case roughlyEqBody bsv2 bsv3 of
+                  True -> Nothing
+                  False -> Just $ unlines
+                    [ show bsv2
+                    , show bsv3
+                    ]
         )
 
 spec :: Spec
 spec =
   with (do
       pool <- newPool $ connPool testOptions
-      blobStore <- Blob.open "blobs"
+      blobStore <- Blob.open "../hackage-server/state/blobs"
       runServerM
         (Proxy @(NamedRoutes PackageDbApi))
         (UserDomain (optUserDomain testOptions) :. EmptyContext)
         (ServerCtx pool blobStore)
         packageDbServer
       ) $ do
-    it "revisions" $ verify pkgdb_api_revisions
-    it "tarball" $ verify pkgdb_api_tarball
-    it "uploader" $ verify pkgdb_api_uploader
-    it "upload time" $ verify pkgdb_api_uploadTime
-    it "versions" $ verify pkgdb_api_versions
-    it "metadata" $ verify pkgdb_api_metadata
-    it "cabalFile" $ verify pkgdb_api_cabalFile
-    it "preferredVersions" $ verify pkgdb_api_preferredVersions
+    it "revisions" $ verify $ \conn -> do
+      Right a <- dbArbitrary conn
+      pure $ fieldLink pkgdb_api_revisions "json" a
+    it "tarball" $ verify $ \conn -> do
+      Right a <- dbArbitrary conn
+      pure $ fieldLink pkgdb_api_tarball (Specific a) a
+    it "uploader" $ verify $ \conn -> do
+      Right a <- dbArbitrary conn
+      pure $ fieldLink pkgdb_api_uploader a
+    it "upload time" $ verify $ \conn -> do
+      Right a <- dbArbitrary conn
+      pure $ fieldLink pkgdb_api_uploadTime a
+    it "versions" $ verify $ \conn -> do
+      Right a <- dbArbitrary conn
+      pure $ fieldLink pkgdb_api_versions a
+    it "metadata" $ verify $ \conn -> do
+      Right a <- dbArbitrary conn
+      pure $ fieldLink pkgdb_api_metadata a
+    it "cabalFile" $ verify $ \conn -> do
+      Right a <- dbArbitrary conn
+      pure $ fieldLink pkgdb_api_cabalFile a a
+    it "preferredVersions" $ verify $ \conn -> do
+      Right a <- dbArbitrary conn
+      pure $ fieldLink pkgdb_api_preferredVersions "json" a
+
 
 
 dbArbitrary
