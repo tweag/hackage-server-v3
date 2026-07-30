@@ -64,7 +64,10 @@ import System.IO
 
 packageDbServer :: PackageDbApi (AsServerT ServerM)
 packageDbServer = PackageDbApi
-  { pkgdb_api_revisions_redirect = fieldLink pkgdb_api_revisions
+  { pkgdb_api_revisions_redirect = \contentType ->
+      -- Redirect this route back to 'pkgdb_api_revisions', but having maybe
+      -- parsed off a negotiated content type.
+      fieldLink pkgdb_api_revisions contentType
   , pkgdb_api_revisions = packageRevisions
   , pkgdb_api_versions = packageVersions
   , pkgdb_api_cabalFile = packageCabalFile

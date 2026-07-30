@@ -35,7 +35,11 @@ import Test.QuickCheck
 
 
 data PackageDbApi mode = PackageDbApi
-  { pkgdb_api_revisions_redirect :: mode
+  { -- | This route only exists to redirect the legacy
+    -- @package/:package/revisions/.:format@ over to its new home at
+    -- 'pkgdb_api_revisions', since the former is a very strange route for
+    -- an API.
+    pkgdb_api_revisions_redirect :: mode
       :- NegotiableContent
       :> "package"
       :> Capture "package" PackageLocator
