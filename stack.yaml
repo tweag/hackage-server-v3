@@ -8,7 +8,7 @@ extra-deps:
   - github: alpmestan/servant-ede
     commit: 8258b2057dbe42de3014c72b43127d6d5a14971d
   - github: tweag/servant
-    commit: ef5255707d4e53eec0d641470374b27423e8e193
+    commit: c6352177eb987960db00edc4cd90467dcb458f1c
     subdir: servant
   - github: tweag/hspec-wai
     commit: ca36d3f068e729acb0dc278c4c0c259e21131289
