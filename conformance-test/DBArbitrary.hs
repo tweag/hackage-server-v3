@@ -192,21 +192,6 @@ dbArbitrary conn = runExceptT $ do
     Right a -> fmap Right $ fromIntermediary a
 
 
-class FillLink a where
-  type Filled a
-  fillLink :: Connection -> a -> IO (Filled a)
-
-instance (DBArbitrary a, Serializable (DBArbitraryExpr a) (FromExprs (DBArbitraryExpr a)), FillLink b) => FillLink (a -> b) where
-  type Filled (a -> b) = Filled b
-  fillLink conn f = do
-    Right a <- dbArbitrary @a conn
-    fillLink @b conn $ f a
-
-instance FillLink Link where
-  type Filled Link = Link
-  fillLink _ l = pure l
-
-
 -- | Compare two 'Value's for equality, truncating any 'UTCTime's down to the
 -- nearest second. Hackage v2 responds with picosecond precision, but we've
 -- imported v3 data from the index tarball which has only second precision ---
