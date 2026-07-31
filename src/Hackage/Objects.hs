@@ -47,6 +47,12 @@ instance ToHttpApiData PackageLocator where
   toUrlPiece (Latest pkg) = toUrlPiece pkg
   toUrlPiece (Specific pkg) = toUrlPiece pkg
 
+
+packageLocName :: PackageLocator -> PackageName
+packageLocName (Latest x) = x
+packageLocName (Specific (PackageIdentifier x _)) = x
+
+
 --------------------------------------------------------------------------------
 
 -- | Helper structure for automatically attaching package metadata to the HTML

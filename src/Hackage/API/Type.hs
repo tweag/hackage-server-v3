@@ -101,7 +101,7 @@ data PackageDbApi mode = PackageDbApi
       :> Get '[JSON] PackageBasicDescriptionDTO
   , pkgdb_api_cabalFile :: mode
       :- "package"
-      :> Capture "package" PackageName
+      :> Capture "package" PackageLocator
       :> CaptureExt "package" PackageName "cabal"
       :> Get '[PlainText] StrictByteString
   , pkgdb_api_preferredVersions :: mode

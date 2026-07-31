@@ -165,12 +165,12 @@ packageRevisionCabal pid revix = do
 --------------------------------------------------------------------------------
 -- /package/:package/:package.cabal
 
-packageCabalFile :: PackageName -> PackageName -> ServerM StrictByteString
-packageCabalFile pname1 pname2 = do
-  -- For legacy reasons, this path requires both package names to be the same
-  unless (pname1 == pname2) $ throwError err404
+
+packageCabalFile :: PackageLocator -> PackageName -> ServerM StrictByteString
+packageCabalFile loc pname2 = do
+  unless (packageLocName loc == pname2) $ throwError err404
   liftDB $ doSelect1 $ do
-    rev <- getLatestRev $ Latest pname1
+    rev <- getLatestRev loc
     pure $ metadataCabalFile rev
 
 
