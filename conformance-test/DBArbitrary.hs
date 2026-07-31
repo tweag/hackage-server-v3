@@ -1,34 +1,32 @@
-{-# LANGUAGE AllowAmbiguousTypes  #-}
-{-# LANGUAGE DefaultSignatures    #-}
-{-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE ViewPatterns         #-}
+{-# LANGUAGE DerivingStrategies         #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings          #-}
 
 module Main where
 
 import Control.Monad (replicateM_)
 import Control.Monad.Except
+import Control.Monad.IO.Class (MonadIO)
+import Control.Monad.Reader (ReaderT(..), MonadReader)
 import Data.Aeson (Value (..), decode)
 import Data.BlobStorage qualified as Blob
 import Data.ByteString.Lazy (ByteString)
-import Data.Kind (Constraint, Type)
 import Data.Pool
 import Data.Proxy (Proxy(..))
 import Data.String (fromString)
-import Distribution.Package (PackageName, PackageIdentifier(..))
-import Distribution.Version (Version)
+import Distribution.Package (PackageIdentifier(..))
 import Hackage.API.PackageDb
 import Hackage.API.Type
-import Hackage.Main
+import Hackage.Main hiding (main)
 import Hackage.Objects
 import Hackage.Schemas.Packages
 import Hackage.ServerM
+import Hackage.Types
 import Hackage.Utils
 import Hasql.Connection.Setting qualified as DB
 import Hasql.Connection.Setting.Connection qualified as DB
 import Network.HTTP.Request qualified as Req
-import Rel8 (Serializable, FromExprs, Query, Expr, countRows, offset, limit, (==.), each, where_, present)
+import Rel8 (Serializable, FromExprs, Query, countRows, offset, limit, (==.), each, where_, present)
 import Servant.API
 import Servant.HackageCombinators.NegotiableContent
 import Servant.HackageCombinators.UserDomain (UserDomain(..))
@@ -40,47 +38,51 @@ import Test.Hspec
 import Test.Hspec.Wai
 
 
-type DBArbitrary :: Type -> Constraint
-class DBArbitrary a where
-  type DBArbitraryExpr a :: Type
-  type DBArbitraryExpr a = Expr a
-
-  queryArbitrary :: Query (DBArbitraryExpr a)
-
-  fromIntermediary :: FromExprs (DBArbitraryExpr a) -> IO a
-  default fromIntermediary :: DBArbitraryExpr a ~ Expr a => FromExprs (DBArbitraryExpr a) -> IO a
-  fromIntermediary = pure
+-- | A monadic generator for random values drawn from the database.
+newtype DBGen a = DBGen { unDBGen :: ReaderT Connection (ExceptT SessionError IO) a }
+  deriving newtype (MonadReader Connection, Functor, Applicative, Monad, MonadIO)
 
 
-instance DBArbitrary PackageName where
-  queryArbitrary = do
-    pkgs <- each packageNameSchema
-    pure $ packageName pkgs
+-- | Run a generator against a connection.
+sampleGen :: DBGen a -> Connection -> IO (Either SessionError a)
+sampleGen g conn = runExceptT $ flip runReaderT conn $ unDBGen g
+
+pickRandom
+  :: Serializable expr (FromExprs expr)
+  => Query expr
+  -> DBGen (FromExprs expr)
+pickRandom q = DBGen $ do
+  size <- ReaderT $ ExceptT . doSelect1 (countRows q)
+  off  <- liftIO $ randomRIO (0, max 0 $ size - 1)
+  ReaderT $ ExceptT . doSelect1 (limit 1 $ offset (fromIntegral off) q)
 
 
-instance DBArbitrary PackageIdentifier where
-  type DBArbitraryExpr PackageIdentifier = (Expr PackageName, Expr Version)
-  queryArbitrary = do
+genPackageName :: DBGen PackageName
+genPackageName = pickRandom $ do
+  pkgs <- each packageNameSchema
+  pure $ packageName pkgs
+
+
+genPackageId :: DBGen PackageIdentifier
+genPackageId = do
+  (pn, v) <- pickRandom $ do
     pkginfo <- each pkgInfoSchema
-    pkg <- each packageNameSchema
+    pkg     <- each packageNameSchema
     where_ $ packageNameId pkg ==. pkgId pkginfo
     -- Ensure we actually have a tarball for this pkgid.
     present $ do
       tar <- each packageTarballRevisionsSchema
       where_ $ tarballPkgId tar ==. pkgInfoId pkginfo
     pure (packageName pkg, packageVersion pkginfo)
+  pure $ PackageIdentifier pn v
 
-  fromIntermediary = pure . uncurry PackageIdentifier
 
-
-instance DBArbitrary PackageLocator where
-  type DBArbitraryExpr PackageLocator = (Expr PackageName, Expr Version)
-  queryArbitrary = queryArbitrary @PackageIdentifier
-  fromIntermediary a = do
-    pid <- fromIntermediary @PackageIdentifier a
-    randomIO >>= pure . \case
-      False -> Latest $ pkgName pid
-      True -> Specific pid
+genPackageLocator :: DBGen PackageLocator
+genPackageLocator = do
+  pid <- genPackageId
+  liftIO randomIO >>= \case
+    False -> pure $ Latest  (pkgName pid)
+    True  -> pure $ Specific pid
 
 
 hackageBase :: String
@@ -98,11 +100,12 @@ testOptions = Options
 
 
 verify
-  :: (Connection -> IO Link)
+  :: DBGen Link
   -> WaiSession st ()
 verify mklink = do
   replicateM_ 100 $ do
-    link <- liftIO $ withConn (pure $ DB.connection $ optDb testOptions) mklink
+    Right link <-
+      liftIO $ withConn (pure $ DB.connection $ optDb testOptions) $ sampleGen mklink
     let uri = show (linkURI link)
     annotate uri $ do
       Req.Response _code _ bsv2 <- liftIO $ Req.get @ByteString $ hackageBase </> uri
@@ -127,6 +130,7 @@ verify mklink = do
                     ]
         )
 
+
 spec :: Spec
 spec =
   with (do
@@ -138,53 +142,30 @@ spec =
         (ServerCtx pool blobStore)
         packageDbServer
       ) $ do
-    it "revisions" $ verify $ \conn -> do
-      Right a <- dbArbitrary conn
+    it "revisions" $ verify $ do
+      a <- genPackageLocator
       pure $ fieldLink pkgdb_api_revisions_redirect (Just $ NegotiatedContent "json") a
-    it "tarball" $ verify $ \conn -> do
-      Right a <- dbArbitrary conn
+    it "tarball" $ verify $ do
+      a <- genPackageId
       pure $ fieldLink pkgdb_api_tarball (Specific a) a
-    it "uploader" $ verify $ \conn -> do
-      Right a <- dbArbitrary conn
+    it "uploader" $ verify $ do
+      a <- genPackageLocator
       pure $ fieldLink pkgdb_api_uploader a
-    it "upload time" $ verify $ \conn -> do
-      Right a <- dbArbitrary conn
+    it "upload time" $ verify $ do
+      a <- genPackageLocator
       pure $ fieldLink pkgdb_api_uploadTime a
-    it "versions" $ verify $ \conn -> do
-      Right a <- dbArbitrary conn
+    it "versions" $ verify $ do
+      a <- genPackageName
       pure $ fieldLink pkgdb_api_versions a
-    it "metadata" $ verify $ \conn -> do
-      Right a <- dbArbitrary conn
+    it "metadata" $ verify $ do
+      a <- genPackageId
       pure $ fieldLink pkgdb_api_metadata a
-    it "cabalFile" $ verify $ \conn -> do
-      Right a <- dbArbitrary conn
-      pure $ fieldLink pkgdb_api_cabalFile a a
-    it "preferredVersions" $ verify $ \conn -> do
-      Right a <- dbArbitrary conn
+    it "cabalFile" $ verify $ do
+      a <- genPackageLocator
+      pure $ fieldLink pkgdb_api_cabalFile a $ packageLocName a
+    it "preferredVersions" $ verify $ do
+      a <- genPackageName
       pure $ fieldLink pkgdb_api_preferredVersions (Just $ NegotiatedContent "json") a
-
-
-randomly :: Query a -> IO (Query a)
-randomly q = do
-  off <- randomRIO (0, maxBound)
-  pure $
-
-
-
-dbArbitrary
-  :: forall a
-   . ( DBArbitrary a
-     , Serializable (DBArbitraryExpr a) (FromExprs (DBArbitraryExpr a))
-     )
-  => Connection
-  -> IO (Either SessionError a)
-dbArbitrary conn = runExceptT $ do
-  size <- ExceptT $ doSelect1 (countRows $ queryArbitrary @a) conn
-  off <- randomRIO (0, size - 1)
-
-  ExceptT $ doSelect1 (randomQueryArbitrary @a $ fromIntegral off) conn >>= \case
-    Left e -> pure $ Left e
-    Right a -> fmap Right $ fromIntermediary a
 
 
 main :: IO ()
