@@ -16,6 +16,7 @@ import Data.Proxy (Proxy(..))
 import Data.String (fromString)
 import Distribution.Package (PackageIdentifier(..))
 import Hackage.API.PackageDb
+import Hackage.API.Query (getLocator)
 import Hackage.API.Type
 import Hackage.Main hiding (main)
 import Hackage.Objects
@@ -75,6 +76,15 @@ genPackageId = do
       where_ $ tarballPkgId tar ==. pkgInfoId pkginfo
     pure (packageName pkg, packageVersion pkginfo)
   pure $ PackageIdentifier pn v
+
+
+genMetadataRevIx :: PackageLocator -> DBGen MetadataRevIx
+genMetadataRevIx loc = do
+  pickRandom $ do
+    pkg <- getLocator loc
+    rev <- each metadataRevisionsSchema
+    where_ $ metadataPkgId rev ==. pkgInfoId pkg
+    pure $ metadataRevId rev
 
 
 genPackageLocator :: DBGen PackageLocator
@@ -145,6 +155,14 @@ spec =
     it "revisions" $ verify $ do
       a <- genPackageLocator
       pure $ fieldLink pkgdb_api_revisions_redirect (Just $ NegotiatedContent "json") a
+    it "revision metadata" $ verify $ do
+      a <- genPackageId
+      rev <- genMetadataRevIx $ Specific a
+      pure $ fieldLink pkgdb_api_revisionMetadata (Just $ NegotiatedContent "json") a rev
+    it "revision cabal" $ verify $ do
+      a <- genPackageId
+      rev <- genMetadataRevIx $ Specific a
+      pure $ fieldLink pkgdb_api_revisionCabal a rev
     it "tarball" $ verify $ do
       a <- genPackageId
       pure $ fieldLink pkgdb_api_tarball (Specific a) a
