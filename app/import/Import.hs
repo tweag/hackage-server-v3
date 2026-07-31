@@ -6,7 +6,6 @@
 
 module Import where
 
-import Data.Foldable
 import Codec.Archive.Tar qualified as Tar
 import Codec.Archive.Tar.Entry qualified as Tar
 import Control.Lens (Lens', at, view, (&), (.~))
@@ -14,6 +13,8 @@ import Control.Monad.Accum
 import Control.Monad.State
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as BSL
+import Data.Coerce
+import Data.Foldable
 import Data.Generics.Labels ()
 import Data.Int (Int64)
 import Data.Map (Map)
@@ -268,7 +269,7 @@ mkTarballRev _ (V2.TarballRevIx _) e _ = error $ show e
 insertPkgInfo :: V2.PkgInfo -> SqlM ()
 insertPkgInfo (V2.PkgInfo pkgid mdrevs tbrevs) = do
   epkgid <- mkPkgIdentifier pkgid
-  for_ (zip (toList mdrevs) [0..]) $ \((V2.CabalFileText cabal, (a, V2.UserId b)), revix) ->
+  for_ (zip (toList mdrevs) $ coerce [id @Int64 0..]) $ \((V2.CabalFileText cabal, (a, V2.UserId b)), revix) ->
     mkMetadataRev epkgid revix cabal (a, UserId $ fromIntegral b)
   for_ (zip (toList tbrevs) [0..]) $ \((pkgtb, (a, b)), revix) ->
     mkTarballRev epkgid (V2.TarballRevIx revix) pkgtb (a, b)

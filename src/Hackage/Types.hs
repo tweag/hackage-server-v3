@@ -21,6 +21,7 @@ import Numeric (readHex)
 import Rel8 hiding (Enum)
 import Rel8.CreateTable
 import Rel8.Decoder (parseDecoder)
+import Servant.API (ToHttpApiData, FromHttpApiData)
 import Test.QuickCheck (Arbitrary)
 
 
@@ -37,6 +38,8 @@ newtype UserId = UserId Int64
     , FromJSON
     , Hashable
     , Arbitrary
+    , ToHttpApiData
+    , FromHttpApiData
     )
 
 
@@ -52,7 +55,26 @@ type Tag = Text
 type ReportId = Text
 type SHA256Digest = Text
 type TarballRevIx = Int64
-type MetadataRevIx = Int64
+
+newtype MetadataRevIx = MetadataRevIx
+  { getMetadataRevix :: Int64
+  }
+  deriving newtype
+    ( Eq
+    , Ord
+    , Show
+    , Read
+    , Enum
+    , Bounded
+    , DBEq
+    , DBOrd
+    , DBType
+    , ToJSON
+    , FromJSON
+    , Arbitrary
+    , ToHttpApiData
+    , FromHttpApiData
+    )
 
 
 type role BlobId nominal
