@@ -19,13 +19,13 @@
 | [ ]  | /package/:package/reverse.:format (html)            | Html            | GET      |
 | [ ]  | /package/:package/reverse/old.:format (html)        | Html            | GET      |
 | [ ]  | /package/:package/reverse/verbose.:format (html)    | Html            | GET      |
-| [ ]  | /package/:package/revision/:revision.:format        | Core            | GET      |
-| [ ]  | /package/:package/revision/:revision.:format (json) | PackageInfoJSON | GET      |
+| [.]  | /package/:package/revision/:revision.:format        | Core            | GET      |
+| [.]  | /package/:package/revision/:revision.:format (json) | PackageInfoJSON | GET      |
+#        /package/:packagename/revision/:anything.json       ????
+#        /package/:packageid/revision/.json                  NOT THE SAME AS:
+#        /package/:packageid/revision/0.json                 ????
 | [x]  | /package/:package/revisions/.:format                | Core            | GET      |
 | [x]  | /package/:package/revisions/.:format (html)         | Html            | GET      |
-| [ ]  | /package/:package/src/..                            | PackageContents | GET      |
+| [x]  | /package/:package/src/..                            | PackageContents | GET      |
 | [x]  | /package/:package/upload-time                       | Mirror          | GET      |
 | [x]  | /package/:package/uploader                          | Mirror          | GET      |
-| [ ]  | /packages/.:format (html)                           | Html            | GET      |
-| [ ]  | /packages/.:format (json)                           | Core            | GET      |
-| [ ]  | /packages/reverse.:format (html)                    | Html            | GET      |

@@ -52,6 +52,19 @@ data PackageDbApi mode = PackageDbApi
       :> Capture "package" PackageLocator
       :> "revisions"
       :> Get '[HTML, JSON] (WithPackage Revisions)
+  , pkgdb_api_revisionMetadata :: mode
+      :- NegotiableContent
+      :> "package"
+      :> Capture "package" PackageIdentifier
+      :> "revision"
+      :> Capture "revision" MetadataRevIx
+      :> Get '[JSON] PackageBasicDescriptionDTO
+  , pkgdb_api_revisionCabal :: mode
+      :- "package"
+      :> Capture "package" PackageIdentifier
+      :> "revision"
+      :> CaptureExt "revision" MetadataRevIx "cabal"
+      :> Get '[PlainText] StrictByteString
   , pkgdb_api_tarball :: mode
       :- "package"
       :> Capture "package" PackageLocator

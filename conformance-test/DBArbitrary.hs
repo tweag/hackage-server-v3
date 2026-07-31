@@ -82,12 +82,6 @@ instance DBArbitrary PackageLocator where
       False -> Latest $ pkgName pid
       True -> Specific pid
 
-instance DBArbitrary String where
-  queryArbitrary = pure "json"
-
-
-randomQueryArbitrary :: forall a. DBArbitrary a => Word -> Query (DBArbitraryExpr a)
-randomQueryArbitrary off = limit 1 $ offset off $ queryArbitrary @a
 
 hackageBase :: String
 hackageBase = "http://localhost:8080"
@@ -168,6 +162,13 @@ spec =
     it "preferredVersions" $ verify $ \conn -> do
       Right a <- dbArbitrary conn
       pure $ fieldLink pkgdb_api_preferredVersions (Just $ NegotiatedContent "json") a
+
+
+randomly :: Query a -> IO (Query a)
+randomly q = do
+  off <- randomRIO (0, maxBound)
+  pure $
+
 
 
 dbArbitrary

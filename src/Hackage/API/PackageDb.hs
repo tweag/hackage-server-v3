@@ -64,11 +64,13 @@ import System.IO
 
 packageDbServer :: PackageDbApi (AsServerT ServerM)
 packageDbServer = PackageDbApi
-  { pkgdb_api_revisions_redirect = \contentType ->
+  { pkgdb_api_revisions_redirect = \cType ->
       -- Redirect this route back to 'pkgdb_api_revisions', but having maybe
       -- parsed off a negotiated content type.
-      fieldLink pkgdb_api_revisions contentType
+      fieldLink pkgdb_api_revisions cType
   , pkgdb_api_revisions = packageRevisions
+  , pkgdb_api_revisionMetadata = packageRevisionMetadata
+  , pkgdb_api_revisionCabal = packageRevisionCabal
   , pkgdb_api_versions = packageVersions
   , pkgdb_api_cabalFile = packageCabalFile
   , pkgdb_api_metadata = packageMetadata
@@ -96,15 +98,8 @@ packageVersions pname = do
 --------------------------------------------------------------------------------
 -- /package/:packageid.json
 
-packageMetadata :: PackageId -> ServerM PackageBasicDescriptionDTO
-packageMetadata pid = do
-  (rev, user) <- liftDB $ doSelect1 $ do
-    rev <- getLatestRev $ Specific pid
-    user <- each usersSchema
-    where_ $ userId user ==. metadataUploader rev
-    pure (rev, userName user)
-
-
+cabalToDTO :: MetadataRevisionRow Result -> UserName -> ServerM PackageBasicDescriptionDTO
+cabalToDTO rev user = do
   let parseResult = PkgDescr.parseGenericPackageDescription $ metadataCabalFile rev
   case PkgDescr.runParseResult parseResult of
     (_, Right pkg) -> do
@@ -122,6 +117,49 @@ packageMetadata pid = do
         }
     -- TODO(sandy): do something with the warnings?
     _ -> throwError $ err500
+
+
+packageMetadata :: PackageId -> ServerM PackageBasicDescriptionDTO
+packageMetadata pid = do
+  (rev, user) <- liftDB $ doSelect1 $ do
+    rev <- getLatestRev $ Specific pid
+    user <- each usersSchema
+    where_ $ userId user ==. metadataUploader rev
+    pure (rev, userName user)
+  cabalToDTO rev user
+
+
+--------------------------------------------------------------------------------
+-- /package/:packageid/revision/:rev[.json]
+
+packageRevisionMetadata
+    :: Maybe NegotiatedContent
+    -> PackageId
+    -> MetadataRevIx
+    -> ServerM PackageBasicDescriptionDTO
+packageRevisionMetadata _ pid revix = do
+  (rev, user) <- liftDB $ doSelect1 $ do
+    rev <- getAllRevs $ Specific pid
+    where_ $ metadataRevId rev ==. lit revix
+    user <- each usersSchema
+    where_ $ userId user ==. metadataUploader rev
+    pure (rev, userName user)
+  cabalToDTO rev user
+
+
+--------------------------------------------------------------------------------
+-- /package/:packageid/revision/:rev.cabal
+
+packageRevisionCabal
+    :: PackageId
+    -> MetadataRevIx
+    -> ServerM StrictByteString
+packageRevisionCabal pid revix = do
+  (rev) <- liftDB $ doSelect1 $ do
+    rev <- getAllRevs $ Specific pid
+    where_ $ metadataRevId rev ==. lit revix
+    pure rev
+  pure $ metadataCabalFile rev
 
 
 --------------------------------------------------------------------------------
