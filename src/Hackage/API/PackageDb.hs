@@ -24,6 +24,7 @@ import Data.Int (Int64)
 import Data.List qualified as List
 import Data.Map qualified as M
 import Data.Proxy (Proxy(..))
+import Data.Set qualified as S
 import Data.String (fromString)
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -80,6 +81,7 @@ packageDbServer = PackageDbApi
   , pkgdb_api_tarball = packageTarball
   , pkgdb_api_distroMonitor = packageDistroMonitor
   , pkgdb_api_dependencies = packageDependencies
+  , pkgdb_api_deprecated = packageDeprecation
   , pkgdb_api_tarballContent = packageTarballContent
   }
 
@@ -195,6 +197,47 @@ packagePreferredVersions _ pname = do
     pkgv <- getAllVersions $ lit pname
     pure (packageVersion pkgv, pkgInfoDeprecated pkgv)
   pure $ WithPackageName pname $ PreferredVersions $ M.fromList $ fmap (fmap $ bool Normal Deprecated) versions
+
+
+--------------------------------------------------------------------------------
+-- /package/:package/deprecated
+
+instance ToObject Deprecation where
+  toObject (Deprecation Nothing) =
+    [ "deprecated" .= False
+    ]
+  toObject (Deprecation (Just deprs)) =
+    [ "deprecatedFor" .= S.toList deprs
+    , "deprecated" .= True
+    ]
+
+instance HasTemplate HTML Deprecation where
+  templateFor _ _ = "packages/deprecated.html"
+
+
+packageDeprecation
+    :: Maybe NegotiatedContent
+    -> PackageName
+    -> ServerM (WithPackageName Deprecation)
+packageDeprecation _ pname = do
+  -- TODO(sandy): share the db connection
+  isDepr <- liftDB $ doSelect1 $ do
+    pkg <- each packageNameSchema
+    where_ $ packageName pkg ==. lit pname
+    pure $ packageDeprecated pkg
+  case isDepr of
+    False ->
+      pure $ WithPackageName pname $ Deprecation Nothing
+    True -> do
+      deprs <- liftDB $ doSelect $ do
+        pkg <- each packageNameSchema
+        where_ $ packageName pkg ==. lit pname
+        depr <- each pkgDeprecationSchema
+        where_ $ packageNameId pkg ==. pkgDeprecatedPkg depr
+        deprFor <- each packageNameSchema
+        where_ $ packageNameId deprFor ==. pkgDeprecatedInFavorOf depr
+        pure $ packageName deprFor
+      pure $ WithPackageName pname $ Deprecation $ Just $ S.fromList deprs
 
 
 --------------------------------------------------------------------------------

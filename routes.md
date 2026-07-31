@@ -9,7 +9,7 @@
 | [ ]  | /package/:package/changelog.:format (html)          | PackageContents | GET      |
 | [ ]  | /package/:package/changelog.:format (txt)           | PackageContents | GET      |
 | [x]  | /package/:package/dependencies (html)               | Html            | GET      |
-| [ ]  | /package/:package/deprecated.:format (html)         | Html            | PUT      |
+| [x]  | /package/:package/deprecated.:format (html)         | Html            | GET      |
 | [x]  | /package/:package/distro-monitor.:format (html)     | Html            | GET      |
 | [ ]  | /package/:package/docs.:format (tar)                | Documentation   | GET      |
 | [ ]  | /package/:package/docs/..                           | Documentation   | GET      |

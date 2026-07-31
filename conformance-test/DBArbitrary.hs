@@ -184,6 +184,9 @@ spec =
     it "preferredVersions" $ verify $ do
       a <- genPackageName
       pure $ fieldLink pkgdb_api_preferredVersions (Just $ NegotiatedContent "json") a
+    it "deprecated" $ verify $ do
+      a <- genPackageName
+      pure $ fieldLink pkgdb_api_deprecated (Just $ NegotiatedContent "json") a
 
 
 main :: IO ()

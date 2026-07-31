@@ -134,6 +134,8 @@ mkPkgName = caching #names $ \name -> do
             [ PackageNameRow
                 { packageNameId = newPrimaryKey
                 , packageName = lit name
+                -- TODO(sandy): fill in deprecated status
+                , packageDeprecated = lit False
                 }
             ]
         , onConflict = returnKeyOnConflict packageName

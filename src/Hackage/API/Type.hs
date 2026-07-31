@@ -10,6 +10,8 @@ import Data.List (partition, sortOn)
 import Data.Map (Map)
 import Data.Map qualified as M
 import Data.Ord (Down(..))
+import Data.Set (Set)
+import Data.Set qualified as S
 import Data.String (fromString)
 import Data.Text (Text)
 import Data.Text.Arbitrary ()
@@ -110,6 +112,12 @@ data PackageDbApi mode = PackageDbApi
       :> Capture "package" PackageName
       :> "preferred"
       :> Get '[HTML, JSON] (WithPackageName PreferredVersions)
+  , pkgdb_api_deprecated :: mode
+      :- NegotiableContent
+      :> "package"
+      :> Capture "package" PackageName
+      :> "deprecated"
+      :> Get '[HTML, JSON] (WithPackageName Deprecation)
   , pkgdb_api_tarballContent :: mode
       :- UserDomain
       :> "package"
@@ -266,6 +274,26 @@ instance ToJSON Revision where
     , "sha256" .= sha256 rev
     , "time"   .= time rev
     , "user"   .= user rev
+    ]
+
+
+--------------------------------------------------------------------------------
+-- /package/:package/deprecated
+
+newtype Deprecation = Deprecation
+  { deprecatedInFavorOf :: Maybe (Set PackageName)
+    -- ^ 'Nothing' here indicates "not deprecated"
+  }
+  deriving newtype (Eq, Ord, Show, Arbitrary)
+
+instance ToJSON Deprecation where
+  toJSON (Deprecation Nothing) = object
+    [ "in-favour-of" .= id @[PackageName] []
+    , "is-deprecated" .= False
+    ]
+  toJSON (Deprecation (Just pkgs)) = object
+    [ "in-favour-of" .= S.toList pkgs
+    , "is-deprecated" .= True
     ]
 
 

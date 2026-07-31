@@ -1,0 +1,30 @@
+{% include "../header.html" with title = "Deprecated status" %}
+
+<h2>Deprecated status</h2>
+
+<p>
+  <a href="/package/{{package}}">{{package}}</a>
+  {% if ! deprecated %}
+    is not deprecated
+  {% else %}
+    {% if (deprecatedFor | empty) %}
+      is deprecated
+    {% else %}
+      is deprecated in favor of
+      <ul class="comma-sep">
+      {% for repl in deprecatedFor %}
+        <li><a href="/package/{{repl.value}}">{{repl.value}}</a></li>
+      {% endfor %}
+      </ul>
+    {% endif %}
+  {% endif %}
+
+  <span style="color: gray">
+    [maintainers:
+      <a href="/package/{{package}}/deprecated/edit">edit</a>]
+  </span>
+</p>
+
+{% include "../footer.html" %}
+
+

@@ -34,6 +34,7 @@ type PkgId = PrimaryKey PackageNameRow
 data PackageNameRow f = PackageNameRow
   { packageNameId :: Column f PkgId
   , packageName :: Column f PackageName
+  , packageDeprecated :: Column f Bool
   }
   deriving stock (Generic)
   deriving anyclass (Rel8able)
@@ -46,6 +47,7 @@ packageNameSchema = TableSchema
   , columns = PackageNameRow
       { packageNameId = "id"
       , packageName = "name"
+      , packageDeprecated = "deprecated"
       }
   }
 
@@ -55,6 +57,37 @@ packageNameTable = DbTable packageNameSchema
   [ PK packageNameId
   , AutoInc packageNameId
   , Unique packageName
+  ]
+
+type PkgDeprecationKey = PrimaryKey PkgDeprecationRow
+
+data PkgDeprecationRow f = PkgDeprecationRow
+  { pkgDeprecationId :: Column f PkgDeprecationKey
+  , pkgDeprecatedPkg :: Column f PkgId
+  , pkgDeprecatedInFavorOf :: Column f PkgId
+  }
+  deriving stock (Generic)
+  deriving anyclass (Rel8able)
+
+deriving stock instance Show (PkgDeprecationRow Result)
+
+
+pkgDeprecationSchema :: TableSchema (PkgDeprecationRow Name)
+pkgDeprecationSchema = TableSchema
+  { name = "deprecations"
+  , columns = PkgDeprecationRow
+      { pkgDeprecationId = "id"
+      , pkgDeprecatedPkg = "pkg"
+      , pkgDeprecatedInFavorOf = "deprecated_for"
+      }
+  }
+
+pkgDeprecationTable :: DbTable PkgDeprecationRow
+pkgDeprecationTable = DbTable pkgDeprecationSchema
+  [ PK pkgDeprecationId
+  , AutoInc pkgDeprecationId
+  , FK pkgDeprecatedPkg packageNameSchema packageNameId
+  , FK pkgDeprecatedInFavorOf packageNameSchema packageNameId
   ]
 
 

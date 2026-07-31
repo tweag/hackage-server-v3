@@ -23,4 +23,5 @@ main conn = do
   mk tagTable
   mk packageTagTable
   mk tarIndexTable
+  mk pkgDeprecationTable
 
