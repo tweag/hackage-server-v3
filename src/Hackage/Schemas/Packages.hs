@@ -27,7 +27,6 @@ import Rel8
   , Result
   )
 
-data Compressed a
 
 type PkgId = PrimaryKey PackageNameRow
 

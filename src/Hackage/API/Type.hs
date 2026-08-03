@@ -71,7 +71,7 @@ data PackageDbApi mode = PackageDbApi
       :- "package"
       :> Capture "package" PackageLocator
       :> CaptureExt "tarball" PackageIdentifier "tar.gz"
-      :> Get '[Tarball] BSL.ByteString
+      :> Get '[Compressed Tarball] BSL.ByteString
   , pkgdb_api_distroMonitor :: mode
       :- NegotiableContent
       :> "package"
