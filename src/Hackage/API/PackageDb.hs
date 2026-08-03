@@ -23,6 +23,7 @@ import Data.Functor.Contravariant
 import Data.Int (Int64)
 import Data.List qualified as List
 import Data.Map qualified as M
+import Data.Map.Monoidal qualified as MM
 import Data.Proxy (Proxy(..))
 import Data.Set qualified as S
 import Data.String (fromString)
@@ -82,6 +83,7 @@ packageDbServer = PackageDbApi
   , pkgdb_api_distroMonitor = packageDistroMonitor
   , pkgdb_api_dependencies = packageDependencies
   , pkgdb_api_deprecated = packageDeprecation
+  , pkgdb_api_allDeprecated = packageAllDeprecations
   , pkgdb_api_tarballContent = packageTarballContent
   }
 
@@ -238,6 +240,40 @@ packageDeprecation _ pname = do
         where_ $ packageNameId deprFor ==. pkgDeprecatedInFavorOf depr
         pure $ packageName deprFor
       pure $ WithPackageName pname $ Deprecation $ Just $ S.fromList deprs
+
+
+--------------------------------------------------------------------------------
+-- /packages/deprecated
+
+instance ToObject AllDeprecations where
+  toObject (AllDeprecations deps) =
+    [ "deprecations" .= do
+        (pkg, replacements) <- M.toList deps
+        pure $ object
+          [ "pkg" .= pkg
+          , "replacements" .= S.toList replacements
+          ]
+    ]
+
+instance HasTemplate HTML AllDeprecations where
+  templateFor _ _ = "packages/allDeprecated.html"
+
+
+packageAllDeprecations
+    :: Maybe NegotiatedContent
+    -> ServerM AllDeprecations
+packageAllDeprecations _ = do
+  deprs <- liftDB $ doSelect $ do
+    pkg <- each packageNameSchema
+    where_ $ packageDeprecated pkg
+    depr <- each pkgDeprecationSchema
+    where_ $ packageNameId pkg ==. pkgDeprecatedPkg depr
+    deprFor <- each packageNameSchema
+    where_ $ packageNameId deprFor ==. pkgDeprecatedInFavorOf depr
+    pure $ (packageName pkg, packageName deprFor)
+  pure $ AllDeprecations $ MM.getMonoidalMap $ mconcat $ do
+    (pkg, depr) <- deprs
+    pure $ MM.singleton pkg $ S.singleton depr
 
 
 --------------------------------------------------------------------------------

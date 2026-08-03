@@ -1,0 +1,23 @@
+{% include "../header.html" with title = "Deprecated packages" %}
+
+<h2>Deprecated packages</h2>
+
+<ul>
+{% for depr in deprecations %}
+  <li>
+  {% if (depr.value.replacements | empty) %}
+    <a href="/package/{{depr.value.pkg}}">{{depr.value.pkg}}</a>: deprecated
+  {% else %}
+    <a href="/package/{{depr.value.pkg}}">{{depr.value.pkg}}</a>: deprecated in favor of
+    <ul class="comma-sep">
+      {% for repl in depr.value.replacements %}
+        <li><a href="/package/{{repl.value}}">{{repl.value}}</a></li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  </li>
+{% endfor%}
+</ul>
+
+{% include "../footer.html" %}
+

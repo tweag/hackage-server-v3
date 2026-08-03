@@ -118,6 +118,11 @@ data PackageDbApi mode = PackageDbApi
       :> Capture "package" PackageName
       :> "deprecated"
       :> Get '[HTML, JSON] (WithPackageName Deprecation)
+  , pkgdb_api_allDeprecated :: mode
+      :- NegotiableContent
+      :> "packages"
+      :> "deprecated"
+      :> Get '[HTML, JSON] AllDeprecations
   , pkgdb_api_tarballContent :: mode
       :- UserDomain
       :> "package"
@@ -295,6 +300,23 @@ instance ToJSON Deprecation where
     [ "in-favour-of" .= S.toList pkgs
     , "is-deprecated" .= True
     ]
+
+
+--------------------------------------------------------------------------------
+-- /packages/deprecated
+
+newtype AllDeprecations = AllDeprecations
+  { deprecationMap :: Map PackageName (Set PackageName)
+  }
+  deriving newtype (Eq, Ord, Show, Arbitrary)
+
+instance ToJSON AllDeprecations where
+  toJSON (AllDeprecations m) = toJSON $ do
+    (pkg, replacements) <- M.toList m
+    pure $ object
+      [ "deprecated-package" .= pkg
+      , "in-favour-of" .= S.toList replacements
+      ]
 
 
 --------------------------------------------------------------------------------
