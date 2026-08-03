@@ -133,6 +133,16 @@ data PackageDbApi mode = PackageDbApi
            '[ '(PlainText, Text)
             , '(HTML, DirectoryListing)
             ]
+  , pkgdb_api_docs :: mode
+      :- UserDomain
+      :> "package"
+      :> Capture "package" PackageLocator
+      :> "docs"
+      :> CaptureAll "src" Text
+      :> DynamicGet
+           '[ '(PlainText, Text)
+            , '(HTML, DirectoryListing)
+            ]
   }
   deriving stock (Generic)
 

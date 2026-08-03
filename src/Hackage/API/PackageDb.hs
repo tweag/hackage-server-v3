@@ -86,6 +86,7 @@ packageDbServer = PackageDbApi
   , pkgdb_api_deprecated = packageDeprecation
   , pkgdb_api_allDeprecated = packageAllDeprecations
   , pkgdb_api_tarballContent = packageTarballContent
+  , pkgdb_api_docs = packageDocsContent
   }
 
 
@@ -525,6 +526,38 @@ packageTarballContent loc ps = do
   serveTarballContent
     (fieldLink pkgdb_api_tarballContent loc)
     (T.pack $ Pretty.prettyShow $ PackageIdentifier pname pid)
+    blob
+    ps
+
+
+packageDocsContent
+    :: PackageLocator
+    -> [Text]
+    -> ServerM (OneOf '[ '(PlainText, Text)
+                       , '(HTML, DirectoryListing)
+                       ])
+packageDocsContent loc ps = do
+  (version, blob) <- liftDB $ doSelect1 $ limit 1 $
+    case loc of
+      Specific _ -> do
+        pkginfo <- getLocator loc
+        doc <- each pkgDocsSchema
+        where_ $ pkgDocsPkg doc ==. pkgInfoId pkginfo
+        pure (packageVersion pkginfo, pkgDocsTarball doc)
+      Latest name -> latestBy fst $ do
+        -- When no specific version is given, find the latest version that has
+        -- any documentation at all.
+        pkg <- each packageNameSchema
+        where_ $ packageName pkg ==. lit name
+        pkginfo <- each pkgInfoSchema
+        where_ $ pkgId pkginfo ==. packageNameId pkg
+        doc <- each pkgDocsSchema
+        where_ $ pkgDocsPkg doc ==. pkgInfoId pkginfo
+        pure (packageVersion pkginfo, pkgDocsTarball doc)
+
+  serveTarballContent
+    (fieldLink pkgdb_api_tarballContent loc)
+    (T.pack (Pretty.prettyShow $ PackageIdentifier (packageLocName loc) version) <> "-docs")
     blob
     ps
 

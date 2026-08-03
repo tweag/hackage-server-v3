@@ -13,7 +13,7 @@
 | [x]  | /packages/deprecated.:format (html)                 | Html            | GET      |
 | [x]  | /package/:package/distro-monitor.:format (html)     | Html            | GET      |
 | [ ]  | /package/:package/docs.:format (tar)                | Documentation   | GET      |
-| [ ]  | /package/:package/docs/..                           | Documentation   | GET      |
+| [x]  | /package/:package/docs/..                           | Documentation   | GET      |
 | [/]  | /package/:package/preferred.:format (html)          | Html            | GET      |
 | [ ]  | /package/:package/readme.:format (html)             | PackageContents | GET      |
 | [ ]  | /package/:package/readme.:format (txt)              | PackageContents | GET      |
