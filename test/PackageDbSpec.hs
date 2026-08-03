@@ -62,6 +62,18 @@ spec = aroundAll withDb $ do
         cabal <- pkgdb_api_cabalFile packageDbServer loc $ packageLocName loc
         pure $ cabal `shouldBe`  mmr_cabal (last $ mpi_revisions mp)
 
+  serverProp "api_preferredVersions gives back what you put in" $
+    \model () -> do
+      (name, pkg) <- genExistingPackage model
+      pure $ do
+        prefs <- pkgdb_api_preferredVersions packageDbServer Nothing name
+        pure $ prefs `shouldBe` WithPackageName name
+          ( PreferredVersions $ M.fromList $ do
+              (v, pkginfo) <- M.toList $ mp_versions pkg
+              pure (v, bool Normal Deprecated $ mpi_deprecated pkginfo)
+          )
+
+
 -- | For use with 'aroundAll': make a temporary postgres database and setup its
 -- schema for Hackage.
 withDb :: ActionWith ServerCtx -> IO ()
