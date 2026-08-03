@@ -143,6 +143,11 @@ data PackageDbApi mode = PackageDbApi
            '[ '(PlainText, Text)
             , '(HTML, DirectoryListing)
             ]
+  , pkgdb_api_docsTarball :: mode
+      :- "package"
+      :> Capture "package" PackageLocator
+      :> "docs.tar"
+      :> Get '[Tarball] BSL.ByteString
   }
   deriving stock (Generic)
 
