@@ -19,6 +19,7 @@ import Hackage.Utils
 import Hasql.Connection.Setting qualified as DB
 import Hasql.Connection.Setting.Connection qualified as DB
 import Hasql.Session (run, sql)
+import Hackage.Objects
 import Model
 import Test.Hspec
 import Test.QuickCheck
@@ -54,6 +55,12 @@ spec = aroundAll withDb $ do
         -- 'pkgdb_api_uploader' uses the 'last' revision!
         pure $ uploader `shouldBe` mmr_time (head $ mpi_revisions mp)
 
+  serverProp "api_cabalFile gives back what you put in" $
+    \model () -> do
+      (loc, mp) <- genExistingPackageLocator model
+      pure $ do
+        cabal <- pkgdb_api_cabalFile packageDbServer loc $ packageLocName loc
+        pure $ cabal `shouldBe`  mmr_cabal (last $ mpi_revisions mp)
 
 -- | For use with 'aroundAll': make a temporary postgres database and setup its
 -- schema for Hackage.

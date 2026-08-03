@@ -3,9 +3,11 @@
 
 module Model where
 
-import Control.Monad (void)
 import Control.Arrow ((&&&))
+import Control.Monad (void)
 import Data.Bifunctor (first)
+import Data.ByteString (StrictByteString)
+import Data.ByteString.Char8 qualified as BS8
 import Data.Data (Data)
 import Data.Hashable
 import Data.Map (Map)
@@ -27,6 +29,10 @@ import Hackage.Types.PrimaryKey
 import Hackage.Utils
 import Rel8 hiding (null, filter, and, listOf)
 import Test.QuickCheck
+
+
+genByteString :: Gen StrictByteString
+genByteString = fmap (BS8.pack . getASCIIString) arbitrary
 
 
 -- | Like 'Arbitrary', but for types that require input in order to generate.
@@ -238,6 +244,7 @@ instance SomewhatArbitrary (Set ModelUserRef) ModelUserRef where
 data ModelMetaRev = ModelMetaRev
   { mmr_user :: ModelUserRef
   , mmr_time :: UTCTime
+  , mmr_cabal :: StrictByteString
   }
   deriving stock (Eq, Ord, Show, Generic, Data)
 
@@ -246,15 +253,16 @@ instance SomewhatArbitrary (Set ModelUserRef) ModelMetaRev where
     ModelMetaRev
       <$> sarbitrary us
       <*> arbitrary
+      <*> genByteString
 
-  sshrink us (ModelMetaRev user time) =
+  sshrink us (ModelMetaRev user time cabal) =
     mconcat
       [ do
           user' <- sshrink us user
-          pure $ ModelMetaRev user' time
+          pure $ ModelMetaRev user' time cabal
       , do
           time' <- shrink time
-          pure $ ModelMetaRev user time'
+          pure $ ModelMetaRev user time' cabal
       ]
 
 
@@ -376,7 +384,7 @@ loadModelMetaRevs revs = do
             , metadataRevId = lit revix
             , metadataTime = lit $ mmr_time rev
             , metadataUploader = lit $ mur_id $ mmr_user rev
-            , metadataCabalFile = lit mempty
+            , metadataCabalFile = lit $ mmr_cabal rev
             }
     , onConflict = Abort
     , returning = Returning metadataId
