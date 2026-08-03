@@ -125,6 +125,41 @@ pkgInfoTable = DbTable pkgInfoSchema
   , FK pkgId packageNameSchema packageNameId
   ]
 
+--------------------------------------------------------------------------------
+
+type PkgDocsId = PrimaryKey PkgDocsRow
+
+data PkgDocsRow f = PkgDocsRow
+  { pkgDocsId :: Column f PkgDocsId
+  , pkgDocsPkg :: Column f PkgInfoId
+  , pkgDocsTarball :: Column f (BlobId Tarball)
+  }
+  deriving stock (Generic)
+  deriving anyclass (Rel8able)
+
+deriving stock instance Show (PkgDocsRow Result)
+
+
+pkgDocsSchema :: TableSchema (PkgDocsRow Name)
+pkgDocsSchema = TableSchema
+  { name = "pkg_docs"
+  , columns = PkgDocsRow
+      { pkgDocsId = "id"
+      , pkgDocsPkg = "pkgid"
+      , pkgDocsTarball = "blob"
+      }
+  }
+
+pkgDocsTable :: DbTable PkgDocsRow
+pkgDocsTable = DbTable pkgDocsSchema
+  [ PK pkgDocsId
+  , AutoInc pkgDocsId
+  , Unique pkgDocsPkg
+  ]
+
+
+--------------------------------------------------------------------------------
+
 
 type PkgRevId = PrimaryKey MetadataRevisionRow
 
