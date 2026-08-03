@@ -148,6 +148,12 @@ data PackageDbApi mode = PackageDbApi
       :> Capture "package" PackageLocator
       :> "docs.tar"
       :> Get '[Tarball] BSL.ByteString
+  , pkgdb_api_changelog :: mode
+      :- NegotiableContent
+      :> "package"
+      :> Capture "package" PackageLocator
+      :> "changelog"
+      :> Get '[PlainText] Text
   }
   deriving stock (Generic)
 

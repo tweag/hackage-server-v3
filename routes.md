@@ -3,10 +3,10 @@
 | [ ]  | /package/:package.:format (html)                    | Html            |
 | [ ]  | /package/:package.rss                               | PackageFeed     |
 | [ ]  | /package/:package/changelog.:format (html)          | PackageContents |
-| [ ]  | /package/:package/changelog.:format (txt)           | PackageContents |
+| [x]  | /package/:package/changelog.:format (txt)           | PackageContents |
 | [ ]  | /package/:package/docs.:format (tar)                | Documentation   |
-| [ ]  | /package/:package/readme.:format (html)             | PackageContents |
-| [ ]  | /package/:package/readme.:format (txt)              | PackageContents |
+| [x]  | /package/:package/readme.:format (html)             | PackageContents |
+| [x]  | /package/:package/readme.:format (txt)              | PackageContents |
 | [ ]  | /package/:package/reverse.:format (html)            | Html            |
 | [ ]  | /package/:package/reverse/old.:format (html)        | Html            |
 | [ ]  | /package/:package/reverse/verbose.:format (html)    | Html            |

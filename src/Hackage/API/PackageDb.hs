@@ -90,6 +90,7 @@ packageDbServer = PackageDbApi
   , pkgdb_api_tarballContent = packageTarballContent
   , pkgdb_api_docs = packageDocsContent
   , pkgdb_api_docsTarball = packageDocsTarball
+  , pkgdb_api_changelog = packageChangelog
   }
 
 
@@ -604,4 +605,42 @@ loadTarEntry_ tarfile off = withBinaryFile tarfile ReadMode $ \htar -> do
          body <- BS.hGet htar (fromIntegral size)
          pure $ Right (size, BSL.fromStrict body)
     z -> pure $ Left $ fail $  "failed to read entry from tar file: " <> show (tarfile, off, show z)
+
+
+--------------------------------------------------------------------------------
+-- /package/:package/changelog
+
+packageChangelog
+  :: Maybe NegotiatedContent
+  -> PackageLocator
+  -> ServerM Text
+packageChangelog _ loc = do
+  (blob, off) <- liftDB $ doSelect1 $ do
+    tar <- getLatestTarball loc
+    idx <- each tarIndexSchema
+    where_ $ tarballBlobNoGz tar ==. tarIndexBlob idx
+
+    (pname, version) <- locatorToPackageId loc
+    let prefix = mconcat
+          [ unsafeCastExpr pname
+          , "-"
+          , showVersionExpr version
+          , "/"
+          ]
+    where_ $ in_ (tarIndexPath idx) $ id @[_] $ do
+      base <- [ "news", "changelog", "change_log", "changes"
+              , "NEWS", "CHANGELOG", "CHANGE_LOG", "CHANGES"
+              , "News", "Changelog", "Change_log", "Changes"
+                      , "ChangeLog", "Change_Log"
+              ]
+      ext <- [ "", ".txt", ".md", ".markdown"
+             ,     ".TXT", ".MD", ".MARKDOWN"
+             ]
+      pure $ prefix <> base <> ext
+    pure (tarIndexBlob idx, tarIndexOffset idx)
+  store <- asks serverBlobStore
+  liftIO (loadTarEntry_ (Blob.filepath store blob) off) >>= \case
+    Right (_, e) ->
+      pure $ toStrict $ decodeUtf8 e
+    Left _ -> throwError err500
 
