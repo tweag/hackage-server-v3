@@ -61,6 +61,7 @@ import Servant.HackageCombinators.NegotiableContent
 import Servant.Links
 import Servant.Server (err303, err404, err500, ServerError(..))
 import Servant.Server.Generic (AsServerT)
+import Servant.Tarball
 import System.IO
 
 
@@ -425,31 +426,31 @@ instance ToObject DirectoryListing where
     [ "trie_cmds" .= flattenTrie t
     ]
 
-packageTarballContent
-    :: PackageLocator
-    -> [Text]
-    -> ServerM (OneOf '[ '(PlainText, Text)
-                       , '(HTML, DirectoryListing)
-                       ])
-packageTarballContent loc ps = do
+serveTarballContent
+  :: ([Text] -> Link)
+  -> Text
+  -- ^ Path prefix
+  -> BlobId Tarball
+  -> [Text]
+  -> ServerM (OneOf '[ '(PlainText, Text)
+                     , '(HTML, DirectoryListing)
+                     ])
+serveTarballContent mklink prefix blob ps = do
   -- Since all the paths in the package tarballs are prefixed by their pretty
   -- packageid, we must first resolve the locator.
-  (pname, pid) <- liftDB $ doSelect1 $ locatorToPackageId loc
-  let pkg = T.pack $ Pretty.prettyShow $ PackageIdentifier pname pid
-  let actualPath = T.intercalate "/" $ pkg : ps
+  let actualPath = T.intercalate "/" $ prefix : ps
 
   -- Now get offsets for everything in the tarball that is under the requested
   -- path.
   mstuff <- liftDB $ doSelect $ do
-    tar <- getLatestTarball loc
     off <- each tarIndexSchema
-    where_ $ tarIndexBlob off ==. tarballBlobNoGz tar
+    where_ $ tarIndexBlob off ==. lit blob
     -- Look only for files whose path starts with @actualPath@. In principle
     -- this could incorrectly interpret the final path segment as a prefix
     -- glob, but that doesn't actuall occur due to the 303 redirect discussed
     -- below.
     where_ $ startsWith (tarIndexPath off) $ lit actualPath
-    pure ((tarballBlobNoGz tar, tarIndexOffset off), tarIndexPath off)
+    pure (tarIndexOffset off, tarIndexPath off)
 
   -- Branch on what's going on:
   case mstuff of
@@ -460,7 +461,7 @@ packageTarballContent loc ps = do
     -- a prefix check, now determine whether the file is exactly the requested
     -- path. If so, we can serve the file. If not, it's a false positive and we
     -- should still return 404.
-    [((blob, off), path)]
+    [(off, path)]
       | path == actualPath -> do
           -- Lookup the file in the tarball...
           store <- asks serverBlobStore
@@ -488,7 +489,7 @@ packageTarballContent loc ps = do
         False -> throwError err303
           { errHeaders = pure
               ( hLocation
-              , mappend "/" $ toHeader $ fieldLink pkgdb_api_tarballContent loc $ ps <> [""]
+              , mappend "/" $ toHeader $ mklink $ ps <> [""]
               )
           }
         True -> do
@@ -506,6 +507,26 @@ packageTarballContent loc ps = do
             guard $ not $ T.isSuffixOf "/" path
             guard $ path /= mempty
             pure $ pathToTrie $ T.split (== '/') path
+
+
+packageTarballContent
+    :: PackageLocator
+    -> [Text]
+    -> ServerM (OneOf '[ '(PlainText, Text)
+                       , '(HTML, DirectoryListing)
+                       ])
+packageTarballContent loc ps = do
+  (pname, pid) <- liftDB $ doSelect1 $ locatorToPackageId loc
+
+  blob <- liftDB $ doSelect1 $ do
+    tar <- getLatestTarball loc
+    pure $ tarballBlobNoGz tar
+
+  serveTarballContent
+    (fieldLink pkgdb_api_tarballContent loc)
+    (T.pack $ Pretty.prettyShow $ PackageIdentifier pname pid)
+    blob
+    ps
 
 
 loadTarEntry_
