@@ -37,7 +37,7 @@ mainImpl opts = do
   pool <- newPool $ connPool opts
   blobStore <- Blob.open $ optBlobStore opts
   app <-
-    runServerM
+    serverMToWai
       (Proxy @(
         NamedRoutes PackageDbApi
         ))

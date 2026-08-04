@@ -146,7 +146,7 @@ spec =
   with (do
       pool <- newPool $ connPool testOptions
       blobStore <- Blob.open "../hackage-server/state/blobs"
-      runServerM
+      serverMToWai
         (Proxy @(NamedRoutes PackageDbApi))
         (UserDomain (optUserDomain testOptions) :. EmptyContext)
         (ServerCtx pool blobStore)

@@ -49,7 +49,12 @@ withConnection k =
       withResource (serverPool ctx) $
         runExceptT . flip runReaderT ctx . unServerM . k
 
-runServerM
+
+runServerM :: ServerCtx -> ServerM a -> IO (Either ServerError a)
+runServerM ctx = runExceptT . flip runReaderT ctx . unServerM
+
+
+serverMToWai
     :: forall api ctx
      . ( LoadedTemplates => HasServer api ctx
        , ServerContext ctx
@@ -60,7 +65,7 @@ runServerM
     -> ServerCtx
     -> ServerT api ServerM
     -> IO Application
-runServerM api ctx serverCtx server = either (fail . show) pure =<< do
+serverMToWai api ctx serverCtx server = either (fail . show) pure =<< do
   unsafeLoadTemplates api filters "templates"
     $ pure
     $ serveWithContext api ctx
