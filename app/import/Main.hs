@@ -1,12 +1,12 @@
 module Main where
 
 import Data.Text qualified as T
+import Hackage.SetupDB (setupDB)
 import Hackage.Utils (withConn)
 import Hasql.Connection.Setting qualified as DB
 import Hasql.Connection.Setting.Connection qualified as DB
 import Mirror
 import Options.Applicative
-import SetupDB qualified
 
 
 data Command
@@ -83,7 +83,7 @@ main = do
   Options{optDb, optCommand} <- execParser opts
   withConn (pure $ DB.connection $ DB.string optDb) $ \conn ->
     case optCommand of
-      MakeDb -> SetupDB.main conn
+      MakeDb -> setupDB conn
       BackfillPackages acidDir ->
         backfillPackageDB conn acidDir
       BackfillBlobstore blobDir ->
