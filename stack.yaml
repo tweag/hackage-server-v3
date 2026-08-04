@@ -17,8 +17,9 @@ extra-deps:
   - Cabal-3.16.1.0
   - Cabal-syntax-3.16.1.0
   - tar-0.7.1.0
-
   - request-0.4.0.0
+  - github: jfischoff/tmp-postgres
+    commit: 7f2467a6d6d5f6db7eed59919a6773fe006cf22b
 
 allow-newer: true
 

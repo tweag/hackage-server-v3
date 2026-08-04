@@ -85,6 +85,17 @@ packages:
       size: 321
   original:
     hackage: request-0.4.0.0
+- completed:
+    name: tmp-postgres
+    pantry-tree:
+      sha256: 7113d11937f2180afe164dd20bb4967e0269c0a150b30b5e05929614b32c3729
+      size: 1616
+    sha256: df2750ce45f6c1c89faac6435c4180c535378f4ad726559ed319b85bc05091c2
+    size: 41308
+    url: https://github.com/jfischoff/tmp-postgres/archive/7f2467a6d6d5f6db7eed59919a6773fe006cf22b.tar.gz
+    version: 1.35.0.0
+  original:
+    url: https://github.com/jfischoff/tmp-postgres/archive/7f2467a6d6d5f6db7eed59919a6773fe006cf22b.tar.gz
 snapshots:
 - completed:
     sha256: 6406d8039dd538f18fc0d242f01c7066ee386d81ba3c8751b914ac1ae193ec5d

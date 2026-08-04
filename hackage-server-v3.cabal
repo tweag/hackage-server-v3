@@ -336,6 +336,7 @@ test-suite tests
   other-modules:
       HackageCombinatorsSpec
       MD5Spec
+      PackageDbSpec
       TemplatesSpec
       TrieSpec
       Paths_hackage_server_v3
@@ -397,6 +398,7 @@ test-suite tests
     , tar
     , text
     , time
+    , tmp-postgres
     , transformers
     , unordered-containers
     , vector
