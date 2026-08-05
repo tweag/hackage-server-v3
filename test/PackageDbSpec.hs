@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings               #-}
+{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 
 module PackageDbSpec where
 
@@ -6,23 +7,19 @@ import Control.Exception (throwIO, finally)
 import Control.Monad (void)
 import Control.Monad.IO.Class
 import Data.Bool
-import Data.Foldable
 import Data.Map qualified as M
 import Data.Pool (newPool, withResource, defaultPoolConfig)
 import Data.Text.Encoding (decodeUtf8)
 import Database.Postgres.Temp qualified as Temp
-import Distribution.Types.PackageName
 import Hackage.API.PackageDb (packageDbServer)
 import Hackage.API.Type
-import Hackage.Schemas.Packages
 import Hackage.ServerM
 import Hackage.SetupDB (setupDB)
-import Hackage.Types.PrimaryKey
 import Hackage.Utils
 import Hasql.Connection.Setting qualified as DB
 import Hasql.Connection.Setting.Connection qualified as DB
 import Hasql.Session (run, sql)
-import Rel8 hiding (Lift, bool, run)
+import Model
 import Test.Hspec
 import Test.QuickCheck
 
@@ -30,39 +27,15 @@ import Test.QuickCheck
 spec :: Spec
 spec = aroundAll withDb $ do
   serverProp "api_versions gives back what you put in" $
-    \(PrintableString pkgname, pkgdepr, versions) -> do
-      let pkg = mkPackageName pkgname
-      pkgid <- liftDB $ doInsert1 $ Insert
-        { into = packageNameSchema
-        , rows = values $
-            [ PackageNameRow
-                { packageNameId = newPrimaryKey
-                , packageName = lit pkg
-                , packageDeprecated = lit pkgdepr
-                }
-            ]
-        , onConflict = DoNothing
-        , returning = Returning packageNameId
-        }
-      for_ (M.toList versions) $ \(version, depr) ->
-        liftDB $ doInsert_ $ Insert
-          { into = pkgInfoSchema
-          , rows = values
-              [ PkgInfoRow
-                  { pkgInfoId = newPrimaryKey
-                  , pkgId = lit pkgid
-                  , packageVersion = lit version
-                  , pkgInfoDeprecated = lit depr
-                  }
-              ]
-          , onConflict = DoNothing
-          , returning = NoReturning
-          }
-      vs <- pkgdb_api_versions packageDbServer pkg
-      pure $ vs `shouldBe` PackageVersions (M.fromList $ do
-        (version, depr) <- M.toList versions
-        pure (version, bool Normal Deprecated depr)
-        )
+    \model () -> do
+      pkg <- genExistingPackage model
+      let Just mp = lookupPackage model pkg
+      pure $ do
+        vs <- pkgdb_api_versions packageDbServer pkg
+        pure $ vs `shouldBe` PackageVersions (M.fromList $ do
+          (version, depr) <- M.toList $ mp_versions mp
+          pure (version, bool Normal Deprecated $ mpi_deprecated depr)
+          )
 
 
 -- | For use with 'aroundAll': make a temporary postgres database and setup its
@@ -87,14 +60,15 @@ withDb action = do
 serverProp
     :: (Arbitrary a, Show a, Testable b)
     => String
-    -> (a -> ServerM b)
+    -> (ModelHackage -> a -> Gen (ServerM b))
     -> SpecWith ServerCtx
 serverProp n p =
   it n $ \ctx ->
-    property $ \a ->
-      ioProperty $ do
+    property $ \(model, a) -> do
+      server <- p model a
+      pure $ ioProperty $ do
         conn <- withResource (serverPool ctx) pure
         void $ run (sql "BEGIN") conn
-        mb <- finally (runServerM ctx $ p a) $ liftIO $ run (sql "ROLLBACK") conn
+        mb <- finally (runServerM ctx $ loadModelHackage model *> server) $ liftIO $ run (sql "ROLLBACK") conn
         either throwIO pure mb
 

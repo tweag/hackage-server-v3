@@ -43,7 +43,10 @@ instance DBEq PackageName
 instance DBOrd PackageName
 
 instance Arbitrary PackageName where
-  arbitrary = mkPackageName <$> arbitrary
+  arbitrary
+    = fmap mkPackageName
+    $ suchThat (fmap getPrintableString arbitrary)
+    $ not . null
 
 instance DBType Version where
   typeInformation =
@@ -92,7 +95,7 @@ instance DBEq Version
 instance DBOrd Version
 
 instance Arbitrary Version where
-  arbitrary = mkVersion <$> fmap (fmap getNonNegative) arbitrary
+  arbitrary = mkVersion <$> fmap (fmap getNonNegative . getNonEmpty) arbitrary
 
 instance FromHttpApiData PackageName where
   parseUrlPiece x = maybe (Left $ "Can't parse package name: " <> x) Right . simpleParsec $ T.unpack x

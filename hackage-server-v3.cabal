@@ -336,6 +336,7 @@ test-suite tests
   other-modules:
       HackageCombinatorsSpec
       MD5Spec
+      Model
       PackageDbSpec
       TemplatesSpec
       TrieSpec
