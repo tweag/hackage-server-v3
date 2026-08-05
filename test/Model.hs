@@ -79,18 +79,26 @@ lookupPackageInfo mh (PackageIdentifier pkg v) = do
 
 
 -- | Get an arbitrary 'PackageName' that is guaranteed to exist in the model.
-genExistingPackage :: ModelHackage -> Gen (PackageName)
-genExistingPackage = fmap pkgName . genExistingPackageId
+genExistingPackage :: ModelHackage -> Gen (PackageName, ModelPackage)
+genExistingPackage mh = do
+  pkgname <- elements $ M.keys $ mh_packages mh
+  pure (pkgname, mh_packages mh M.! pkgname)
+
+
+-- | Get an arbitrary 'Version' that is guaranteed to exist in the model.
+genExistingVersion :: ModelPackage -> Gen (Version, ModelPkgInfo)
+genExistingVersion mp = do
+  version <- elements $ M.keys $ mp_versions mp
+  pure (version, mp_versions mp M.! version)
 
 
 -- | Get an arbitrary 'PackageIdentifier' that is guaranteed to exist in the
 -- model.
-genExistingPackageId :: ModelHackage -> Gen PackageIdentifier
+genExistingPackageId :: ModelHackage -> Gen (PackageIdentifier, ModelPkgInfo)
 genExistingPackageId mh = do
-  pkgname <- elements $ M.keys $ mh_packages mh
-  let mp = mh_packages mh M.! pkgname
-  version <- elements $ M.keys $ mp_versions mp
-  pure $ PackageIdentifier pkgname version
+  (pkgname, mp) <- genExistingPackage mh
+  (version, pkginfo) <- genExistingVersion mp
+  pure (PackageIdentifier pkgname version, pkginfo)
 
 
 -- | Import a 'ModelHackage' into the database.

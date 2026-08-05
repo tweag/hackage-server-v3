@@ -28,8 +28,7 @@ spec :: Spec
 spec = aroundAll withDb $ do
   serverProp "api_versions gives back what you put in" $
     \model () -> do
-      pkg <- genExistingPackage model
-      let Just mp = lookupPackage model pkg
+      (pkg, mp) <- genExistingPackage model
       pure $ do
         vs <- pkgdb_api_versions packageDbServer pkg
         pure $ vs `shouldBe` PackageVersions (M.fromList $ do
