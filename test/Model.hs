@@ -78,18 +78,22 @@ lookupPackageInfo mh (PackageIdentifier pkg v) = do
   M.lookup v $ mp_versions mp
 
 
+-- | Helper function for implementing genExistingX.
+genExisting :: Ord k => (a -> Map k v) -> a -> Gen (k, v)
+genExisting f a = do
+  let fa = f a
+  k <- elements $ M.keys fa
+  pure (k, fa M.! k)
+
+
 -- | Get an arbitrary 'PackageName' that is guaranteed to exist in the model.
 genExistingPackage :: ModelHackage -> Gen (PackageName, ModelPackage)
-genExistingPackage mh = do
-  pkgname <- elements $ M.keys $ mh_packages mh
-  pure (pkgname, mh_packages mh M.! pkgname)
+genExistingPackage = genExisting mh_packages
 
 
 -- | Get an arbitrary 'Version' that is guaranteed to exist in the model.
 genExistingVersion :: ModelPackage -> Gen (Version, ModelPkgInfo)
-genExistingVersion mp = do
-  version <- elements $ M.keys $ mp_versions mp
-  pure (version, mp_versions mp M.! version)
+genExistingVersion = genExisting mp_versions
 
 
 -- | Get an arbitrary 'PackageIdentifier' that is guaranteed to exist in the
