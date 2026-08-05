@@ -29,7 +29,6 @@ import Hackage.Schemas.Users
 import Hackage.Types
 import Hackage.Types.PrimaryKey
 import Rel8 hiding (run)
-import Rel8.Expr.Time (now)
 import Servant.Tarball
 
 import Distribution.Server.Framework.BlobStorage qualified as V2
@@ -111,11 +110,7 @@ mkUser uid name =
             [ UsersRow
                 { userId = lit uid
                 , userName = lit name
-                , userEmail = lit Nothing
-                , userRealName = lit Nothing
                 , userStatus = lit Enabled
-                , userAdminNotes = lit mempty
-                , userCreatedTime = now
                 }
             ]
         , onConflict = returnKeyOnConflict userId
@@ -244,28 +239,6 @@ mkTarballRev qpkgid (V2.TarballRevIx revix) (V2.PkgTarball (V2.BlobInfo gz len s
     , returning = Returning tarballRevId
     }
 mkTarballRev _ (V2.TarballRevIx _) e _ = error $ show e
-
--- mkUser
---   :: V2.UserId
---   -> V2.UserName
---   -> Maybe V2.AccountDetails
---   -> Statement (Query (Expr UserId))
--- mkUser (V2.UserId uid) (V2.UserName uname) details = insert $ Insert
---   { into = usersSchema
---   , rows = values @_ @[]
---       [ UsersRow
---           { userId = lit $ UserId $ fromIntegral uid
---           , userName = lit $ T.pack uname
---           , userEmail = lit $ fmap V2.accountContactEmail details
---           , userRealName = lit $ fmap V2.accountName details
---           , userStatus = lit $ Enabled
---           , userAdminNotes = lit $ ""
---           , userCreatedTime = now
---           }
---       ]
---   , onConflict = returnKeyOnConflict userName
---   , returning = Returning userId
---   }
 
 
 insertPkgInfo :: V2.PkgInfo -> SqlM ()

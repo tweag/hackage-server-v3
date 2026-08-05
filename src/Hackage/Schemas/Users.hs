@@ -29,7 +29,6 @@ module Hackage.Schemas.Users
   , UserRole(..)
   ) where
 
-import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 import Hackage.Types
@@ -56,11 +55,7 @@ import Rel8.CreateTable
 data UsersRow f = UsersRow
   { userId :: Column f UserId
   , userName :: Column f UserName
-  , userEmail :: Column f (Maybe Text)
-  , userRealName :: Column f (Maybe Text)
   , userStatus :: Column f UserStatus
-  , userAdminNotes :: Column f Text
-  , userCreatedTime :: Column f UTCTime
   }
   deriving stock (Generic)
   deriving anyclass (Rel8able)
@@ -75,11 +70,7 @@ usersSchema = TableSchema
   , columns = UsersRow
       { userId = "user_id"
       , userName = "user_name"
-      , userEmail = "user_email"
-      , userRealName = "user_real_name"
       , userStatus = "user_status"
-      , userAdminNotes = "user_admin_notes"
-      , userCreatedTime = "user_created_time"
       }
   }
 
