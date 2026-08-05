@@ -1,19 +1,35 @@
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE UndecidableInstances   #-}
+
 module Model where
 
+import Control.Arrow ((&&&))
+import Data.Data (Data)
 import Data.Foldable
+import Data.Hashable
 import Data.Map (Map)
 import Data.Map qualified as M
+import Data.Set (Set)
+import Data.Set qualified as S
+import Data.Time (UTCTime)
 import Distribution.Types.PackageId
 import Distribution.Types.PackageName
 import Distribution.Types.Version
 import GHC.Generics
 import Hackage.Orphans ()
 import Hackage.Schemas.Packages
+import Hackage.Schemas.Users
 import Hackage.ServerM
+import Hackage.Types
 import Hackage.Types.PrimaryKey
 import Hackage.Utils
-import Rel8 hiding (null, filter)
+import Rel8 hiding (null, filter, and, listOf)
 import Test.QuickCheck
+
+
+-- | Like 'Arbitrary', but for types that require input in order to generate.
+class SomewhatArbitrary args a | a -> args where
+  sarbitrary :: args -> Gen a
 
 
 -- | A model of a full Hackage database. This type is significantly easier to
@@ -23,17 +39,45 @@ import Test.QuickCheck
 -- implementation.
 data ModelHackage = ModelHackage
   { mh_packages :: Map PackageName ModelPackage
+  , mh_users :: Map UserId ModelUser
   }
-  deriving stock (Eq, Ord, Show, Generic)
+  deriving stock (Eq, Ord, Show, Generic, Data)
 
 instance Arbitrary ModelHackage where
-  arbitrary =
+  arbitrary = do
+    -- Generate users, and use 'sarbitrary' to thread them through the
+    -- remaining generators.
+    users <- suchThat arbitrary (not . null)
     ModelHackage
-      <$> suchThat arbitrary (not . null)
-  shrink = filter validModelHackage . genericShrink
+      <$> suchThat (sarbitrary $ S.fromList $ fmap userToUserRef users) (not . null)
+      <*> pure (M.fromList $ fmap (getUserId &&& id) users)
+
+getUserId :: ModelUser -> UserId
+getUserId = UserId . fromIntegral . abs . hash
+
 
 validModelHackage :: ModelHackage -> Bool
-validModelHackage = not . null . mh_packages
+validModelHackage mh = and
+  [ not $ null $ mh_packages mh
+  ]
+
+
+-- | A model of a User.
+data ModelUser = ModelUser
+  { mu_name :: UserName
+  , mu_status :: UserStatus
+  }
+  deriving stock (Eq, Ord, Show, Generic, Data)
+  deriving anyclass Hashable
+
+instance Arbitrary ModelUser where
+  arbitrary =
+    ModelUser
+      <$> arbitrary
+      <*> arbitrary
+
+userToUserRef :: ModelUser -> ModelUserRef
+userToUserRef mu@(ModelUser name _) = ModelUserRef (getUserId mu) name
 
 
 -- | A model of a package.
@@ -41,14 +85,13 @@ data ModelPackage = ModelPackage
   { mp_versions :: Map Version ModelPkgInfo
   , mp_deprecated :: Bool
   }
-  deriving stock (Eq, Ord, Show, Generic)
+  deriving stock (Eq, Ord, Show, Generic, Data)
 
-instance Arbitrary ModelPackage where
-  arbitrary =
+instance SomewhatArbitrary (Set ModelUserRef) ModelPackage where
+  sarbitrary us =
     ModelPackage
-      <$> scale (`div` 2) (suchThat arbitrary (not . null))
+      <$> scale (`div` 2) (suchThat (sarbitrary us) (not . null))
       <*> arbitrary
-  shrink = filter validModelPackage . genericShrink
 
 validModelPackage :: ModelPackage -> Bool
 validModelPackage = not . null . mp_versions
@@ -56,13 +99,52 @@ validModelPackage = not . null . mp_versions
 
 -- | A model of a PkgInfo.
 data ModelPkgInfo = ModelPkgInfo
-  { mpi_deprecated :: Bool
+  { mpi_revisions :: [ModelMetaRev]
+  , mpi_deprecated :: Bool
   }
-  deriving stock (Eq, Ord, Show, Generic)
+  deriving stock (Eq, Ord, Show, Generic, Data)
 
-instance Arbitrary ModelPkgInfo where
-  arbitrary = ModelPkgInfo <$> arbitrary
-  shrink = genericShrink
+instance SomewhatArbitrary a b => SomewhatArbitrary a [b] where
+  sarbitrary = listOf . sarbitrary
+
+instance (Arbitrary x, SomewhatArbitrary a y) => SomewhatArbitrary a (x, y) where
+  sarbitrary a = (,) <$> arbitrary <*> sarbitrary a
+
+instance (Arbitrary k, Ord k, SomewhatArbitrary a v) => SomewhatArbitrary a (Map k v) where
+  sarbitrary = fmap M.fromList . sarbitrary
+
+instance SomewhatArbitrary (Set ModelUserRef) ModelPkgInfo where
+  sarbitrary us =
+    ModelPkgInfo
+      <$>
+        ( do
+            Positive (Small n) <- arbitrary
+            vectorOf n $ sarbitrary us
+        )
+      <*> arbitrary
+
+data ModelUserRef = ModelUserRef
+  { mur_id :: UserId
+  , mur_name :: UserName
+  }
+  deriving stock (Eq, Ord, Show, Generic, Data)
+
+
+instance SomewhatArbitrary (Set ModelUserRef) ModelUserRef where
+  sarbitrary = elements . S.toList
+
+-- | A model of a package metadata revision.
+data ModelMetaRev = ModelMetaRev
+  { mmr_user :: ModelUserRef
+  , mmr_time :: UTCTime
+  }
+  deriving stock (Eq, Ord, Show, Generic, Data)
+
+instance SomewhatArbitrary (Set ModelUserRef) ModelMetaRev where
+  sarbitrary us =
+    ModelMetaRev
+      <$> sarbitrary us
+      <*> arbitrary
 
 
 -- | Find a 'ModelPackage' inside of 'ModelHackage'.
@@ -87,6 +169,11 @@ genExisting f a = do
 
 
 -- | Get an arbitrary 'PackageName' that is guaranteed to exist in the model.
+genExistingUser :: ModelHackage -> Gen (UserId, ModelUser)
+genExistingUser = genExisting mh_users
+
+
+-- | Get an arbitrary 'PackageName' that is guaranteed to exist in the model.
 genExistingPackage :: ModelHackage -> Gen (PackageName, ModelPackage)
 genExistingPackage = genExisting mh_packages
 
@@ -107,8 +194,9 @@ genExistingPackageId mh = do
 
 -- | Import a 'ModelHackage' into the database.
 loadModelHackage :: ModelHackage -> ServerM ()
-loadModelHackage (ModelHackage pkgs) = do
-  for_ (M.toList pkgs) $ uncurry loadModelPackage
+loadModelHackage mh = do
+  for_ (M.toList $ mh_users mh) $ uncurry loadModelUser
+  for_ (M.toList $ mh_packages mh) $ uncurry loadModelPackage
 
 
 -- | Import a 'ModelPackage' into the database.
@@ -147,4 +235,20 @@ loadModelPkgInfo pkgid version pkginfo = do
     , returning = Returning pkgInfoId
     }
   pure pkginfoid
+
+
+loadModelUser :: UserId -> ModelUser -> ServerM ()
+loadModelUser uid user =
+  liftDB $ doInsert_ $ Insert
+    { into = usersSchema
+    , rows = values
+        [ UsersRow
+            { userId = lit uid
+            , userName = lit $ mu_name user
+            , userStatus = lit $ mu_status user
+            }
+        ]
+    , onConflict = Abort
+    , returning = NoReturning
+    }
 
