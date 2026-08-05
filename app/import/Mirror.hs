@@ -92,7 +92,7 @@ backfillPackageDB conn dbDir = do
         Rel8.run $ runSqlM $ do
           -- Import all of the users
           for_ (IM.toList users) $ \(uid, (V2.UserInfo (V2.UserName uname) _ _)) ->
-            mkUser (UserId $ fromIntegral uid) $ T.pack uname
+            mkUser (UserId $ fromIntegral uid) $ UserName $ T.pack uname
 
           -- Import all pkginfos
           for_ pkgs $ traverse insertPkgInfo

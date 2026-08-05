@@ -6,6 +6,7 @@ module Hackage.Types
 
 import Data.Aeson (ToJSON, FromJSON)
 import Data.Coerce (coerce)
+import Data.Data (Data)
 import Data.Functor.Contravariant
 import Data.Hashable (Hashable)
 import Data.Int (Int64)
@@ -16,12 +17,13 @@ import Distribution.Package (PackageName)
 import Distribution.Types.Version (Version)
 import Distribution.Utils.MD5 (MD5, showMD5)
 import GHC.Fingerprint (Fingerprint(..))
+import GHC.Generics
 import Numeric (readHex)
 import Rel8 hiding (Enum)
 import Rel8.CreateTable
 import Rel8.Decoder (parseDecoder)
-import Servant.API (ToHttpApiData, FromHttpApiData)
-import Test.QuickCheck (Arbitrary)
+import Servant.API (ToHttpApiData, FromHttpApiData, MimeRender, PlainText)
+import Test.QuickCheck
 
 
 newtype UserId = UserId Int64
@@ -40,14 +42,38 @@ newtype UserId = UserId Int64
     , ToHttpApiData
     , FromHttpApiData
     )
+  deriving stock Data
 
 
 data UserStatus = Enabled | Disabled | Deleted
-  deriving stock (Eq, Ord, Show, Read, Enum, Bounded)
-  deriving anyclass DBEq
+  deriving stock (Eq, Ord, Show, Read, Enum, Bounded, Generic, Data)
+  deriving anyclass (DBEq, Hashable)
   deriving DBType via ReadShow UserStatus
 
-type UserName = Text
+instance Arbitrary UserStatus where
+  arbitrary = elements $ enumFromTo minBound maxBound
+
+
+newtype UserName = UserName Text
+  deriving newtype
+    ( Eq
+    , Ord
+    , Show
+    , Hashable
+    , DBEq
+    , DBType
+    , ToJSON
+    , FromJSON
+    , MimeRender PlainText
+    , ToHttpApiData
+    , FromHttpApiData
+    )
+  deriving stock Data
+
+instance Arbitrary UserName where
+  arbitrary = fmap (UserName . T.pack . getPrintableString) arbitrary
+
+
 type Tag = Text
 type SHA256Digest = Text
 type TarballRevIx = Int64
