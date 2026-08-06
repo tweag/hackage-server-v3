@@ -36,6 +36,24 @@ spec = aroundAll withDb $ do
           pure (version, bool Normal Deprecated $ mpi_deprecated depr)
           )
 
+  serverProp "api_uploader gives back what you put in" $
+    \model () -> do
+      (loc, mp) <- genExistingPackageLocator model
+      pure $ do
+        uploader <- pkgdb_api_uploader packageDbServer loc
+        -- TODO(sandy): Probable bug! This gets the 'last' revision, but
+        -- 'pkgdb_api_uploadTime' uses the 'head' revision!
+        pure $ uploader `shouldBe` mur_name (mmr_user $ last $ mpi_revisions mp)
+
+  serverProp "api_uploadTime gives back what you put in" $
+    \model () -> do
+      (loc, mp) <- genExistingPackageLocator model
+      pure $ do
+        uploader <- pkgdb_api_uploadTime packageDbServer loc
+        -- TODO(sandy): Probable bug! This gets the 'head' revision, but
+        -- 'pkgdb_api_uploader' uses the 'last' revision!
+        pure $ uploader `shouldBe` mmr_time (head $ mpi_revisions mp)
+
 
 -- | For use with 'aroundAll': make a temporary postgres database and setup its
 -- schema for Hackage.
