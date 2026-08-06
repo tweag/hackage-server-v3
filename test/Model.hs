@@ -3,6 +3,7 @@
 
 module Model where
 
+import Control.Monad (void)
 import Control.Arrow ((&&&))
 import Data.Bifunctor (first)
 import Data.Data (Data)
@@ -206,55 +207,62 @@ genExistingPackageId mh = do
 -- | Import a 'ModelHackage' into the database.
 loadModelHackage :: ModelHackage -> ServerM ()
 loadModelHackage mh = do
-  for_ (M.toList $ mh_users mh) $ uncurry loadModelUser
-  for_ (M.toList $ mh_packages mh) $ uncurry loadModelPackage
+  loadModelUsers $ M.toList $ mh_users mh
+  void $ loadModelPackages $ M.toList $ mh_packages mh
 
 
 -- | Import a 'ModelPackage' into the database.
-loadModelPackage :: PackageName -> ModelPackage -> ServerM PkgId
-loadModelPackage pkgname pkginfo = do
-  pkgid <- liftDB $ doInsert1 $ Insert
+loadModelPackages :: [(PackageName, ModelPackage)] -> ServerM [PkgId]
+loadModelPackages pkgs = do
+  pkgids <- liftDB $ doInsert $ Insert
     { into = packageNameSchema
-    , rows = values
-        [ PackageNameRow
-            { packageNameId = newPrimaryKey
-            , packageName = lit pkgname
-            , packageDeprecated = lit $ mp_deprecated pkginfo
-            }
-        ]
+    , rows = values $ do
+        (pkgname, pkginfo) <- pkgs
+        pure $ PackageNameRow
+          { packageNameId = newPrimaryKey
+          , packageName = lit pkgname
+          , packageDeprecated = lit $ mp_deprecated pkginfo
+          }
     , onConflict = Abort
     , returning = Returning packageNameId
     }
-  for_ (M.toList $ mp_versions pkginfo) $ uncurry $ loadModelPkgInfo pkgid
-  pure pkgid
+  loadModelPkgInfos $ do
+    (pkgid, pkg) <- zip pkgids $ fmap snd pkgs
+    (version, pkginfo) <- M.toList $ mp_versions pkg
+    pure (pkgid, version, pkginfo)
+  pure pkgids
 
 
 -- | Import a 'ModelPkgInfo' into the database.
-loadModelPkgInfo :: PkgId -> Version -> ModelPkgInfo -> ServerM PkgInfoId
-loadModelPkgInfo pkgid version pkginfo = do
-  pkginfoid <- liftDB $ doInsert1 $ Insert
+loadModelPkgInfos :: [(PkgId, Version, ModelPkgInfo)] -> ServerM [PkgInfoId]
+loadModelPkgInfos versions  = do
+  pkginfoids <- liftDB $ doInsert $ Insert
     { into = pkgInfoSchema
-    , rows = values
-        [ PkgInfoRow
-            { pkgInfoId = newPrimaryKey
-            , pkgId = lit pkgid
-            , packageVersion = lit version
-            , pkgInfoDeprecated = lit $ mpi_deprecated pkginfo
-            }
-        ]
+    , rows = values $ do
+        (pkgid, version, pkginfo) <- versions
+        pure $ PkgInfoRow
+          { pkgInfoId = newPrimaryKey
+          , pkgId = lit pkgid
+          , packageVersion = lit version
+          , pkgInfoDeprecated = lit $ mpi_deprecated pkginfo
+          }
     , onConflict = Abort
     , returning = Returning pkgInfoId
     }
-  for_ (zip [MetadataRevIx 0..] $ mpi_revisions pkginfo) $ uncurry $ loadModelMetaRev pkginfoid
-  pure pkginfoid
+  _ <- loadModelMetaRevs $ do
+    (pkginfoid, (_, _, pkginfo)) <- zip pkginfoids versions
+    (revix, rev) <- zip [MetadataRevIx 0..] $ mpi_revisions pkginfo
+    pure (pkginfoid, revix, rev)
+  pure pkginfoids
 
 
-loadModelMetaRev :: PkgInfoId -> MetadataRevIx -> ModelMetaRev -> ServerM PkgRevId
-loadModelMetaRev pii revix rev = do
-  liftDB $ doInsert1 $ Insert
+loadModelMetaRevs :: [(PkgInfoId, MetadataRevIx, ModelMetaRev)] -> ServerM [PkgRevId]
+loadModelMetaRevs revs = do
+  liftDB $ doInsert $ Insert
     { into = metadataRevisionsSchema
-    , rows = values
-        [ MetadataRevisionRow
+    , rows = values $ do
+        (pii, revix, rev) <- revs
+        pure $ MetadataRevisionRow
             { metadataId = newPrimaryKey
             , metadataPkgId = lit pii
             , metadataRevId = lit revix
@@ -262,23 +270,23 @@ loadModelMetaRev pii revix rev = do
             , metadataUploader = lit $ mur_id $ mmr_user rev
             , metadataCabalFile = lit mempty
             }
-        ]
     , onConflict = Abort
     , returning = Returning metadataId
     }
 
 
-loadModelUser :: UserId -> ModelUser -> ServerM ()
-loadModelUser uid user =
+loadModelUsers :: [(UserId, ModelUser)] -> ServerM ()
+loadModelUsers us =
   liftDB $ doInsert_ $ Insert
     { into = usersSchema
-    , rows = values
-        [ UsersRow
+    , rows = values $ do
+        (uid, user) <- us
+        pure $
+          UsersRow
             { userId = lit uid
             , userName = lit $ mu_name user
             , userStatus = lit $ mu_status user
             }
-        ]
     , onConflict = Abort
     , returning = NoReturning
     }
