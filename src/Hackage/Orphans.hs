@@ -126,5 +126,5 @@ instance Arbitrary Day where
   arbitrary = fromSundayStartWeek <$> fmap (+ 2000) arbitrary <*> arbitrary <*> arbitrary
 
 instance Arbitrary DiffTime where
-  arbitrary = realToFrac <$> arbitrary @Double
+  arbitrary = secondsToDiffTime <$> chooseInteger (0, 86399)
 

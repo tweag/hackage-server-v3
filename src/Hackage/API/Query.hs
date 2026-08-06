@@ -77,12 +77,12 @@ startsWith haystack needle = function "starts_with" (haystack, needle)
 onlyEarliestRev
     :: Query (MetadataRevisionRow Expr)
     -> Query (MetadataRevisionRow Expr)
-onlyEarliestRev = earliestBy metadataTime
+onlyEarliestRev = earliestBy metadataRevId
 
 onlyLatestRev
     :: Query (MetadataRevisionRow Expr)
     -> Query (MetadataRevisionRow Expr)
-onlyLatestRev = latestBy metadataTime
+onlyLatestRev = latestBy metadataRevId
 
 
 getLatestTarball :: PackageLocator -> Query (TarballRevisionRow Expr)
