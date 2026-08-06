@@ -53,7 +53,7 @@ instance Arbitrary ModelHackage where
     -- remaining generators.
     users <- suchThat arbitrary (not . null)
     ModelHackage
-      <$> suchThat (sarbitrary $ S.fromList $ fmap userToUserRef users) (not . null)
+      <$> genSmallMap (sarbitrary $ S.fromList $ fmap userToUserRef users)
       <*> pure (M.fromList $ fmap (getUserId &&& id) users)
 
   shrink mh = filter validModelHackage $ mconcat
@@ -106,10 +106,20 @@ data ModelPackage = ModelPackage
   }
   deriving stock (Eq, Ord, Show, Generic, Data)
 
+
+-- | Generate a small map, by giving a generator for its assocs. We use this
+-- rather than the standard 'Arbitrary' instance, since we want to bound the
+-- amount of data we generate.
+genSmallMap :: Ord k => Gen (k, v) -> Gen (Map k v)
+genSmallMap gen = fmap M.fromList $ do
+  n <- chooseInt (1, 10)
+  vectorOf n gen
+
+
 instance SomewhatArbitrary (Set ModelUserRef) ModelPackage where
   sarbitrary us =
     ModelPackage
-      <$> scale (`div` 2) (suchThat (sarbitrary us) (not . null))
+      <$> genSmallMap (sarbitrary us)
       <*> arbitrary
 
   sshrink us pkg =
@@ -198,7 +208,7 @@ instance SomewhatArbitrary (Set ModelUserRef) ModelPkgInfo where
     ModelPkgInfo
       <$>
         ( do
-            Positive (Small n) <- arbitrary
+            n <- chooseInt (1, 10)
             vectorOf n $ sarbitrary us
         )
       <*> arbitrary
@@ -324,7 +334,7 @@ loadModelPackages pkgs = do
     , onConflict = Abort
     , returning = Returning packageNameId
     }
-  loadModelPkgInfos $ do
+  _ <- loadModelPkgInfos $ do
     (pkgid, pkg) <- zip pkgids $ fmap snd pkgs
     (version, pkginfo) <- M.toList $ mp_versions pkg
     pure (pkgid, version, pkginfo)
