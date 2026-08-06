@@ -7,7 +7,6 @@ import Control.Monad (void)
 import Control.Arrow ((&&&))
 import Data.Bifunctor (first)
 import Data.Data (Data)
-import Data.Foldable
 import Data.Hashable
 import Data.Map (Map)
 import Data.Map qualified as M
@@ -33,6 +32,8 @@ import Test.QuickCheck
 -- | Like 'Arbitrary', but for types that require input in order to generate.
 class SomewhatArbitrary args a | a -> args where
   sarbitrary :: args -> Gen a
+  sshrink :: args -> a -> [a]
+  sshrink _ _ = []
 
 
 -- | A model of a full Hackage database. This type is significantly easier to
@@ -54,6 +55,21 @@ instance Arbitrary ModelHackage where
     ModelHackage
       <$> suchThat (sarbitrary $ S.fromList $ fmap userToUserRef users) (not . null)
       <*> pure (M.fromList $ fmap (getUserId &&& id) users)
+
+  shrink mh = filter validModelHackage $ mconcat
+    [ do
+        let users = mh_users mh
+            userRefs = S.fromList $ fmap userToUserRef $ M.elems users
+        packages <- sshrink userRefs $ mh_packages mh
+        pure $ ModelHackage packages users
+    , do
+        users <- shrinkUsers $ mh_users mh
+        let userRefs = S.fromList $ fmap userToUserRef $ M.elems users
+        restrictedPackages <- restrictPackagesTo userRefs $ mh_packages mh
+        packages <- restrictedPackages : sshrink userRefs restrictedPackages
+        pure $ ModelHackage packages users
+    ]
+
 
 getUserId :: ModelUser -> UserId
 getUserId = UserId . fromIntegral . abs . hash
@@ -96,8 +112,55 @@ instance SomewhatArbitrary (Set ModelUserRef) ModelPackage where
       <$> scale (`div` 2) (suchThat (sarbitrary us) (not . null))
       <*> arbitrary
 
+  sshrink us pkg =
+    filter validModelPackage $ mconcat
+      [ do
+          versions <- sshrink us $ mp_versions pkg
+          pure $ pkg { mp_versions = versions }
+      , do
+          deprecated <- shrink $ mp_deprecated pkg
+          pure $ pkg { mp_deprecated = deprecated }
+      ]
+
 validModelPackage :: ModelPackage -> Bool
 validModelPackage = not . null . mp_versions
+
+
+shrinkUsers :: Map UserId ModelUser -> [Map UserId ModelUser]
+shrinkUsers users =
+  filter validUsers $ do
+    uid <- M.keys users
+    pure $ M.delete uid users
+
+
+validUsers :: Map UserId ModelUser -> Bool
+validUsers = not . null
+
+
+restrictPackagesTo :: Set ModelUserRef -> Map PackageName ModelPackage -> [Map PackageName ModelPackage]
+restrictPackagesTo us = traverse $ restrictPackageTo us
+
+
+restrictPackageTo :: Set ModelUserRef -> ModelPackage -> [ModelPackage]
+restrictPackageTo us pkg =
+  filter validModelPackage $ do
+    versions <- traverse (restrictPackageInfoTo us) $ mp_versions pkg
+    pure $ pkg { mp_versions = versions }
+
+
+restrictPackageInfoTo :: Set ModelUserRef -> ModelPkgInfo -> [ModelPkgInfo]
+restrictPackageInfoTo us pkginfo =
+  filter validModelPkgInfo $ do
+    revisions <- traverse (restrictMetaRevTo us) $ mpi_revisions pkginfo
+    pure $ pkginfo { mpi_revisions = revisions }
+
+
+restrictMetaRevTo :: Set ModelUserRef -> ModelMetaRev -> [ModelMetaRev]
+restrictMetaRevTo us metarev
+  | S.member (mmr_user metarev) us = [metarev]
+  | otherwise = do
+      user <- S.toAscList us
+      pure $ metarev { mmr_user = user }
 
 
 -- | A model of a PkgInfo.
@@ -107,14 +170,28 @@ data ModelPkgInfo = ModelPkgInfo
   }
   deriving stock (Eq, Ord, Show, Generic, Data)
 
+validModelPkgInfo :: ModelPkgInfo -> Bool
+validModelPkgInfo = not . null . mpi_revisions
+
 instance SomewhatArbitrary a b => SomewhatArbitrary a [b] where
   sarbitrary = listOf . sarbitrary
+  sshrink args = shrinkList (sshrink args)
 
 instance (Arbitrary x, SomewhatArbitrary a y) => SomewhatArbitrary a (x, y) where
   sarbitrary a = (,) <$> arbitrary <*> sarbitrary a
+  sshrink a (x, y) =
+    mconcat
+      [ do
+          x' <- shrink x
+          pure (x', y)
+      , do
+          y' <- sshrink a y
+          pure (x, y')
+      ]
 
 instance (Arbitrary k, Ord k, SomewhatArbitrary a v) => SomewhatArbitrary a (Map k v) where
   sarbitrary = fmap M.fromList . sarbitrary
+  sshrink a = fmap M.fromList . sshrink a . M.toList
 
 instance SomewhatArbitrary (Set ModelUserRef) ModelPkgInfo where
   sarbitrary us =
@@ -126,15 +203,26 @@ instance SomewhatArbitrary (Set ModelUserRef) ModelPkgInfo where
         )
       <*> arbitrary
 
+  sshrink us pkginfo =
+    filter validModelPkgInfo $ mconcat
+      [ do
+          revisions <- sshrink us $ mpi_revisions pkginfo
+          pure $ pkginfo { mpi_revisions = revisions }
+      , do
+          deprecated <- shrink $ mpi_deprecated pkginfo
+          pure $ pkginfo { mpi_deprecated = deprecated }
+      ]
+
 data ModelUserRef = ModelUserRef
   { mur_id :: UserId
   , mur_name :: UserName
   }
   deriving stock (Eq, Ord, Show, Generic, Data)
 
-
 instance SomewhatArbitrary (Set ModelUserRef) ModelUserRef where
   sarbitrary = elements . S.toList
+  sshrink us user = takeWhile (< user) $ S.toList us
+
 
 -- | A model of a package metadata revision.
 data ModelMetaRev = ModelMetaRev
@@ -148,6 +236,16 @@ instance SomewhatArbitrary (Set ModelUserRef) ModelMetaRev where
     ModelMetaRev
       <$> sarbitrary us
       <*> arbitrary
+
+  sshrink us (ModelMetaRev user time) =
+    mconcat
+      [ do
+          user' <- sshrink us user
+          pure $ ModelMetaRev user' time
+      , do
+          time' <- shrink time
+          pure $ ModelMetaRev user time'
+      ]
 
 
 -- | Find a 'ModelPackage' inside of 'ModelHackage'.
