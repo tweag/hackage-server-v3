@@ -4,6 +4,7 @@
 module Model where
 
 import Control.Arrow ((&&&))
+import Data.Bifunctor (first)
 import Data.Data (Data)
 import Data.Foldable
 import Data.Hashable
@@ -16,6 +17,7 @@ import Distribution.Types.PackageId
 import Distribution.Types.PackageName
 import Distribution.Types.Version
 import GHC.Generics
+import Hackage.Objects
 import Hackage.Orphans ()
 import Hackage.Schemas.Packages
 import Hackage.Schemas.Users
@@ -178,6 +180,15 @@ genExistingPackage :: ModelHackage -> Gen (PackageName, ModelPackage)
 genExistingPackage = genExisting mh_packages
 
 
+genExistingPackageLocator :: ModelHackage -> Gen (PackageLocator, ModelPkgInfo)
+genExistingPackageLocator mh = oneof
+  [ fmap (first Specific) $ genExistingPackageId mh
+  , do
+      (pname, pkg) <- genExistingPackage mh
+      pure (Latest pname, snd $ M.findMax $ mp_versions pkg)
+  ]
+
+
 -- | Get an arbitrary 'Version' that is guaranteed to exist in the model.
 genExistingVersion :: ModelPackage -> Gen (Version, ModelPkgInfo)
 genExistingVersion = genExisting mp_versions
@@ -234,7 +245,27 @@ loadModelPkgInfo pkgid version pkginfo = do
     , onConflict = Abort
     , returning = Returning pkgInfoId
     }
+  for_ (zip [MetadataRevIx 0..] $ mpi_revisions pkginfo) $ uncurry $ loadModelMetaRev pkginfoid
   pure pkginfoid
+
+
+loadModelMetaRev :: PkgInfoId -> MetadataRevIx -> ModelMetaRev -> ServerM PkgRevId
+loadModelMetaRev pii revix rev = do
+  liftDB $ doInsert1 $ Insert
+    { into = metadataRevisionsSchema
+    , rows = values
+        [ MetadataRevisionRow
+            { metadataId = newPrimaryKey
+            , metadataPkgId = lit pii
+            , metadataRevId = lit revix
+            , metadataTime = lit $ mmr_time rev
+            , metadataUploader = lit $ mur_id $ mmr_user rev
+            , metadataCabalFile = lit mempty
+            }
+        ]
+    , onConflict = Abort
+    , returning = Returning metadataId
+    }
 
 
 loadModelUser :: UserId -> ModelUser -> ServerM ()
