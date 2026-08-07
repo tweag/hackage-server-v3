@@ -95,7 +95,9 @@ instance DBEq Version
 instance DBOrd Version
 
 instance Arbitrary Version where
-  arbitrary = mkVersion <$> fmap (fmap getNonNegative . getNonEmpty) arbitrary
+  arbitrary = fmap mkVersion $ do
+    n <- chooseInt (1, 4)
+    vectorOf n $ fmap getNonNegative arbitrary
 
 instance FromHttpApiData PackageName where
   parseUrlPiece x = maybe (Left $ "Can't parse package name: " <> x) Right . simpleParsec $ T.unpack x

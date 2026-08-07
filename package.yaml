@@ -129,6 +129,7 @@ tests:
     - hspec-discover
     - hspec-wai
     - tmp-postgres
+    - temporary
 
   conformance-tests:
     main:                DBArbitrary.hs

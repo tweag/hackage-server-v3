@@ -7,6 +7,7 @@ module PackageDbSpec where
 import Control.Exception (throwIO, finally)
 import Control.Monad (void)
 import Control.Monad.IO.Class
+import Data.BlobStorage qualified as Blob
 import Data.Bool
 import Data.Map qualified as M
 import Data.Pool (newPool, withResource, defaultPoolConfig)
@@ -14,14 +15,16 @@ import Data.Text.Encoding (decodeUtf8)
 import Database.Postgres.Temp qualified as Temp
 import Hackage.API.PackageDb (packageDbServer)
 import Hackage.API.Type
+import Hackage.Objects
 import Hackage.ServerM
 import Hackage.SetupDB (setupDB)
 import Hackage.Utils
 import Hasql.Connection.Setting qualified as DB
 import Hasql.Connection.Setting.Connection qualified as DB
 import Hasql.Session (run, sql)
-import Hackage.Objects
 import Model
+import System.FilePath ((</>))
+import System.IO.Temp (withSystemTempDirectory)
 import Test.Hspec
 import Test.QuickCheck
 
@@ -69,7 +72,7 @@ spec = aroundAll withDb $ do
 -- schema for Hackage.
 withDb :: ActionWith ServerCtx -> IO ()
 withDb action = do
-  x <- Temp.with $ \db ->
+  x <- Temp.with $ \db -> do
     withConn [DB.connection $ DB.string $ decodeUtf8 $ Temp.toConnectionString db] $ \conn ->  do
       -- Make a fake pool that only has a single connection in it. This is to
       -- ensure that the entire thing runs inside of its transaction, since
@@ -77,9 +80,12 @@ withDb action = do
       pool <- newPool $ defaultPoolConfig (pure conn) (const $ pure ()) 1 100
       -- Setup the database schema
       withResource pool setupDB
-      action $ ServerCtx
-        { serverPool = pool
-        }
+      withSystemTempDirectory "packagedb" $ \blobdir -> do
+        store <- Blob.open $ blobdir </> "blobs"
+        action $ ServerCtx
+          { serverPool = pool
+          , serverBlobStore = store
+          }
   either throwIO pure x
 
 

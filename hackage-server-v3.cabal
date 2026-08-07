@@ -397,6 +397,7 @@ test-suite tests
     , servant-server
     , tagged
     , tar
+    , temporary
     , text
     , time
     , tmp-postgres

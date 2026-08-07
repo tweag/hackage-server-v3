@@ -3,10 +3,15 @@
 
 module Model where
 
+import Codec.Archive.Tar qualified as Tar
+import Codec.Archive.Tar.Entry qualified as Tar
 import Control.Arrow ((&&&))
 import Control.Monad (void)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Reader (asks)
 import Data.Bifunctor (first)
-import Data.ByteString (StrictByteString)
+import Data.BlobStorage qualified as Blob
+import Data.ByteString (StrictByteString, fromStrict)
 import Data.ByteString.Char8 qualified as BS8
 import Data.Data (Data)
 import Data.Hashable
@@ -15,6 +20,8 @@ import Data.Map qualified as M
 import Data.Set (Set)
 import Data.Set qualified as S
 import Data.Time (UTCTime)
+import Data.Traversable
+import Distribution.Pretty qualified as Pretty
 import Distribution.Types.PackageId
 import Distribution.Types.PackageName
 import Distribution.Types.Version
@@ -28,7 +35,9 @@ import Hackage.Types
 import Hackage.Types.PrimaryKey
 import Hackage.Utils
 import Rel8 hiding (null, filter, and, listOf)
+import System.FilePath ((</>))
 import Test.QuickCheck
+import Unsafe.Coerce (unsafeCoerce)
 
 
 genByteString :: Gen StrictByteString
@@ -183,6 +192,7 @@ restrictMetaRevTo us metarev
 data ModelPkgInfo = ModelPkgInfo
   { mpi_revisions :: [ModelMetaRev]
   , mpi_deprecated :: Bool
+  , mpi_source :: ModelTarball
   }
   deriving stock (Eq, Ord, Show, Generic, Data)
 
@@ -218,6 +228,7 @@ instance SomewhatArbitrary (Set ModelUserRef) ModelPkgInfo where
             vectorOf n $ sarbitrary us
         )
       <*> arbitrary
+      <*> fmap ModelTarball (genSmallMap arbitrary)
 
   sshrink us pkginfo =
     filter validModelPkgInfo $ mconcat
@@ -343,19 +354,19 @@ loadModelPackages pkgs = do
     , returning = Returning packageNameId
     }
   _ <- loadModelPkgInfos $ do
-    (pkgid, pkg) <- zip pkgids $ fmap snd pkgs
+    (pkgid, (pkgname, pkg)) <- zip pkgids pkgs
     (version, pkginfo) <- M.toList $ mp_versions pkg
-    pure (pkgid, version, pkginfo)
+    pure (pkgid, PackageIdentifier pkgname version, pkginfo)
   pure pkgids
 
 
 -- | Import a 'ModelPkgInfo' into the database.
-loadModelPkgInfos :: [(PkgId, Version, ModelPkgInfo)] -> ServerM [PkgInfoId]
-loadModelPkgInfos versions  = do
+loadModelPkgInfos :: [(PkgId, PackageId, ModelPkgInfo)] -> ServerM [PkgInfoId]
+loadModelPkgInfos versions = do
   pkginfoids <- liftDB $ doInsert $ Insert
     { into = pkgInfoSchema
     , rows = values $ do
-        (pkgid, version, pkginfo) <- versions
+        (pkgid, PackageIdentifier _ version, pkginfo) <- versions
         pure $ PkgInfoRow
           { pkgInfoId = newPrimaryKey
           , pkgId = lit pkgid
@@ -365,10 +376,38 @@ loadModelPkgInfos versions  = do
     , onConflict = Abort
     , returning = Returning pkgInfoId
     }
+
+
   _ <- loadModelMetaRevs $ do
     (pkginfoid, (_, _, pkginfo)) <- zip pkginfoids versions
     (revix, rev) <- zip [MetadataRevIx 0..] $ mpi_revisions pkginfo
     pure (pkginfoid, revix, rev)
+
+  -- For now we cheat and just assume there is a single tarball revision.
+  blobs <- for (zip pkginfoids versions) $ \(pkginfoid, (_, pkgid, pkg)) -> do
+    blobid <- loadTarball (Pretty.prettyShow pkgid) $ mpi_source pkg
+    pure (pkginfoid, blobid, head $ mpi_revisions pkg)
+  _ <- liftDB $ doInsert $ Insert
+    { into = packageTarballRevisionsSchema
+    , rows = values $ do
+       (pkginfoid, blobid, rev) <- blobs
+       pure $ TarballRevisionRow
+        { tarballRevId = newPrimaryKey
+        , tarballPkgId = lit pkginfoid
+        , tarballRevIx = lit 0
+        , tarballTime = lit $ mmr_time rev
+        , tarballUploader = lit $ mur_id $ mmr_user rev
+        , tarballBlobNoGz = lit blobid
+        , tarballBlobGz =
+            -- Safe, except that we'll serve it with the wrong mimetype.
+            lit $ unsafeCoerce blobid
+        , tarballGzLength = lit 0 -- Stupid default, but I don't think it's actually used?
+        , tarballGzHash = lit mempty -- Stupid default, but I don't think it's actually used?
+        }
+    , onConflict = Abort
+    , returning = Returning tarballRevId
+    }
+
   pure pkginfoids
 
 
@@ -406,4 +445,57 @@ loadModelUsers us =
     , onConflict = Abort
     , returning = NoReturning
     }
+
+
+data ModelTarball = ModelTarball
+  { mt_filesystem :: Map PathSeg FileEntry
+  }
+  deriving stock (Eq, Ord, Show, Generic, Data)
+
+newtype PathSeg = PathSeg FilePath
+  deriving newtype (Eq, Ord, Show)
+  deriving stock (Data)
+
+
+instance Arbitrary PathSeg where
+  arbitrary = do
+    n <- chooseInt (1, 20)
+    fmap PathSeg $ vectorOf n $ elements $ mconcat
+      [ ['a' .. 'z']
+      , ['A' .. 'Z']
+      , ['0' .. '9']
+      , ".-"
+      ]
+
+data FileEntry
+  = File StrictByteString
+  | Dir (Map PathSeg FileEntry)
+  deriving stock (Eq, Ord, Show, Generic, Data)
+
+instance Arbitrary FileEntry where
+  arbitrary = sized $ \n ->
+    case n <= 1 of
+      True -> fmap File genByteString
+      False -> fmap Dir $ genSmallMap $ scale (`div` 10) arbitrary
+
+
+loadTarball :: FilePath -> ModelTarball -> ServerM (BlobId a)
+loadTarball dir (ModelTarball fs) = do
+  store <- asks serverBlobStore
+  x <- liftIO $ Blob.add store $ Tar.write $ flattenFs dir fs
+  pure $ unsafeCoerce x
+
+
+flattenFs :: FilePath -> Map PathSeg FileEntry -> [Tar.Entry]
+flattenFs dir fs = do
+  (PathSeg seg, c) <- M.toList fs
+  let path = dir </> seg
+  case c of
+    Dir fs' -> do
+      Tar.directoryEntry (either error id $ Tar.toTarPath True path) : flattenFs path fs'
+    File content ->
+      pure $
+        Tar.fileEntry
+          (either error id $ Tar.toTarPath False path)
+          (fromStrict content)
 
