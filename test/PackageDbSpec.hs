@@ -31,7 +31,10 @@ import Test.QuickCheck
 
 spec :: Spec
 spec = aroundAll withDb $ do
-  serverProp "api_versions gives back what you put in" genExistingPackage $
+  serverProp
+      "api_versions gives back what you put in"
+      NoBlobStore
+      genExistingPackage $
     \(pkg, mp) -> do
       vs <- pkgdb_api_versions packageDbServer pkg
       pure $ vs `shouldBe` PackageVersions (M.fromList $ do
@@ -39,26 +42,37 @@ spec = aroundAll withDb $ do
         pure (version, bool Normal Deprecated $ mpi_deprecated depr)
         )
 
-  serverProp "api_uploader gives back what you put in" genExistingPackageLocator $
+  serverProp
+      "api_uploader gives back what you put in"
+      NoBlobStore
+      genExistingPackageLocator $
     \(loc, mp) -> do
       uploader <- pkgdb_api_uploader packageDbServer loc
       -- TODO(sandy): Probable bug! This gets the 'last' revision, but
       -- 'pkgdb_api_uploadTime' uses the 'head' revision!
       pure $ uploader `shouldBe` mur_name (mmr_user $ last $ mpi_revisions mp)
 
-  serverProp "api_uploadTime gives back what you put in" genExistingPackageLocator $
+  serverProp
+      "api_uploadTime gives back what you put in"
+      NoBlobStore
+      genExistingPackageLocator $
     \(loc, mp) -> do
       uploader <- pkgdb_api_uploadTime packageDbServer loc
       -- TODO(sandy): Probable bug! This gets the 'head' revision, but
       -- 'pkgdb_api_uploader' uses the 'last' revision!
       pure $ uploader `shouldBe` mmr_time (head $ mpi_revisions mp)
 
-  serverProp "api_cabalFile gives back what you put in" genExistingPackageLocator $
+  serverProp
+      "api_cabalFile gives back what you put in"
+      NoBlobStore
+      genExistingPackageLocator $
     \(loc, mp) -> do
       cabal <- pkgdb_api_cabalFile packageDbServer loc $ packageLocName loc
       pure $ cabal `shouldBe`  mmr_cabal (last $ mpi_revisions mp)
 
-  serverProp "api_preferredVersions gives back what you put in" genExistingPackage $
+  serverProp "api_preferredVersions gives back what you put in"
+      NoBlobStore
+      genExistingPackage $
     \(name, pkg) -> do
       prefs <- pkgdb_api_preferredVersions packageDbServer Nothing name
       pure $ prefs `shouldBe` WithPackageName name
@@ -88,15 +102,15 @@ withDb action = do
           }
   either throwIO pure x
 
-
 -- | Like 'prop', but for testing properties about 'ServerM'.
 serverProp
     :: (Show a, Testable b)
     => String
+    -> WantsBlobStore
     -> (ModelHackage -> Gen a)
     -> (a -> ServerM b)
     -> SpecWith ServerCtx
-serverProp n f p =
+serverProp n wantsBs f p =
   it n $ \ctx ->
     property $ \model -> do
       a <- f model
@@ -106,6 +120,6 @@ serverProp n f p =
         $ ioProperty $ do
           conn <- withResource (serverPool ctx) pure
           void $ run (sql "BEGIN") conn
-          mb <- finally (runServerM ctx $ loadModelHackage model *> p a) $ liftIO $ run (sql "ROLLBACK") conn
+          mb <- finally (runServerM ctx $ loadModelHackage wantsBs model *> p a) $ liftIO $ run (sql "ROLLBACK") conn
           either throwIO pure mb
 

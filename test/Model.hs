@@ -1,8 +1,10 @@
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE UndecidableInstances   #-}
 
 module Model where
 
+import Distribution.Utils.MD5 (md5)
 import Codec.Archive.Tar qualified as Tar
 import Codec.Archive.Tar.Entry qualified as Tar
 import Control.Arrow ((&&&))
@@ -38,6 +40,12 @@ import Rel8 hiding (null, filter, and, listOf)
 import System.FilePath ((</>))
 import Test.QuickCheck
 import Unsafe.Coerce (unsafeCoerce)
+
+
+-- | Generating a blob store is very slow, so we provide a means of toggling
+-- whether a given test actually needs it.
+data WantsBlobStore = WithBlobStore | NoBlobStore
+  deriving stock (Eq, Ord, Show)
 
 
 genByteString :: Gen StrictByteString
@@ -332,15 +340,15 @@ genExistingPackageId mh = do
 
 
 -- | Import a 'ModelHackage' into the database.
-loadModelHackage :: ModelHackage -> ServerM ()
-loadModelHackage mh = do
+loadModelHackage :: WantsBlobStore -> ModelHackage -> ServerM ()
+loadModelHackage wantsBs mh = do
   loadModelUsers $ M.toList $ mh_users mh
-  void $ loadModelPackages $ M.toList $ mh_packages mh
+  void $ loadModelPackages wantsBs $ M.toList $ mh_packages mh
 
 
 -- | Import a 'ModelPackage' into the database.
-loadModelPackages :: [(PackageName, ModelPackage)] -> ServerM [PkgId]
-loadModelPackages pkgs = do
+loadModelPackages :: WantsBlobStore -> [(PackageName, ModelPackage)] -> ServerM [PkgId]
+loadModelPackages wantsBs pkgs = do
   pkgids <- liftDB $ doInsert $ Insert
     { into = packageNameSchema
     , rows = values $ do
@@ -353,7 +361,7 @@ loadModelPackages pkgs = do
     , onConflict = Abort
     , returning = Returning packageNameId
     }
-  _ <- loadModelPkgInfos $ do
+  _ <- loadModelPkgInfos wantsBs $ do
     (pkgid, (pkgname, pkg)) <- zip pkgids pkgs
     (version, pkginfo) <- M.toList $ mp_versions pkg
     pure (pkgid, PackageIdentifier pkgname version, pkginfo)
@@ -361,8 +369,8 @@ loadModelPackages pkgs = do
 
 
 -- | Import a 'ModelPkgInfo' into the database.
-loadModelPkgInfos :: [(PkgId, PackageId, ModelPkgInfo)] -> ServerM [PkgInfoId]
-loadModelPkgInfos versions = do
+loadModelPkgInfos :: WantsBlobStore -> [(PkgId, PackageId, ModelPkgInfo)] -> ServerM [PkgInfoId]
+loadModelPkgInfos wantsBs versions = do
   pkginfoids <- liftDB $ doInsert $ Insert
     { into = pkgInfoSchema
     , rows = values $ do
@@ -385,7 +393,11 @@ loadModelPkgInfos versions = do
 
   -- For now we cheat and just assume there is a single tarball revision.
   blobs <- for (zip pkginfoids versions) $ \(pkginfoid, (_, pkgid, pkg)) -> do
-    blobid <- loadTarball (Pretty.prettyShow pkgid) $ mpi_source pkg
+    blobid <-
+      case wantsBs of
+        NoBlobStore -> pure $ BlobId $ md5 ""
+        WithBlobStore ->
+          loadTarball (Pretty.prettyShow pkgid) $ mpi_source pkg
     pure (pkginfoid, blobid, head $ mpi_revisions pkg)
   _ <- liftDB $ doInsert $ Insert
     { into = packageTarballRevisionsSchema
