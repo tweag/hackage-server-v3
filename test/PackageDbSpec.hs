@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings               #-}
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
+{-# OPTIONS_GHC -Wno-x-partial               #-}
 
 module PackageDbSpec where
 
@@ -27,51 +28,41 @@ import Test.QuickCheck
 
 spec :: Spec
 spec = aroundAll withDb $ do
-  serverProp "api_versions gives back what you put in" $
-    \model () -> do
-      (pkg, mp) <- genExistingPackage model
-      pure $ do
-        vs <- pkgdb_api_versions packageDbServer pkg
-        pure $ vs `shouldBe` PackageVersions (M.fromList $ do
-          (version, depr) <- M.toList $ mp_versions mp
-          pure (version, bool Normal Deprecated $ mpi_deprecated depr)
-          )
+  serverProp "api_versions gives back what you put in" genExistingPackage $
+    \(pkg, mp) -> do
+      vs <- pkgdb_api_versions packageDbServer pkg
+      pure $ vs `shouldBe` PackageVersions (M.fromList $ do
+        (version, depr) <- M.toList $ mp_versions mp
+        pure (version, bool Normal Deprecated $ mpi_deprecated depr)
+        )
 
-  serverProp "api_uploader gives back what you put in" $
-    \model () -> do
-      (loc, mp) <- genExistingPackageLocator model
-      pure $ do
-        uploader <- pkgdb_api_uploader packageDbServer loc
-        -- TODO(sandy): Probable bug! This gets the 'last' revision, but
-        -- 'pkgdb_api_uploadTime' uses the 'head' revision!
-        pure $ uploader `shouldBe` mur_name (mmr_user $ last $ mpi_revisions mp)
+  serverProp "api_uploader gives back what you put in" genExistingPackageLocator $
+    \(loc, mp) -> do
+      uploader <- pkgdb_api_uploader packageDbServer loc
+      -- TODO(sandy): Probable bug! This gets the 'last' revision, but
+      -- 'pkgdb_api_uploadTime' uses the 'head' revision!
+      pure $ uploader `shouldBe` mur_name (mmr_user $ last $ mpi_revisions mp)
 
-  serverProp "api_uploadTime gives back what you put in" $
-    \model () -> do
-      (loc, mp) <- genExistingPackageLocator model
-      pure $ do
-        uploader <- pkgdb_api_uploadTime packageDbServer loc
-        -- TODO(sandy): Probable bug! This gets the 'head' revision, but
-        -- 'pkgdb_api_uploader' uses the 'last' revision!
-        pure $ uploader `shouldBe` mmr_time (head $ mpi_revisions mp)
+  serverProp "api_uploadTime gives back what you put in" genExistingPackageLocator $
+    \(loc, mp) -> do
+      uploader <- pkgdb_api_uploadTime packageDbServer loc
+      -- TODO(sandy): Probable bug! This gets the 'head' revision, but
+      -- 'pkgdb_api_uploader' uses the 'last' revision!
+      pure $ uploader `shouldBe` mmr_time (head $ mpi_revisions mp)
 
-  serverProp "api_cabalFile gives back what you put in" $
-    \model () -> do
-      (loc, mp) <- genExistingPackageLocator model
-      pure $ do
-        cabal <- pkgdb_api_cabalFile packageDbServer loc $ packageLocName loc
-        pure $ cabal `shouldBe`  mmr_cabal (last $ mpi_revisions mp)
+  serverProp "api_cabalFile gives back what you put in" genExistingPackageLocator $
+    \(loc, mp) -> do
+      cabal <- pkgdb_api_cabalFile packageDbServer loc $ packageLocName loc
+      pure $ cabal `shouldBe`  mmr_cabal (last $ mpi_revisions mp)
 
-  serverProp "api_preferredVersions gives back what you put in" $
-    \model () -> do
-      (name, pkg) <- genExistingPackage model
-      pure $ do
-        prefs <- pkgdb_api_preferredVersions packageDbServer Nothing name
-        pure $ prefs `shouldBe` WithPackageName name
-          ( PreferredVersions $ M.fromList $ do
-              (v, pkginfo) <- M.toList $ mp_versions pkg
-              pure (v, bool Normal Deprecated $ mpi_deprecated pkginfo)
-          )
+  serverProp "api_preferredVersions gives back what you put in" genExistingPackage $
+    \(name, pkg) -> do
+      prefs <- pkgdb_api_preferredVersions packageDbServer Nothing name
+      pure $ prefs `shouldBe` WithPackageName name
+        ( PreferredVersions $ M.fromList $ do
+            (v, pkginfo) <- M.toList $ mp_versions pkg
+            pure (v, bool Normal Deprecated $ mpi_deprecated pkginfo)
+        )
 
 
 -- | For use with 'aroundAll': make a temporary postgres database and setup its
@@ -94,17 +85,21 @@ withDb action = do
 
 -- | Like 'prop', but for testing properties about 'ServerM'.
 serverProp
-    :: (Arbitrary a, Show a, Testable b)
+    :: (Show a, Testable b)
     => String
-    -> (ModelHackage -> a -> Gen (ServerM b))
+    -> (ModelHackage -> Gen a)
+    -> (a -> ServerM b)
     -> SpecWith ServerCtx
-serverProp n p =
+serverProp n f p =
   it n $ \ctx ->
-    property $ \(model, a) -> do
-      server <- p model a
-      pure $ ioProperty $ do
-        conn <- withResource (serverPool ctx) pure
-        void $ run (sql "BEGIN") conn
-        mb <- finally (runServerM ctx $ loadModelHackage model *> server) $ liftIO $ run (sql "ROLLBACK") conn
-        either throwIO pure mb
+    property $ \model -> do
+      a <- f model
+      -- server <- p a
+      pure
+        $ counterexample (show a)
+        $ ioProperty $ do
+          conn <- withResource (serverPool ctx) pure
+          void $ run (sql "BEGIN") conn
+          mb <- finally (runServerM ctx $ loadModelHackage model *> p a) $ liftIO $ run (sql "ROLLBACK") conn
+          either throwIO pure mb
 
