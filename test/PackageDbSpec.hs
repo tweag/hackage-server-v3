@@ -4,6 +4,8 @@
 
 module PackageDbSpec where
 
+import Data.Proxy (Proxy(..))
+import Servant.HackageCombinators.DynamicGet (OneOf(..))
 import Control.Exception (throwIO, finally)
 import Control.Monad (void)
 import Control.Monad.IO.Class
@@ -81,6 +83,17 @@ spec = aroundAll withDb $ do
             pure (v, bool Normal Deprecated $ mpi_deprecated pkginfo)
         )
 
+  serverPropGen "api_tarballContent gives back what you put in"
+      WithBlobStore
+      genExistingPackageLocator $
+    \(loc, pkg) -> do
+      (path, contents) <- elements $ getPaths $ mt_filesystem $ mpi_source pkg
+      pure $ do
+        prefs <- pkgdb_api_tarballContent packageDbServer loc path
+        pure $
+          counterexample (show path) $ do
+            prefs `shouldBe` HHere Proxy (decodeUtf8 contents)
+
 
 -- | For use with 'aroundAll': make a temporary postgres database and setup its
 -- schema for Hackage.
@@ -110,16 +123,27 @@ serverProp
     -> (ModelHackage -> Gen a)
     -> (a -> ServerM b)
     -> SpecWith ServerCtx
-serverProp n wantsBs f p =
+serverProp n wantsBs f p = serverPropGen n wantsBs f (pure . p)
+
+
+-- | Like 'prop', but for testing properties about 'ServerM'.
+serverPropGen
+    :: (Show a, Testable b)
+    => String
+    -> WantsBlobStore
+    -> (ModelHackage -> Gen a)
+    -> (a -> Gen (ServerM b))
+    -> SpecWith ServerCtx
+serverPropGen n wantsBs f p =
   it n $ \ctx ->
     property $ \model -> do
       a <- f model
-      -- server <- p a
+      server <- p a
       pure
         $ counterexample (show a)
         $ ioProperty $ do
           conn <- withResource (serverPool ctx) pure
           void $ run (sql "BEGIN") conn
-          mb <- finally (runServerM ctx $ loadModelHackage wantsBs model *> p a) $ liftIO $ run (sql "ROLLBACK") conn
+          mb <- finally (runServerM ctx $ loadModelHackage wantsBs model *> server) $ liftIO $ run (sql "ROLLBACK") conn
           either throwIO pure mb
 

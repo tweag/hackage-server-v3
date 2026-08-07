@@ -1,10 +1,11 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE UndecidableInstances   #-}
+{-# LANGUAGE PackageImports    #-}
 
 module Model where
 
-import Distribution.Utils.MD5 (md5)
+import "hackage-server-v3" Data.TarIndex
 import Codec.Archive.Tar qualified as Tar
 import Codec.Archive.Tar.Entry qualified as Tar
 import Control.Arrow ((&&&))
@@ -15,18 +16,23 @@ import Data.Bifunctor (first)
 import Data.BlobStorage qualified as Blob
 import Data.ByteString (StrictByteString, fromStrict)
 import Data.ByteString.Char8 qualified as BS8
+import Data.Coerce (coerce)
 import Data.Data (Data)
 import Data.Hashable
+import Data.List (inits)
 import Data.Map (Map)
 import Data.Map qualified as M
 import Data.Set (Set)
 import Data.Set qualified as S
+import Data.Text (Text)
+import Data.Text qualified as T
 import Data.Time (UTCTime)
 import Data.Traversable
 import Distribution.Pretty qualified as Pretty
 import Distribution.Types.PackageId
 import Distribution.Types.PackageName
 import Distribution.Types.Version
+import Distribution.Utils.MD5 (md5)
 import GHC.Generics
 import Hackage.Objects
 import Hackage.Orphans ()
@@ -37,6 +43,7 @@ import Hackage.Types
 import Hackage.Types.PrimaryKey
 import Hackage.Utils
 import Rel8 hiding (null, filter, and, listOf)
+import Servant.Tarball
 import System.FilePath ((</>))
 import Test.QuickCheck
 import Unsafe.Coerce (unsafeCoerce)
@@ -236,7 +243,7 @@ instance SomewhatArbitrary (Set ModelUserRef) ModelPkgInfo where
             vectorOf n $ sarbitrary us
         )
       <*> arbitrary
-      <*> fmap ModelTarball (genSmallMap arbitrary)
+      <*> arbitrary
 
   sshrink us pkginfo =
     filter validModelPkgInfo $ mconcat
@@ -246,6 +253,9 @@ instance SomewhatArbitrary (Set ModelUserRef) ModelPkgInfo where
       , do
           deprecated <- shrink $ mpi_deprecated pkginfo
           pure $ pkginfo { mpi_deprecated = deprecated }
+      , do
+          source <- shrink $ mpi_source pkginfo
+          pure $ pkginfo { mpi_source = source }
       ]
 
 data ModelUserRef = ModelUserRef
@@ -464,7 +474,11 @@ data ModelTarball = ModelTarball
   }
   deriving stock (Eq, Ord, Show, Generic, Data)
 
-newtype PathSeg = PathSeg FilePath
+instance Arbitrary ModelTarball where
+  arbitrary = fmap ModelTarball $ genSmallMap arbitrary
+  shrink = genericShrink
+
+newtype PathSeg = PathSeg { getPathSeg :: FilePath }
   deriving newtype (Eq, Ord, Show)
   deriving stock (Data)
 
@@ -478,6 +492,10 @@ instance Arbitrary PathSeg where
       , ['0' .. '9']
       , ".-"
       ]
+  shrink = coerce . drop 1 . inits . getPathSeg
+
+instance Arbitrary BS8.ByteString where
+  arbitrary = genByteString
 
 data FileEntry
   = File StrictByteString
@@ -489,13 +507,26 @@ instance Arbitrary FileEntry where
     case n <= 1 of
       True -> fmap File genByteString
       False -> fmap Dir $ genSmallMap $ scale (`div` 10) arbitrary
+  shrink = genericShrink
 
 
-loadTarball :: FilePath -> ModelTarball -> ServerM (BlobId a)
+loadTarball :: FilePath -> ModelTarball -> ServerM (BlobId Tarball)
 loadTarball dir (ModelTarball fs) = do
   store <- asks serverBlobStore
-  x <- liftIO $ Blob.add store $ Tar.write $ flattenFs dir fs
-  pure $ unsafeCoerce x
+  let es = flattenFs dir fs
+  x <- liftIO $ Blob.addLazy store $ Tar.write es
+  let blobid = unsafeCoerce x
+  _ <- loadTarIndices blobid es
+  pure blobid
+
+
+getPaths :: Map PathSeg FileEntry -> [([Text], StrictByteString)]
+getPaths fs = do
+  (PathSeg seg, c) <- M.toList fs
+  let segt = T.pack seg
+  case c of
+    Dir fs' -> fmap (first (segt :)) $ getPaths fs'
+    File contents -> pure ([segt], contents)
 
 
 flattenFs :: FilePath -> Map PathSeg FileEntry -> [Tar.Entry]
@@ -510,4 +541,31 @@ flattenFs dir fs = do
         Tar.fileEntry
           (either error id $ Tar.toTarPath False path)
           (fromStrict content)
+
+
+loadTarIndices :: BlobId Tarball -> [Tar.Entry] -> ServerM [TarIndexId]
+loadTarIndices bid es = do
+  let Right m = construct $ makeEntries es
+  liftDB $ doInsert $ Insert
+      { into = tarIndexSchema
+      , rows = do
+          (path, off) <- values $ do
+            (k, v) <- M.toList m
+            pure $ lit (T.pack k, v)
+          pure $ TarIndexRow
+            { tarIndexId = newPrimaryKey
+            , tarIndexBlob = lit bid
+            , tarIndexPath = path
+            , tarIndexOffset = off
+            }
+      , onConflict = DoNothing
+      , returning = Returning tarIndexId
+      }
+
+
+
+makeEntries :: [Tar.Entry] -> Tar.Entries ()
+makeEntries = Tar.unfoldEntries $ \case
+  [] -> Right Nothing
+  (a : as) -> Right $ Just (a, as)
 

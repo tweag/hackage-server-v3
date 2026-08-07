@@ -47,6 +47,22 @@ data OneOf ts where
       -> OneOf ( '(ct, a) ': as )
 
 
+instance Eq (OneOf '[]) where
+  a == _ = case a of
+
+instance (Eq a, Eq (OneOf ts)) => Eq (OneOf ('(ct, a) ': ts)) where
+  HHere _ a == HHere _ b = a == b
+  HThere as == HThere bs = as == bs
+  _ == _ = False
+
+instance Show (OneOf '[]) where
+  show a = case a of
+
+instance (Show a, Show (OneOf ts)) => Show (OneOf ('(ct, a) ': ts)) where
+  show (HHere _ a) = show a
+  show (HThere as) = show as
+
+
 -- | Invoke a continuation with the content type and value for the single value
 -- in a 'OneOf'.
 mimeRenderOneOf

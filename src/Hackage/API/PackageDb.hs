@@ -17,6 +17,7 @@ import Data.Aeson hiding (Result(..))
 import Data.BlobStorage qualified as Blob
 import Data.Bool
 import Data.ByteString (StrictByteString)
+import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as BSL
 import Data.Functor
 import Data.Functor.Contravariant
@@ -590,13 +591,12 @@ loadTarEntry_
   -- ^ Tarball
   -> Int64
   -> IO (Either String (Tar.FileSize, BSL.ByteString))
-loadTarEntry_ tarfile off = do
-  htar <- openFile tarfile ReadMode
+loadTarEntry_ tarfile off = withBinaryFile tarfile ReadMode $ \htar -> do
   hSeek htar AbsoluteSeek $ fromIntegral $ off * 512
-  header <- BSL.hGet htar 512
-  case Tar.read header of
+  header <- BS.hGet htar 512
+  case Tar.read $ BSL.fromStrict header of
     (Tar.Next Tar.Entry{Tar.entryContent = Tar.NormalFile _ size} _) -> do
-         body <- BSL.hGet htar (fromIntegral size)
-         pure $ Right (size, body)
+         body <- BS.hGet htar (fromIntegral size)
+         pure $ Right (size, BSL.fromStrict body)
     z -> pure $ Left $ fail $  "failed to read entry from tar file: " <> show (tarfile, off, show z)
 

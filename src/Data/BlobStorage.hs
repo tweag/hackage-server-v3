@@ -71,6 +71,13 @@ add store a = do
   BS.writeFile (filepath store bid) encoded
   pure bid
 
+addLazy :: BlobStorage -> BSL.LazyByteString -> IO (BlobId a)
+addLazy store bytes = do
+  let strictBytes = BSL.toStrict bytes
+      bid = BlobId $ md5 strictBytes
+  BS.writeFile (filepath store bid) strictBytes
+  pure bid
+
 get' :: BlobStorage -> BlobId a -> IO BS.StrictByteString
 get' store = BS.readFile . filepath store
 
