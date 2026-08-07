@@ -4,16 +4,19 @@
 
 module PackageDbSpec where
 
-import Data.Proxy (Proxy(..))
-import Servant.HackageCombinators.DynamicGet (OneOf(..))
 import Control.Exception (throwIO, finally)
 import Control.Monad (void)
 import Control.Monad.IO.Class
 import Data.BlobStorage qualified as Blob
 import Data.Bool
+import Data.List (stripPrefix)
 import Data.Map qualified as M
+import Data.Maybe (mapMaybe)
 import Data.Pool (newPool, withResource, defaultPoolConfig)
+import Data.Proxy (Proxy(..))
+import Data.Set qualified as S
 import Data.Text.Encoding (decodeUtf8)
+import Data.Trie (pathToTrie)
 import Database.Postgres.Temp qualified as Temp
 import Hackage.API.PackageDb (packageDbServer)
 import Hackage.API.Type
@@ -25,9 +28,11 @@ import Hasql.Connection.Setting qualified as DB
 import Hasql.Connection.Setting.Connection qualified as DB
 import Hasql.Session (run, sql)
 import Model
+import Servant.HackageCombinators.DynamicGet (OneOf(..))
 import System.FilePath ((</>))
 import System.IO.Temp (withSystemTempDirectory)
 import Test.Hspec
+import Test.Hspec.QuickCheck
 import Test.QuickCheck
 
 
@@ -83,16 +88,58 @@ spec = aroundAll withDb $ do
             pure (v, bool Normal Deprecated $ mpi_deprecated pkginfo)
         )
 
-  serverPropGen "api_tarballContent gives back what you put in"
-      WithBlobStore
-      genExistingPackageLocator $
-    \(loc, pkg) -> do
-      (path, contents) <- elements $ getPaths $ mt_filesystem $ mpi_source pkg
-      pure $ do
-        prefs <- pkgdb_api_tarballContent packageDbServer loc path
-        pure $
-          counterexample (show path) $ do
-            prefs `shouldBe` HHere Proxy (decodeUtf8 contents)
+  describe "api_tarballContent" $ do
+    serverPropGen "serves files"
+        WithBlobStore
+        genExistingPackageLocator $
+      \(loc, pkg) -> do
+        (path, contents) <- elements $ getPaths $ mt_filesystem $ mpi_source pkg
+        pure $ do
+          prefs <- pkgdb_api_tarballContent packageDbServer loc path
+          pure $
+            counterexample (show path) $ do
+              prefs `shouldBe` HHere Proxy (decodeUtf8 contents)
+
+    focus $ modifyMaxShrinks (const 10) $ serverPropGen "serves all directories with an empty path"
+        WithBlobStore
+        genExistingPackageLocator $
+      \(loc, pkg) -> do
+        let paths = fmap fst $ getPaths $ mt_filesystem $ mpi_source pkg
+        pure $ do
+          prefs
+            <- pkgdb_api_tarballContent packageDbServer loc [""]
+          pure $
+            prefs `shouldBe`
+              HThere
+                ( HHere Proxy
+                $ DirectoryListing
+                $ foldMap pathToTrie paths
+                )
+
+    modifyMaxShrinks (const 10) $ serverPropGen "serves directories"
+        WithBlobStore
+        genExistingPackageLocator $
+      \(loc, pkg) -> do
+        let paths = fmap fst $ getPaths $ mt_filesystem $ mpi_source pkg
+        dir <- elements $ S.toList $ S.fromList $ fmap init paths
+        pure $ do
+          liftIO $ print (dir, paths)
+          prefs
+            <- pkgdb_api_tarballContent packageDbServer loc
+             $ -- We must append an empty string, or the server will tell us to 303 to
+               -- a trailing slash.
+               dir <> [""]
+          pure $
+            counterexample (show dir) $ do
+              prefs `shouldBe`
+                HThere
+                  ( HHere Proxy
+                  $ DirectoryListing
+                  $ foldMap pathToTrie
+                  $ -- Transitive files are served having stripped off the
+                    -- preceding directory.
+                    mapMaybe (stripPrefix dir) paths
+                  )
 
 
 -- | For use with 'aroundAll': make a temporary postgres database and setup its

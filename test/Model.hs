@@ -476,7 +476,7 @@ data ModelTarball = ModelTarball
 
 instance Arbitrary ModelTarball where
   arbitrary = fmap ModelTarball $ genSmallMap arbitrary
-  shrink = genericShrink
+  shrink = fmap (ModelTarball . M.fromList) . drop 1 . inits . M.toList . mt_filesystem
 
 newtype PathSeg = PathSeg { getPathSeg :: FilePath }
   deriving newtype (Eq, Ord, Show)
@@ -506,7 +506,10 @@ instance Arbitrary FileEntry where
   arbitrary = sized $ \n ->
     case n <= 1 of
       True -> fmap File genByteString
-      False -> fmap Dir $ genSmallMap $ scale (`div` 10) arbitrary
+      False -> oneof
+        [ fmap Dir $ genSmallMap $ scale (`div` 10) arbitrary
+        , fmap File genByteString
+        ]
   shrink = genericShrink
 
 
