@@ -25,6 +25,7 @@ import Data.Int (Int64)
 import Data.List qualified as List
 import Data.Map qualified as M
 import Data.Map.Monoidal qualified as MM
+import Data.Maybe (listToMaybe)
 import Data.Proxy (Proxy(..))
 import Data.Set qualified as S
 import Data.String (fromString)
@@ -54,7 +55,7 @@ import Hackage.ServerM
 import Hackage.Types
 import Hackage.Utils
 import Network.HTTP.Types.Header (hLocation)
-import Rel8 hiding (Lift, bool)
+import Rel8 hiding (Lift, bool, filter)
 import Servant.API
 import Servant.EDE
 import Servant.HackageCombinators.DynamicGet
@@ -455,27 +456,31 @@ serveTarballContent mklink prefix blob ps = do
     where_ $ startsWith (tarIndexPath off) $ lit actualPath
     pure (tarIndexOffset off, tarIndexPath off)
 
+  let actuallyFound = listToMaybe $ filter ((== actualPath) . snd) mstuff
+      isDir = T.isSuffixOf "/" actualPath || all (T.isPrefixOf (actualPath <> "/") . snd) mstuff
+
   -- Branch on what's going on:
   case mstuff of
-    -- We didn't find anything under the given path, so return 404.
+    -- We didn't find anything at all under the given path, so return 404.
     [] -> throwError err404
 
-    -- We found a single file under the given path. Since we've only done
-    -- a prefix check, now determine whether the file is exactly the requested
-    -- path. If so, we can serve the file. If not, it's a false positive and we
-    -- should still return 404.
-    [(off, path)]
-      | path == actualPath -> do
-          -- Lookup the file in the tarball...
-          store <- asks serverBlobStore
-          liftIO (loadTarEntry_ (Blob.filepath store blob) off) >>= \case
-            Right (_, e) ->
-              -- ...and serve it as plaintext.
-              pure $ HHere Proxy $ toStrict $ decodeUtf8 e
-            Left _ -> throwError err500
-      | otherwise -> throwError err404
+    -- We found a file at exactly the requested path, and it is not a directory.
+    _ | Just (off, _) <- actuallyFound
+      , not isDir -> do
+      -- Lookup the file in the tarball...
+      store <- asks serverBlobStore
+      liftIO (loadTarEntry_ (Blob.filepath store blob) off) >>= \case
+        Right (_, e) ->
+          -- ...and serve it as plaintext.
+          pure $ HHere Proxy $ toStrict $ decodeUtf8 e
+        Left _ -> throwError err500
 
-    -- Otherwise we have many matches and should serve a directory listing.
+    -- If we're not looking at a directory, there is no such file and
+    -- we can return a 404.
+    _ | not isDir -> throwError err404
+
+    -- Otherwise we have many matches and none of them is the one we're looking
+    -- for. Thus we should serve a directory listing.
     _ ->
       -- Check if there is an empty segment in the request path. This is
       -- desirable for two reasons:

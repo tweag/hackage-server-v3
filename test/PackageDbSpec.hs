@@ -32,7 +32,6 @@ import Servant.HackageCombinators.DynamicGet (OneOf(..))
 import System.FilePath ((</>))
 import System.IO.Temp (withSystemTempDirectory)
 import Test.Hspec
-import Test.Hspec.QuickCheck
 import Test.QuickCheck
 
 
@@ -100,7 +99,7 @@ spec = aroundAll withDb $ do
             counterexample (show path) $ do
               prefs `shouldBe` HHere Proxy (decodeUtf8 contents)
 
-    modifyMaxShrinks (const 10) $ serverPropGen "serves all directories with an empty path"
+    serverPropGen "serves all directories with an empty path"
         WithBlobStore
         genExistingPackageLocator $
       \(loc, pkg) -> do
@@ -116,14 +115,13 @@ spec = aroundAll withDb $ do
                 $ foldMap pathToTrie paths
                 )
 
-    modifyMaxShrinks (const 10) $ serverPropGen "serves directories"
+    serverPropGen "serves directories"
         WithBlobStore
         genExistingPackageLocator $
       \(loc, pkg) -> do
         let paths = fmap fst $ getPaths $ mt_filesystem $ mpi_source pkg
         dir <- elements $ S.toList $ S.fromList $ fmap init paths
         pure $ do
-          liftIO $ print (dir, paths)
           prefs
             <- pkgdb_api_tarballContent packageDbServer loc
              $ -- We must append an empty string, or the server will tell us to 303 to
