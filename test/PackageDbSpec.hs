@@ -100,7 +100,7 @@ spec = aroundAll withDb $ do
             counterexample (show path) $ do
               prefs `shouldBe` HHere Proxy (decodeUtf8 contents)
 
-    focus $ modifyMaxShrinks (const 10) $ serverPropGen "serves all directories with an empty path"
+    modifyMaxShrinks (const 10) $ serverPropGen "serves all directories with an empty path"
         WithBlobStore
         genExistingPackageLocator $
       \(loc, pkg) -> do
