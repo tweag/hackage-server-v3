@@ -5,12 +5,9 @@
 | [ ]  | /package/:package/reverse.:format (html)            | Html            |
 | [ ]  | /package/:package/reverse/old.:format (html)        | Html            |
 | [ ]  | /package/:package/reverse/verbose.:format (html)    | Html            |
-| [.]  | /package/:package/revision/:revision.:format        | Core            |
-| [.]  | /package/:package/revision/:revision.:format (json) | PackageInfoJSON |
-#        /package/:packagename/revision/:anything.json       ????
-#        /package/:packageid/revision/.json                  NOT THE SAME AS:
-#        /package/:packageid/revision/0.json                 ????
-| [/]  | /package/:package/preferred.:format (html)          | Html            |
+| [x]  | /package/:package/revision/:revision.:format        | Core            |
+| [x]  | /package/:package/revision/:revision.:format (json) | PackageInfoJSON |
+| [x]  | /package/:package/preferred.:format (html)          | Html            |
 | [x]  | /package/:package-version.:format (json)            | PackageInfoJSON |
 | [x]  | /package/:package/:cabal.cabal                      | Core            |
 | [x]  | /package/:package/:tarball.tar.gz                   | Core            |
