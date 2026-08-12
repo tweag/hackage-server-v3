@@ -34,8 +34,6 @@ library
       Hackage.API.PackageDb
       Hackage.API.Query
       Hackage.API.Type
-      Hackage.Auth.Admin
-      Hackage.Auth.Maintainer
       Hackage.Main
       Hackage.Objects
       Hackage.Orphans
