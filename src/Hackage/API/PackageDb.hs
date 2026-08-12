@@ -11,16 +11,16 @@ import Codec.Archive.Tar qualified as Tar
 import Codec.Archive.Tar.Entry qualified as Tar
 import Control.Monad (unless, guard)
 import Control.Monad.Except (throwError)
-import Control.Monad.Reader
+import Control.Monad.Reader (liftIO, asks)
 import Crypto.Hash qualified as Crypto
 import Data.Aeson hiding (Result(..))
 import Data.BlobStorage qualified as Blob
-import Data.Bool
+import Data.Bool (bool)
 import Data.ByteString (StrictByteString)
 import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as BSL
-import Data.Functor
-import Data.Functor.Contravariant
+import Data.Functor ((<&>))
+import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int64)
 import Data.List qualified as List
 import Data.Map qualified as M
@@ -35,15 +35,14 @@ import Data.Text.Arbitrary ()
 import Data.Text.Lazy (toStrict)
 import Data.Text.Lazy.Encoding (decodeUtf8)
 import Data.Time (UTCTime)
-import Data.Trie
+import Data.Trie (pathToTrie, flattenTrie)
 import Distribution.License (licenseToSPDX)
 import Distribution.PackageDescription.Parsec qualified as PkgDescr
 import Distribution.Pretty qualified as Pretty
 import Distribution.Types.Dependency as Cabal
 import Distribution.Types.GenericPackageDescription qualified as PkgDescr
 import Distribution.Types.PackageDescription qualified as PkgDescr
-import Distribution.Types.PackageId
-import Distribution.Types.PackageName
+import Distribution.Types.PackageId (PackageIdentifier(..), PackageId)
 import Distribution.Types.VersionRange (anyVersion)
 import Distribution.Utils.ShortText (fromShortText)
 import Hackage.API.Query
@@ -57,14 +56,14 @@ import Hackage.Utils
 import Network.HTTP.Types.Header (hLocation)
 import Rel8 hiding (Lift, bool, filter)
 import Servant.API
-import Servant.EDE
-import Servant.HackageCombinators.DynamicGet
-import Servant.HackageCombinators.NegotiableContent
-import Servant.Links
+import Servant.EDE (HTML, HasTemplate(..), ToObject(..))
+import Servant.HackageCombinators.DynamicGet (OneOf(..))
+import Servant.HackageCombinators.NegotiableContent (NegotiatedContent)
+import Servant.Links (fieldLink)
 import Servant.Server (err303, err404, err500, ServerError(..))
 import Servant.Server.Generic (AsServerT)
-import Servant.Tarball
-import System.IO
+import Servant.Tarball (Tarball)
+import System.IO (SeekMode(..), hSeek, IOMode(..), withBinaryFile)
 
 
 packageDbServer :: PackageDbApi (AsServerT ServerM)
@@ -204,7 +203,11 @@ packagePreferredVersions _ pname = do
   versions <- liftDB $ doSelect $ do
     pkgv <- getAllVersions $ lit pname
     pure (packageVersion pkgv, pkgInfoDeprecated pkgv)
-  pure $ WithPackageName pname $ PreferredVersions $ M.fromList $ fmap (fmap $ bool Normal Deprecated) versions
+  pure
+    $ WithPackageName pname
+    $ PreferredVersions
+    $ M.fromList
+    $ fmap (fmap $ bool Normal Deprecated) versions
 
 
 --------------------------------------------------------------------------------
@@ -322,8 +325,13 @@ packageTarball epname tarball = do
     Specific pid | pid == tarball -> pure ()
     _ -> throwError err404
 
-  mblob <-
-    liftDB $ doSelect1 $ optional $ fmap tarballBlobGz $ getLatestTarball $ Specific tarball
+  mblob
+    <- liftDB
+     $ doSelect1
+     $ optional
+     $ fmap tarballBlobGz
+     $ getLatestTarball
+     $ Specific tarball
   case mblob of
     Just blob -> do
       store <- asks serverBlobStore
@@ -347,8 +355,12 @@ packageDistroMonitor
     :: Maybe NegotiatedContent
     -> PackageName
     -> ServerM (WithPackageName AllTarballs)
-packageDistroMonitor _ pname = do
-  fmap (WithPackageName pname . AllTarballs . fmap (uncurry PackageIdentifier)) $ liftDB $ doSelect $ orderBy (snd >$< asc) $ do
+packageDistroMonitor _ pname
+  = fmap (WithPackageName pname . AllTarballs)
+  $ fmap (fmap (uncurry PackageIdentifier))
+  $ liftDB
+  $ doSelect
+  $ orderBy (snd >$< asc) $ do
     pkg <- each packageNameSchema
     where_ $ packageName pkg ==. lit pname
     pkgv <- each pkgInfoSchema
@@ -382,8 +394,11 @@ packageDependencies pname = do
   case PkgDescr.runParseResult parseResult of
     (_, Right pkg) -> do
       let pkgd = PkgDescr.packageDescription pkg
-      pure $ WithPackage (PkgDescr.package pkgd) $ Dependencies False $ PkgDescr.allBuildDepends pkgd
-    _ -> throwError $ err500
+      pure
+        $ WithPackage (PkgDescr.package pkgd)
+        $ Dependencies False
+        $ PkgDescr.allBuildDepends pkgd
+    _ -> throwError err500
 
 
 --------------------------------------------------------------------------------
@@ -398,7 +413,10 @@ instance ToObject Revisions where
     ]
 
 
-packageRevisions :: Maybe NegotiatedContent -> PackageLocator -> ServerM (WithPackage Revisions)
+packageRevisions
+    :: Maybe NegotiatedContent
+    -> PackageLocator
+    -> ServerM (WithPackage Revisions)
 packageRevisions _ loc = do
   (name, version) <- liftDB $ doSelect1 $ locatorToPackageId loc
   revs <- liftDB $ doSelect $ do
@@ -406,13 +424,20 @@ packageRevisions _ loc = do
     u <- each usersSchema
     where_ $ userId u ==. metadataUploader rev
     pure (rev, userName u)
-  pure $ WithPackage (PackageIdentifier name version) $ Revisions $ revs <&> \(rev, user) ->
-    Revision
-      { number = metadataRevId rev
-      , sha256 = T.pack $ show $ Crypto.hashWith Crypto.SHA256 $ metadataCabalFile rev
-      , time = metadataTime rev
-      , user = user
-      }
+  pure
+    $ WithPackage (PackageIdentifier name version)
+    $ Revisions
+    $ revs <&> \(rev, user) ->
+        Revision
+          { number = metadataRevId rev
+          , sha256
+              = T.pack
+              $ show
+              $ Crypto.hashWith Crypto.SHA256
+              $ metadataCabalFile rev
+          , time = metadataTime rev
+          , user = user
+          }
 
 
 --------------------------------------------------------------------------------
@@ -587,7 +612,12 @@ packageDocsContent loc ps = do
   (version, blob) <- liftDB $ doSelect1 $ getLatestDocs loc
   serveTarballContent
     (fieldLink pkgdb_api_tarballContent loc)
-    (T.pack (Pretty.prettyShow $ PackageIdentifier (packageLocName loc) version) <> "-docs")
+    (mconcat
+      [ T.pack
+          $ Pretty.prettyShow
+          $ PackageIdentifier (packageLocName loc) version
+      , "-docs"
+      ])
     blob
     ps
 
@@ -604,7 +634,10 @@ loadTarEntry_ tarfile off = withBinaryFile tarfile ReadMode $ \htar -> do
     (Tar.Next Tar.Entry{Tar.entryContent = Tar.NormalFile _ size} _) -> do
          body <- BS.hGet htar (fromIntegral size)
          pure $ Right (size, BSL.fromStrict body)
-    z -> pure $ Left $ fail $  "failed to read entry from tar file: " <> show (tarfile, off, show z)
+    z -> pure
+       $ Left
+       $ fail
+       $ "failed to read entry from tar file: " <> show (tarfile, off, show z)
 
 
 --------------------------------------------------------------------------------
@@ -640,7 +673,12 @@ packageChangelog _ loc = do
     pure (pkg, tarIndexBlob idx, tarIndexOffset idx)
   store <- asks serverBlobStore
   liftIO (loadTarEntry_ (Blob.filepath store blob) off) >>= \case
-    Right (_, e) -> pure $ WithPackage (PackageIdentifier pname version) $ Changelog $ toStrict $ decodeUtf8 e
+    Right (_, e) ->
+      pure
+        $ WithPackage (PackageIdentifier pname version)
+        $ Changelog
+        $ toStrict
+        $ decodeUtf8 e
     Left _ -> throwError err500
 
 instance ToObject Changelog where
