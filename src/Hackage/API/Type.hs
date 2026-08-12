@@ -153,7 +153,7 @@ data PackageDbApi mode = PackageDbApi
       :> "package"
       :> Capture "package" PackageLocator
       :> "changelog"
-      :> Get '[PlainText] Text
+      :> Get '[PlainText, HTML] (WithPackage Changelog)
   }
   deriving stock (Generic)
 
@@ -345,4 +345,10 @@ instance ToJSON AllDeprecations where
 
 newtype DirectoryListing = DirectoryListing (Trie Text)
   deriving newtype (Eq, Ord, Show, Arbitrary)
+
+--------------------------------------------------------------------------------
+-- /package/:package/changelog
+
+newtype Changelog = Changelog Text
+  deriving newtype (Eq, Ord, Show, Arbitrary, MimeRender PlainText)
 

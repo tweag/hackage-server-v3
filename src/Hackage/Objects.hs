@@ -75,6 +75,9 @@ instance ToJSON a => ToJSON (WithPackage a) where
 instance HasTemplate c a => HasTemplate c (WithPackage a) where
   templateFor c _ = templateFor c $ Proxy @a
 
+instance MimeRender PlainText a => MimeRender PlainText (WithPackage a) where
+  mimeRender p (WithPackage _ a) = mimeRender p a
+
 
 --------------------------------------------------------------------------------
 

@@ -613,14 +613,14 @@ loadTarEntry_ tarfile off = withBinaryFile tarfile ReadMode $ \htar -> do
 packageChangelog
   :: Maybe NegotiatedContent
   -> PackageLocator
-  -> ServerM Text
+  -> ServerM (WithPackage Changelog)
 packageChangelog _ loc = do
-  (blob, off) <- liftDB $ doSelect1 $ do
+  ((pname, version), blob, off) <- liftDB $ doSelect1 $ do
     tar <- getLatestTarball loc
     idx <- each tarIndexSchema
     where_ $ tarballBlobNoGz tar ==. tarIndexBlob idx
 
-    (pname, version) <- locatorToPackageId loc
+    pkg@(pname, version) <- locatorToPackageId loc
     let prefix = mconcat
           [ unsafeCastExpr pname
           , "-"
@@ -637,10 +637,16 @@ packageChangelog _ loc = do
              ,     ".TXT", ".MD", ".MARKDOWN"
              ]
       pure $ prefix <> base <> ext
-    pure (tarIndexBlob idx, tarIndexOffset idx)
+    pure (pkg, tarIndexBlob idx, tarIndexOffset idx)
   store <- asks serverBlobStore
   liftIO (loadTarEntry_ (Blob.filepath store blob) off) >>= \case
-    Right (_, e) ->
-      pure $ toStrict $ decodeUtf8 e
+    Right (_, e) -> pure $ WithPackage (PackageIdentifier pname version) $ Changelog $ toStrict $ decodeUtf8 e
     Left _ -> throwError err500
+
+instance ToObject Changelog where
+  toObject (Changelog c) =
+    [ "changelog" .= c ]
+
+instance HasTemplate HTML Changelog where
+  templateFor _ _ = "packages/changelog.html"
 

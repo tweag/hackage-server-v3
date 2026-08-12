@@ -1,0 +1,10 @@
+{% include "../header.html" with title = "Changelog for {{package}}" %}
+
+<h2>Changelog for <a href="/package/{{package | packagePretty}}">{{package | packagePretty }}</a></h2>
+
+<div class="embedded-author-content">
+  {{ changelog | renderMarkdown }}
+</div>
+
+{% include "../footer.html" %}
+

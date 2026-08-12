@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       Data.BlobStorage
+      Data.Markdown
       Data.Schema
       Data.TarIndex
       Data.Trie
@@ -77,6 +78,8 @@ library
     , bifunctors
     , bytestring
     , cereal
+    , commonmark
+    , commonmark-extensions
     , comonad
     , containers
     , crypton
@@ -97,6 +100,7 @@ library
     , mime-types
     , monoidal-containers
     , mtl
+    , network-uri
     , openapi3
     , optparse-applicative
     , profunctors
@@ -117,6 +121,7 @@ library
     , vector
     , wai
     , warp
+    , xss-sanitize
     , zlib
   default-language: GHC2024
 
@@ -147,6 +152,8 @@ executable hackage-server-v2-import
     , bifunctors
     , bytestring
     , cereal
+    , commonmark
+    , commonmark-extensions
     , comonad
     , containers
     , crypton
@@ -169,6 +176,7 @@ executable hackage-server-v2-import
     , mime-types
     , monoidal-containers
     , mtl
+    , network-uri
     , openapi3
     , optparse-applicative
     , profunctors
@@ -189,6 +197,7 @@ executable hackage-server-v2-import
     , vector
     , wai
     , warp
+    , xss-sanitize
     , zlib
   default-language: GHC2024
 
@@ -215,6 +224,8 @@ executable hackage-server-v3
     , bifunctors
     , bytestring
     , cereal
+    , commonmark
+    , commonmark-extensions
     , comonad
     , containers
     , crypton
@@ -236,6 +247,7 @@ executable hackage-server-v3
     , mime-types
     , monoidal-containers
     , mtl
+    , network-uri
     , openapi3
     , optparse-applicative
     , profunctors
@@ -256,6 +268,7 @@ executable hackage-server-v3
     , vector
     , wai
     , warp
+    , xss-sanitize
     , zlib
   default-language: GHC2024
 
@@ -283,6 +296,8 @@ test-suite conformance-tests
     , bifunctors
     , bytestring
     , cereal
+    , commonmark
+    , commonmark-extensions
     , comonad
     , containers
     , crypton
@@ -306,6 +321,7 @@ test-suite conformance-tests
     , mime-types
     , monoidal-containers
     , mtl
+    , network-uri
     , openapi3
     , optparse-applicative
     , profunctors
@@ -327,6 +343,7 @@ test-suite conformance-tests
     , vector
     , wai
     , warp
+    , xss-sanitize
     , zlib
   default-language: GHC2024
 
@@ -360,6 +377,8 @@ test-suite tests
     , bifunctors
     , bytestring
     , cereal
+    , commonmark
+    , commonmark-extensions
     , comonad
     , containers
     , crypton
@@ -384,6 +403,7 @@ test-suite tests
     , mime-types
     , monoidal-containers
     , mtl
+    , network-uri
     , openapi3
     , optparse-applicative
     , profunctors
@@ -406,5 +426,6 @@ test-suite tests
     , vector
     , wai
     , warp
+    , xss-sanitize
     , zlib
   default-language: GHC2024

@@ -4,23 +4,25 @@
 
 module Hackage.ServerM where
 
-import GHC.Exts (IsList(..))
-import Distribution.Pretty qualified as Pretty
-import Distribution.Types.PackageId (PackageIdentifier(..))
-import Data.Text (Text)
+import Control.Monad.Except
 import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
-import Hasql.Connection (Connection)
 import Control.Monad.Trans.Reader (ReaderT(..))
-import Control.Monad.Except
-import Servant
-import Text.EDE.Internal.Filters (qlist1)
-import Data.Pool
-import Servant.EDE
 import Data.BlobStorage (BlobStorage)
+import Data.Markdown
+import Data.Pool
+import Data.Text (Text)
 import Data.Text qualified as T
-import Text.EDE.Filters
+import Data.Text.Lazy.Encoding (encodeUtf8)
+import Distribution.Pretty qualified as Pretty
+import Distribution.Types.PackageId (PackageIdentifier(..))
+import GHC.Exts (IsList(..))
 import Hackage.Objects ()
+import Hasql.Connection (Connection)
+import Servant
+import Servant.EDE
+import Text.EDE.Filters
+import Text.EDE.Internal.Filters (qlist1)
 
 
 data ServerCtx = ServerCtx
@@ -81,6 +83,8 @@ filters =
   , "packageName" @: pkgName
   , "packagePretty" @: (T.pack . Pretty.prettyShow @PackageIdentifier)
   , "intercalate" @: \x y -> T.intercalate y x
+  , "renderMarkdown" @: (renderMarkdown "" . encodeUtf8)
+  , "renderMarkdownRel" @: (renderMarkdownRel "" . encodeUtf8)
   , qlist1 "cat" (<>) (<>)
   ]
 

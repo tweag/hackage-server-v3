@@ -65,6 +65,10 @@ dependencies:
 - zlib
 - monoidal-containers
 - generic-lens
+- commonmark
+- commonmark-extensions
+- network-uri
+- xss-sanitize
 
 # for schema-profunctor
 - vector

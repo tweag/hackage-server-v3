@@ -2,7 +2,7 @@
 | ---- | --------------------------------------------------- | --------------- |
 | [ ]  | /package/:package.:format (html)                    | Html            |
 | [ ]  | /package/:package.rss                               | PackageFeed     |
-| [ ]  | /package/:package/changelog.:format (html)          | PackageContents |
+| [x]  | /package/:package/changelog.:format (html)          | PackageContents |
 | [x]  | /package/:package/changelog.:format (txt)           | PackageContents |
 | [ ]  | /package/:package/docs.:format (tar)                | Documentation   |
 | [x]  | /package/:package/readme.:format (html)             | PackageContents |
