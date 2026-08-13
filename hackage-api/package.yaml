@@ -1,4 +1,4 @@
-name:                hackage-server-v3
+name:                hackage-api
 version:             0.1.0.0
 github:              "tweag/hackage-server-v3"
 license:             BSD-3-Clause
@@ -25,38 +25,39 @@ dependencies:
 - Cabal-syntax
 - QuickCheck
 - aeson
+- base64-bytestring
 - bytestring
-- cereal
-- commonmark
-- commonmark-extensions
 - containers
 - crypton
-- directory
 - ede
 - filepath
-- generic-lens
-- hackage-api
 - hashable
-- hasql
-- http-client-tls
+- http-client
+- http-media
+- http-reverse-proxy
 - http-types
 - lens
+- mime-types
 - monoidal-containers
 - mtl
-- network-uri
-- optparse-applicative
 - quickcheck-text
 - rel8
-- resource-pool
+- resourcet
 - servant
 - servant-ede
 - servant-server
-- tar
 - text
 - time
 - transformers
+- wai
 - warp
-- xss-sanitize
+
+# for schema-profunctor
+- vector
+- profunctors
+- bifunctors
+- comonad
+- openapi3
 
 ghc-options:
 - -Wall
@@ -75,29 +76,6 @@ default-extensions:
 library:
   source-dirs: src
 
-executables:
-  hackage-server-v3:
-    main:                Main.hs
-    source-dirs:         app
-    dependencies:
-    - hackage-server-v3
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-
-  hackage-server-v2-import:
-    main:                Main.hs
-    source-dirs:         app/import
-    dependencies:
-    - hackage-server-v3
-    - hackage-server
-    - acid-state
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-
 tests:
   tests:
     main:                Spec.hs
@@ -107,24 +85,8 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - hackage-server-v3
+    - hackage-api
     - hspec
     - hspec-discover
     - hspec-wai
-    - tmp-postgres
-    - temporary
-    - unordered-containers
 
-  conformance-tests:
-    main:                DBArbitrary.hs
-    source-dirs:         conformance-test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - hackage-server-v3
-    - hspec
-    - hspec-wai
-    - random
-    - request

@@ -27,36 +27,19 @@ library
   exposed-modules:
       Data.BlobStorage
       Data.Markdown
-      Data.Schema
       Data.TarIndex
-      Data.Trie
       Hackage.API.MoreAPI
       Hackage.API.PackageDb
       Hackage.API.Query
-      Hackage.API.Type
       Hackage.Main
-      Hackage.Objects
-      Hackage.Orphans
       Hackage.Schemas.Packages
       Hackage.Schemas.Users
       Hackage.ServerM
       Hackage.SetupDB
       Hackage.SyncAPI.Sync
-      Hackage.SyncAPI.Type
-      Hackage.Types
       Hackage.Types.PrimaryKey
       Hackage.Utils
       Rel8.CreateTable
-      Servant.HackageCombinators
-      Servant.HackageCombinators.CacheControl
-      Servant.HackageCombinators.CaptureExt
-      Servant.HackageCombinators.DynamicGet
-      Servant.HackageCombinators.NegotiableContent
-      Servant.HackageCombinators.NotYetPorted
-      Servant.HackageCombinators.PermanentRedirect
-      Servant.HackageCombinators.UserDomain
-      Servant.HackageCombinators.WhitelistDigest
-      Servant.Tarball
   other-modules:
       Paths_hackage_server_v3
   autogen-modules:
@@ -73,56 +56,38 @@ library
     , QuickCheck
     , aeson
     , base >=4.7 && <5
-    , base16-bytestring
-    , base64-bytestring
-    , bifunctors
     , bytestring
     , cereal
     , commonmark
     , commonmark-extensions
-    , comonad
     , containers
     , crypton
     , directory
     , ede
     , filepath
-    , gdp
     , generic-lens
+    , hackage-api
     , hashable
     , hasql
-    , http-client
     , http-client-tls
-    , http-media
-    , http-reverse-proxy
     , http-types
     , lens
-    , memory
-    , mime-types
     , monoidal-containers
     , mtl
     , network-uri
-    , openapi3
     , optparse-applicative
-    , profunctors
     , quickcheck-text
-    , random
     , rel8
     , resource-pool
-    , resourcet
     , servant
     , servant-ede
     , servant-server
-    , tagged
     , tar
     , text
     , time
     , transformers
-    , unordered-containers
-    , vector
-    , wai
     , warp
     , xss-sanitize
-    , zlib
   default-language: GHC2024
 
 executable hackage-server-v2-import
@@ -147,58 +112,40 @@ executable hackage-server-v2-import
     , acid-state
     , aeson
     , base >=4.7 && <5
-    , base16-bytestring
-    , base64-bytestring
-    , bifunctors
     , bytestring
     , cereal
     , commonmark
     , commonmark-extensions
-    , comonad
     , containers
     , crypton
     , directory
     , ede
     , filepath
-    , gdp
     , generic-lens
+    , hackage-api
     , hackage-server
     , hackage-server-v3
     , hashable
     , hasql
-    , http-client
     , http-client-tls
-    , http-media
-    , http-reverse-proxy
     , http-types
     , lens
-    , memory
-    , mime-types
     , monoidal-containers
     , mtl
     , network-uri
-    , openapi3
     , optparse-applicative
-    , profunctors
     , quickcheck-text
-    , random
     , rel8
     , resource-pool
-    , resourcet
     , servant
     , servant-ede
     , servant-server
-    , tagged
     , tar
     , text
     , time
     , transformers
-    , unordered-containers
-    , vector
-    , wai
     , warp
     , xss-sanitize
-    , zlib
   default-language: GHC2024
 
 executable hackage-server-v3
@@ -219,57 +166,39 @@ executable hackage-server-v3
     , QuickCheck
     , aeson
     , base >=4.7 && <5
-    , base16-bytestring
-    , base64-bytestring
-    , bifunctors
     , bytestring
     , cereal
     , commonmark
     , commonmark-extensions
-    , comonad
     , containers
     , crypton
     , directory
     , ede
     , filepath
-    , gdp
     , generic-lens
+    , hackage-api
     , hackage-server-v3
     , hashable
     , hasql
-    , http-client
     , http-client-tls
-    , http-media
-    , http-reverse-proxy
     , http-types
     , lens
-    , memory
-    , mime-types
     , monoidal-containers
     , mtl
     , network-uri
-    , openapi3
     , optparse-applicative
-    , profunctors
     , quickcheck-text
-    , random
     , rel8
     , resource-pool
-    , resourcet
     , servant
     , servant-ede
     , servant-server
-    , tagged
     , tar
     , text
     , time
     , transformers
-    , unordered-containers
-    , vector
-    , wai
     , warp
     , xss-sanitize
-    , zlib
   default-language: GHC2024
 
 test-suite conformance-tests
@@ -291,67 +220,49 @@ test-suite conformance-tests
     , QuickCheck
     , aeson
     , base >=4.7 && <5
-    , base16-bytestring
-    , base64-bytestring
-    , bifunctors
     , bytestring
     , cereal
     , commonmark
     , commonmark-extensions
-    , comonad
     , containers
     , crypton
     , directory
     , ede
     , filepath
-    , gdp
     , generic-lens
+    , hackage-api
     , hackage-server-v3
     , hashable
     , hasql
     , hspec
     , hspec-wai
-    , http-client
     , http-client-tls
-    , http-media
-    , http-reverse-proxy
     , http-types
     , lens
-    , memory
-    , mime-types
     , monoidal-containers
     , mtl
     , network-uri
-    , openapi3
     , optparse-applicative
-    , profunctors
     , quickcheck-text
     , random
     , rel8
     , request
     , resource-pool
-    , resourcet
     , servant
     , servant-ede
     , servant-server
-    , tagged
     , tar
     , text
     , time
     , transformers
-    , unordered-containers
-    , vector
-    , wai
     , warp
     , xss-sanitize
-    , zlib
   default-language: GHC2024
 
 test-suite tests
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      HackageCombinatorsSpec
       MD5Spec
       Model
       PackageDbSpec
@@ -372,50 +283,36 @@ test-suite tests
     , QuickCheck
     , aeson
     , base >=4.7 && <5
-    , base16-bytestring
-    , base64-bytestring
-    , bifunctors
     , bytestring
     , cereal
     , commonmark
     , commonmark-extensions
-    , comonad
     , containers
     , crypton
     , directory
     , ede
     , filepath
-    , gdp
     , generic-lens
+    , hackage-api
     , hackage-server-v3
     , hashable
     , hasql
     , hspec
     , hspec-discover
     , hspec-wai
-    , http-client
     , http-client-tls
-    , http-media
-    , http-reverse-proxy
     , http-types
     , lens
-    , memory
-    , mime-types
     , monoidal-containers
     , mtl
     , network-uri
-    , openapi3
     , optparse-applicative
-    , profunctors
     , quickcheck-text
-    , random
     , rel8
     , resource-pool
-    , resourcet
     , servant
     , servant-ede
     , servant-server
-    , tagged
     , tar
     , temporary
     , text
@@ -423,9 +320,6 @@ test-suite tests
     , tmp-postgres
     , transformers
     , unordered-containers
-    , vector
-    , wai
     , warp
     , xss-sanitize
-    , zlib
   default-language: GHC2024

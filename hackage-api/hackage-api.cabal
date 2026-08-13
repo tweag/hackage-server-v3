@@ -1,0 +1,148 @@
+cabal-version: 2.2
+
+-- This file has been generated from package.yaml by hpack version 0.38.1.
+--
+-- see: https://github.com/sol/hpack
+
+name:           hackage-api
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/tweag/hackage-server-v3#readme>
+homepage:       https://github.com/tweag/hackage-server-v3#readme
+bug-reports:    https://github.com/tweag/hackage-server-v3/issues
+author:         Tweag
+maintainer:     sandy.maguire@tweag.io
+copyright:      2026 Tweag
+license:        BSD-3-Clause
+build-type:     Simple
+extra-source-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/tweag/hackage-server-v3
+
+library
+  exposed-modules:
+      Data.Schema
+      Data.Trie
+      Hackage.API.Type
+      Hackage.Objects
+      Hackage.Orphans
+      Hackage.SyncAPI.Type
+      Hackage.Types
+      Servant.HackageCombinators
+      Servant.HackageCombinators.CacheControl
+      Servant.HackageCombinators.CaptureExt
+      Servant.HackageCombinators.DynamicGet
+      Servant.HackageCombinators.NegotiableContent
+      Servant.HackageCombinators.NotYetPorted
+      Servant.HackageCombinators.PermanentRedirect
+      Servant.HackageCombinators.UserDomain
+      Servant.HackageCombinators.WhitelistDigest
+      Servant.Tarball
+  other-modules:
+      Paths_hackage_api
+  autogen-modules:
+      Paths_hackage_api
+  hs-source-dirs:
+      src
+  default-extensions:
+      DerivingVia
+      DeriveAnyClass
+      GeneralizedNewtypeDeriving
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
+  build-depends:
+      Cabal-syntax
+    , QuickCheck
+    , aeson
+    , base >=4.7 && <5
+    , base64-bytestring
+    , bifunctors
+    , bytestring
+    , comonad
+    , containers
+    , crypton
+    , ede
+    , filepath
+    , hashable
+    , http-client
+    , http-media
+    , http-reverse-proxy
+    , http-types
+    , lens
+    , mime-types
+    , monoidal-containers
+    , mtl
+    , openapi3
+    , profunctors
+    , quickcheck-text
+    , rel8
+    , resourcet
+    , servant
+    , servant-ede
+    , servant-server
+    , text
+    , time
+    , transformers
+    , vector
+    , wai
+    , warp
+  default-language: GHC2024
+
+test-suite tests
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      HackageCombinatorsSpec
+      Paths_hackage_api
+  autogen-modules:
+      Paths_hackage_api
+  hs-source-dirs:
+      test
+  default-extensions:
+      DerivingVia
+      DeriveAnyClass
+      GeneralizedNewtypeDeriving
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      Cabal-syntax
+    , QuickCheck
+    , aeson
+    , base >=4.7 && <5
+    , base64-bytestring
+    , bifunctors
+    , bytestring
+    , comonad
+    , containers
+    , crypton
+    , ede
+    , filepath
+    , hackage-api
+    , hashable
+    , hspec
+    , hspec-discover
+    , hspec-wai
+    , http-client
+    , http-media
+    , http-reverse-proxy
+    , http-types
+    , lens
+    , mime-types
+    , monoidal-containers
+    , mtl
+    , openapi3
+    , profunctors
+    , quickcheck-text
+    , rel8
+    , resourcet
+    , servant
+    , servant-ede
+    , servant-server
+    , text
+    , time
+    , transformers
+    , vector
+    , wai
+    , warp
+  default-language: GHC2024

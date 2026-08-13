@@ -20,7 +20,6 @@ import GHC.Fingerprint (Fingerprint(..))
 import GHC.Generics
 import Numeric (readHex)
 import Rel8 hiding (Enum)
-import Rel8.CreateTable
 import Rel8.Decoder (parseDecoder)
 import Servant.API (ToHttpApiData, FromHttpApiData, MimeRender, PlainText)
 import Test.QuickCheck
@@ -34,7 +33,6 @@ newtype UserId = UserId Int64
     , DBType
     , DBEq
     , DBOrd
-    , DBAutoInc
     , ToJSON
     , FromJSON
     , Hashable
