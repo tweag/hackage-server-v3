@@ -41,6 +41,8 @@ library
       Hackage.Schemas.Users
       Hackage.ServerM
       Hackage.SetupDB
+      Hackage.SyncAPI.Sync
+      Hackage.SyncAPI.Type
       Hackage.Types
       Hackage.Types.PrimaryKey
       Hackage.Utils
