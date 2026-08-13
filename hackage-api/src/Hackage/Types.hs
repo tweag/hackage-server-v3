@@ -4,6 +4,7 @@ module Hackage.Types
   , Version
   ) where
 
+import Data.Bifunctor (bimap)
 import Data.Aeson (ToJSON, FromJSON)
 import Data.Coerce (coerce)
 import Data.Data (Data)
@@ -21,7 +22,7 @@ import GHC.Generics
 import Numeric (readHex)
 import Rel8 hiding (Enum)
 import Rel8.Decoder (parseDecoder)
-import Servant.API (ToHttpApiData, FromHttpApiData, MimeRender, PlainText)
+import Servant.API (ToHttpApiData(..), FromHttpApiData(..), MimeRender, PlainText)
 import Test.QuickCheck
 
 
@@ -103,6 +104,12 @@ newtype BlobId a = BlobId
   }
   deriving newtype (Eq, Ord, Show)
   deriving anyclass (DBEq, DBOrd)
+
+instance ToHttpApiData (BlobId a) where
+  toUrlPiece = T.pack . showMD5 . getBlobId
+
+instance FromHttpApiData (BlobId a) where
+  parseUrlPiece = bimap T.pack coerce . parseMD5 . T.unpack
 
 parseMD5 :: String -> Either String MD5
 parseMD5 s = maybe (Left "Can't parse md5") Right $ do
