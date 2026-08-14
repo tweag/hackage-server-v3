@@ -7,7 +7,7 @@ module Main where
 import Control.Monad (replicateM_)
 import Control.Monad.Except
 import Control.Monad.IO.Class (MonadIO)
-import Control.Monad.Reader (ReaderT(..), MonadReader)
+import Control.Monad.Reader (ReaderT(..))
 import Data.Aeson (Value (..), decode)
 import Data.BlobStorage qualified as Blob
 import Data.ByteString.Lazy (ByteString)
@@ -40,22 +40,25 @@ import Test.Hspec.Wai
 
 
 -- | A monadic generator for random values drawn from the database.
-newtype DBGen a = DBGen { unDBGen :: ReaderT Connection (ExceptT SessionError IO) a }
-  deriving newtype (MonadReader Connection, Functor, Applicative, Monad, MonadIO)
+newtype DBGen a = DBGen { unDBGen :: DatabaseM a }
+  deriving newtype (Functor, Applicative, Monad)
+
+instance MonadIO DBGen where
+  liftIO = DBGen . DatabaseM . liftIO
 
 
 -- | Run a generator against a connection.
 sampleGen :: DBGen a -> Connection -> IO (Either SessionError a)
-sampleGen g conn = runExceptT $ flip runReaderT conn $ unDBGen g
+sampleGen g conn = runExceptT $ flip runReaderT conn $ unDatabaseM $ unDBGen g
 
 pickRandom
   :: Serializable expr (FromExprs expr)
   => Query expr
   -> DBGen (FromExprs expr)
 pickRandom q = DBGen $ do
-  size <- ReaderT $ ExceptT . doSelect1 (countRows q)
-  off  <- liftIO $ randomRIO (0, max 0 $ size - 1)
-  ReaderT $ ExceptT . doSelect1 (limit 1 $ offset (fromIntegral off) q)
+  size <- doSelect1 (countRows q)
+  off  <- DatabaseM $ liftIO $ randomRIO (0, max 0 $ size - 1)
+  doSelect1 (limit 1 $ offset (fromIntegral off) q)
 
 
 genPackageName :: DBGen PackageName

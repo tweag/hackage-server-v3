@@ -111,7 +111,7 @@ instance HasTemplate HTML TrusteesObject where
 
 trusteesEndpoint :: ServerM TrusteesObject
 trusteesEndpoint = do
-  ts <- liftDB $ doSelect $ do
+  ts <- runDB $ doSelect $ do
     r <- each userRolesSchema
     where_ $ userRoleRole r ==. lit Trustee
     u <- activeUsers

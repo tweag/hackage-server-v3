@@ -4,6 +4,7 @@
 module Tarballs where
 
 import Control.Monad.Except
+import Control.Monad.Reader (runReaderT)
 import Data.Map qualified as M
 import "hackage-server-v3" Data.TarIndex
 import Data.Text qualified as T
@@ -28,7 +29,7 @@ insertTarEntries
   -> IO (Either (InsertTarEntriesError e) [TarIndexId])
 insertTarEntries bid es conn = runExceptT $ do
   m <- withExceptT TarDecodingError $ liftEither $ construct es
-  withExceptT DatabaseError $ ExceptT $ flip doInsert conn $
+  withExceptT DatabaseError $ flip runReaderT conn $ unDatabaseM $ doInsert $
     Insert
       { into = tarIndexSchema
       , rows = do

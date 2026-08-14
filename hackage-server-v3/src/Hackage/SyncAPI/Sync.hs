@@ -44,7 +44,7 @@ insertTarEntries bid es = do
   case construct es of
     Left _err -> throwError err500
     Right m ->
-      liftDB $ doInsert_ $
+      runDB $ doInsert_ $
         Insert
           { into = tarIndexSchema
           , rows = do

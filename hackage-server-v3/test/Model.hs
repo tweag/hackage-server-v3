@@ -359,7 +359,7 @@ loadModelHackage wantsBs mh = do
 -- | Import a 'ModelPackage' into the database.
 loadModelPackages :: WantsBlobStore -> [(PackageName, ModelPackage)] -> ServerM [PkgId]
 loadModelPackages wantsBs pkgs = do
-  pkgids <- liftDB $ doInsert $ Insert
+  pkgids <- runDB $ doInsert $ Insert
     { into = packageNameSchema
     , rows = values $ do
         (pkgname, pkginfo) <- pkgs
@@ -381,7 +381,7 @@ loadModelPackages wantsBs pkgs = do
 -- | Import a 'ModelPkgInfo' into the database.
 loadModelPkgInfos :: WantsBlobStore -> [(PkgId, PackageId, ModelPkgInfo)] -> ServerM [PkgInfoId]
 loadModelPkgInfos wantsBs versions = do
-  pkginfoids <- liftDB $ doInsert $ Insert
+  pkginfoids <- runDB $ doInsert $ Insert
     { into = pkgInfoSchema
     , rows = values $ do
         (pkgid, PackageIdentifier _ version, pkginfo) <- versions
@@ -409,7 +409,7 @@ loadModelPkgInfos wantsBs versions = do
         WithBlobStore ->
           loadTarball (Pretty.prettyShow pkgid) $ mpi_source pkg
     pure (pkginfoid, blobid, head $ mpi_revisions pkg)
-  _ <- liftDB $ doInsert $ Insert
+  _ <- runDB $ doInsert $ Insert
     { into = packageTarballRevisionsSchema
     , rows = values $ do
        (pkginfoid, blobid, rev) <- blobs
@@ -435,7 +435,7 @@ loadModelPkgInfos wantsBs versions = do
 
 loadModelMetaRevs :: [(PkgInfoId, MetadataRevIx, ModelMetaRev)] -> ServerM [PkgRevId]
 loadModelMetaRevs revs = do
-  liftDB $ doInsert $ Insert
+  runDB $ doInsert $ Insert
     { into = metadataRevisionsSchema
     , rows = values $ do
         (pii, revix, rev) <- revs
@@ -454,7 +454,7 @@ loadModelMetaRevs revs = do
 
 loadModelUsers :: [(UserId, ModelUser)] -> ServerM ()
 loadModelUsers us =
-  liftDB $ doInsert_ $ Insert
+  runDB $ doInsert_ $ Insert
     { into = usersSchema
     , rows = values $ do
         (uid, user) <- us
@@ -549,7 +549,7 @@ flattenFs dir fs = do
 loadTarIndices :: BlobId Tarball -> [Tar.Entry] -> ServerM [TarIndexId]
 loadTarIndices bid es = do
   let Right m = construct $ makeEntries es
-  liftDB $ doInsert $ Insert
+  runDB $ doInsert $ Insert
       { into = tarIndexSchema
       , rows = do
           (path, off) <- values $ do

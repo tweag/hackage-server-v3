@@ -98,7 +98,7 @@ packageDbServer = PackageDbApi
 
 packageVersions :: PackageName -> ServerM PackageVersions
 packageVersions pname = do
-  versions <- liftDB $ doSelect $ do
+  versions <- runDB $ doSelect $ do
     pkgv <- getAllVersions $ lit pname
     pure (packageVersion pkgv, pkgInfoDeprecated pkgv)
   pure $ PackageVersions $ M.fromList $ fmap (fmap $ bool Normal Deprecated) versions
@@ -130,7 +130,7 @@ cabalToDTO rev user = do
 
 packageMetadata :: PackageId -> ServerM PackageBasicDescriptionDTO
 packageMetadata pid = do
-  (rev, user) <- liftDB $ doSelect1 $ do
+  (rev, user) <- runDB $ doSelect1 $ do
     rev <- getLatestRev $ Specific pid
     user <- each usersSchema
     where_ $ userId user ==. metadataUploader rev
@@ -147,7 +147,7 @@ packageRevisionMetadata
     -> MetadataRevIx
     -> ServerM PackageBasicDescriptionDTO
 packageRevisionMetadata _ pid revix = do
-  (rev, user) <- liftDB $ doSelect1 $ do
+  (rev, user) <- runDB $ doSelect1 $ do
     rev <- getAllRevs $ Specific pid
     where_ $ metadataRevId rev ==. lit revix
     user <- each usersSchema
@@ -164,7 +164,7 @@ packageRevisionCabal
     -> MetadataRevIx
     -> ServerM StrictByteString
 packageRevisionCabal pid revix = do
-  (rev) <- liftDB $ doSelect1 $ do
+  (rev) <- runDB $ doSelect1 $ do
     rev <- getAllRevs $ Specific pid
     where_ $ metadataRevId rev ==. lit revix
     pure rev
@@ -178,7 +178,7 @@ packageRevisionCabal pid revix = do
 packageCabalFile :: PackageLocator -> PackageName -> ServerM StrictByteString
 packageCabalFile loc pname2 = do
   unless (packageLocName loc == pname2) $ throwError err404
-  liftDB $ doSelect1 $ do
+  runDB $ doSelect1 $ do
     rev <- getLatestRev loc
     pure $ metadataCabalFile rev
 
@@ -200,7 +200,7 @@ packagePreferredVersions
     -> PackageName
     -> ServerM (WithPackageName PreferredVersions)
 packagePreferredVersions _ pname = do
-  versions <- liftDB $ doSelect $ do
+  versions <- runDB $ doSelect $ do
     pkgv <- getAllVersions $ lit pname
     pure (packageVersion pkgv, pkgInfoDeprecated pkgv)
   pure
@@ -232,7 +232,7 @@ packageDeprecation
     -> ServerM (WithPackageName Deprecation)
 packageDeprecation _ pname = do
   -- TODO(sandy): share the db connection
-  isDepr <- liftDB $ doSelect1 $ do
+  isDepr <- runDB $ doSelect1 $ do
     pkg <- each packageNameSchema
     where_ $ packageName pkg ==. lit pname
     pure $ packageDeprecated pkg
@@ -240,7 +240,7 @@ packageDeprecation _ pname = do
     False ->
       pure $ WithPackageName pname $ Deprecation Nothing
     True -> do
-      deprs <- liftDB $ doSelect $ do
+      deprs <- runDB $ doSelect $ do
         pkg <- each packageNameSchema
         where_ $ packageName pkg ==. lit pname
         depr <- each pkgDeprecationSchema
@@ -272,7 +272,7 @@ packageAllDeprecations
     :: Maybe NegotiatedContent
     -> ServerM AllDeprecations
 packageAllDeprecations _ = do
-  deprs <- liftDB $ doSelect $ do
+  deprs <- runDB $ doSelect $ do
     pkg <- each packageNameSchema
     where_ $ packageDeprecated pkg
     depr <- each pkgDeprecationSchema
@@ -290,7 +290,7 @@ packageAllDeprecations _ = do
 
 packageUploader :: PackageLocator -> ServerM UserName
 packageUploader pname =
-  liftDB $ doSelect1 $ do
+  runDB $ doSelect1 $ do
     pkgv <- onlyLatestRev $ getAllRevs pname
     u <- each usersSchema
     where_ $ metadataUploader pkgv ==. userId u
@@ -302,7 +302,7 @@ packageUploader pname =
 
 packageUploadTime :: PackageLocator -> ServerM UTCTime
 packageUploadTime pname =
-  liftDB $ doSelect1 $ do
+  runDB $ doSelect1 $ do
     pkgv <- onlyEarliestRev $ getAllRevs pname
     pure $ metadataTime pkgv
 
@@ -326,7 +326,7 @@ packageTarball epname tarball = do
     _ -> throwError err404
 
   mblob
-    <- liftDB
+    <- runDB
      $ doSelect1
      $ optional
      $ fmap tarballBlobGz
@@ -358,7 +358,7 @@ packageDistroMonitor
 packageDistroMonitor _ pname
   = fmap (WithPackageName pname . AllTarballs)
   $ fmap (fmap (uncurry PackageIdentifier))
-  $ liftDB
+  $ runDB
   $ doSelect
   $ orderBy (snd >$< asc) $ do
     pkg <- each packageNameSchema
@@ -386,7 +386,7 @@ instance ToObject Dependencies where
 
 packageDependencies :: PackageLocator -> ServerM (WithPackage Dependencies)
 packageDependencies pname = do
-  rev <- liftDB $ doSelect1 $ do
+  rev <- runDB $ doSelect1 $ do
     pkgv <- onlyLatestRev $ getAllRevs pname
     pure pkgv
 
@@ -418,8 +418,8 @@ packageRevisions
     -> PackageLocator
     -> ServerM (WithPackage Revisions)
 packageRevisions _ loc = do
-  (name, version) <- liftDB $ doSelect1 $ locatorToPackageId loc
-  revs <- liftDB $ doSelect $ do
+  (name, version) <- runDB $ doSelect1 $ locatorToPackageId loc
+  revs <- runDB $ doSelect $ do
     rev <- getAllRevs loc
     u <- each usersSchema
     where_ $ userId u ==. metadataUploader rev
@@ -472,7 +472,7 @@ serveTarballContent mklink prefix blob ps = do
 
   -- Now get offsets for everything in the tarball that is under the requested
   -- path.
-  mstuff <- liftDB $ doSelect $ do
+  mstuff <- runDB $ doSelect $ do
     off <- each tarIndexSchema
     where_ $ tarIndexBlob off ==. lit blob
     -- Look only for files whose path starts with @actualPath@. In principle
@@ -553,9 +553,9 @@ packageTarballContent
                        , '(HTML, DirectoryListing)
                        ])
 packageTarballContent loc ps = do
-  (pname, pid) <- liftDB $ doSelect1 $ locatorToPackageId loc
+  (pname, pid) <- runDB $ doSelect1 $ locatorToPackageId loc
 
-  blob <- liftDB $ doSelect1 $ do
+  blob <- runDB $ doSelect1 $ do
     tar <- getLatestTarball loc
     pure $ tarballBlobNoGz tar
 
@@ -594,7 +594,7 @@ packageDocsTarball
     :: PackageLocator
     -> ServerM BSL.LazyByteString
 packageDocsTarball loc = do
-  (_, blob) <- liftDB $ doSelect1 $ getLatestDocs loc
+  (_, blob) <- runDB $ doSelect1 $ getLatestDocs loc
   store <- asks serverBlobStore
   liftIO $ Blob.get store blob
 
@@ -609,7 +609,7 @@ packageDocsContent
                        , '(HTML, DirectoryListing)
                        ])
 packageDocsContent loc ps = do
-  (version, blob) <- liftDB $ doSelect1 $ getLatestDocs loc
+  (version, blob) <- runDB $ doSelect1 $ getLatestDocs loc
   serveTarballContent
     (fieldLink pkgdb_api_tarballContent loc)
     (mconcat
@@ -648,7 +648,7 @@ packageChangelog
   -> PackageLocator
   -> ServerM (WithPackage Changelog)
 packageChangelog _ loc = do
-  ((pname, version), blob, off) <- liftDB $ doSelect1 $ do
+  ((pname, version), blob, off) <- runDB $ doSelect1 $ do
     tar <- getLatestTarball loc
     idx <- each tarIndexSchema
     where_ $ tarballBlobNoGz tar ==. tarIndexBlob idx
