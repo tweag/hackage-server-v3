@@ -2,6 +2,7 @@
 
 module Hackage.TarIndex where
 
+import Data.Bifunctor (bimap)
 import Codec.Archive.Tar qualified as Tar
 import Control.Monad (unless)
 import Control.Monad.IO.Class
@@ -23,7 +24,7 @@ indexingTarIndices
     :: Serializable exprs (FromExprs exprs)
     => Blob.BlobStorage
     -> Query (Expr (BlobId Tarball))
-    -> (TarIndexRow Expr -> Query exprs)
+    -> (Expr (BlobId Tarball) -> TarIndexRow Expr -> Query exprs)
     -> DatabaseM [FromExprs exprs]
 indexingTarIndices store blobsQ k = do
   blobs <- doSelect $ do
@@ -71,9 +72,10 @@ indexingTarIndices store blobsQ k = do
         }
 
   doSelect $ do
+    blob <- values $ fmap (lit . fst) blobs
     idxd <- each tarAlreadyIndexedSchema
-    where_ $ in_ (tarAlreadyIndexedBlob idxd) $ fmap (lit . fst) blobs
+    where_ $ tarAlreadyIndexedBlob idxd ==. blob
     idx <- each tarIndexSchema
     where_ $ tarIndexKey idx ==. tarAlreadyIndexedId idxd
-    k idx
+    k blob idx
 

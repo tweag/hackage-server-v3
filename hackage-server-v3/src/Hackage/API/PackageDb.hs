@@ -51,6 +51,7 @@ import Hackage.Objects
 import Hackage.Schemas.Packages
 import Hackage.Schemas.Users
 import Hackage.ServerM
+import Hackage.TarIndex
 import Hackage.Types
 import Hackage.Utils
 import Network.HTTP.Types.Header (hLocation)
@@ -469,20 +470,20 @@ serveTarballContent mklink prefix blob ps = do
   -- Since all the paths in the package tarballs are prefixed by their pretty
   -- packageid, we must first resolve the locator.
   let actualPath = T.intercalate "/" $ prefix : ps
+  store <- asks serverBlobStore
 
   -- Now get offsets for everything in the tarball that is under the requested
   -- path.
-  mstuff <- runDB $ doSelect $ do
-    idxd <- each tarAlreadyIndexedSchema
-    where_ $ tarAlreadyIndexedBlob idxd ==. lit blob
-    off <- each tarIndexSchema
-    where_ $ tarIndexKey off ==. tarAlreadyIndexedId idxd
-    -- Look only for files whose path starts with @actualPath@. In principle
-    -- this could incorrectly interpret the final path segment as a prefix
-    -- glob, but that doesn't actuall occur due to the 303 redirect discussed
-    -- below.
-    where_ $ startsWith (tarIndexPath off) $ lit actualPath
-    pure (tarIndexOffset off, tarIndexPath off)
+  mstuff <- runDB $
+    indexingTarIndices
+      store
+      (pure $ lit blob) $ \_ off -> do
+        -- Look only for files whose path starts with @actualPath@. In principle
+        -- this could incorrectly interpret the final path segment as a prefix
+        -- glob, but that doesn't actuall occur due to the 303 redirect discussed
+        -- below.
+        where_ $ startsWith (tarIndexPath off) $ lit actualPath
+        pure (tarIndexOffset off, tarIndexPath off)
 
   let actuallyFound = listToMaybe $ filter ((== actualPath) . snd) mstuff
       isDir = T.isSuffixOf "/" actualPath || all (T.isPrefixOf (actualPath <> "/") . snd) mstuff
@@ -496,7 +497,6 @@ serveTarballContent mklink prefix blob ps = do
     _ | Just (off, _) <- actuallyFound
       , not isDir -> do
       -- Lookup the file in the tarball...
-      store <- asks serverBlobStore
       liftIO (loadTarEntry_ (Blob.filepath store blob) off) >>= \case
         Right (_, e) ->
           -- ...and serve it as plaintext.
@@ -650,36 +650,40 @@ packageChangelog
   -> PackageLocator
   -> ServerM (WithPackage Changelog)
 packageChangelog _ loc = do
-  ((pname, version), blob, off) <- runDB $ doSelect1 $ do
-    tar <- getLatestTarball loc
-    idxd <- each tarAlreadyIndexedSchema
-    where_ $ tarballBlobNoGz tar ==. tarAlreadyIndexedBlob idxd
-    idx <- each tarIndexSchema
-    where_ $ tarIndexKey idx ==. tarAlreadyIndexedId idxd
-
-    pkg@(pname, version) <- locatorToPackageId loc
-    let prefix = mconcat
-          [ unsafeCastExpr pname
-          , "-"
-          , showVersionExpr version
-          , "/"
-          ]
-    where_ $ in_ (tarIndexPath idx) $ id @[_] $ do
-      base <- [ "news", "changelog", "change_log", "changes"
-              , "NEWS", "CHANGELOG", "CHANGE_LOG", "CHANGES"
-              , "News", "Changelog", "Change_log", "Changes"
-                      , "ChangeLog", "Change_Log"
-              ]
-      ext <- [ "", ".txt", ".md", ".markdown"
-             ,     ".TXT", ".MD", ".MARKDOWN"
-             ]
-      pure $ prefix <> base <> ext
-    pure (pkg, tarAlreadyIndexedBlob idxd, tarIndexOffset idx)
   store <- asks serverBlobStore
+  (pkg, blob, off) <- runDB $ do
+    (pname, version) <- doSelect1 $ locatorToPackageId loc
+    let pkg = PackageIdentifier pname version
+    (blob, off) <-
+      -- TODO(sandy): fmap head :|
+      fmap head $ indexingTarIndices store
+        ( do
+            tar <- getLatestTarball loc
+            pure $ tarballBlobNoGz tar
+        )
+        ( \blob idx -> do
+            let prefix = mconcat
+                  [ lit $ T.pack $ Pretty.prettyShow pkg
+                  , "/"
+                  ]
+            where_ $ in_ (tarIndexPath idx) $ id @[_] $ do
+              base <- [ "news", "changelog", "change_log", "changes"
+                      , "NEWS", "CHANGELOG", "CHANGE_LOG", "CHANGES"
+                      , "News", "Changelog", "Change_log", "Changes"
+                              , "ChangeLog", "Change_Log"
+                      ]
+              ext <- [ "", ".txt", ".md", ".markdown"
+                    ,     ".TXT", ".MD", ".MARKDOWN"
+                    ]
+              pure $ prefix <> base <> ext
+            pure (blob, tarIndexOffset idx)
+        )
+    pure (pkg, blob, off)
+
   liftIO (loadTarEntry_ (Blob.filepath store blob) off) >>= \case
     Right (_, e) ->
       pure
-        $ WithPackage (PackageIdentifier pname version)
+        $ WithPackage pkg
         $ Changelog
         $ toStrict
         $ decodeUtf8 e
