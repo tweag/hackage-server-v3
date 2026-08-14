@@ -501,7 +501,6 @@ loadTarball dir (ModelTarball fs) = do
   let es = flattenFs dir fs
   x <- liftIO $ Blob.addLazy store $ Tar.write es
   let blobid = unsafeCoerce x
-  _ <- loadTarIndices blobid es
   pure blobid
 
 
@@ -526,43 +525,4 @@ flattenFs dir fs = do
         Tar.fileEntry
           (either error id $ Tar.toTarPath False path)
           (fromStrict content)
-
-
-loadTarIndices :: BlobId Tarball -> [Tar.Entry] -> ServerM [TarIndexId]
-loadTarIndices bid es = do
-  let Right m = construct $ makeEntries es
-  runDB $ do
-    key <- doInsert1 $
-      Insert
-        { into = tarAlreadyIndexedSchema
-        , rows = pure $ TarAlreadyIndexedRow
-            { tarAlreadyIndexedId = newPrimaryKey
-            , tarAlreadyIndexedBlob = lit bid
-            }
-        , onConflict = Abort
-        , returning = Returning tarAlreadyIndexedId
-        }
-
-    doInsert $
-      Insert
-        { into = tarIndexSchema
-        , rows = do
-            (path, off) <- values $ do
-              (k, v) <- M.toList m
-              pure $ lit (T.pack k, v)
-            pure $ TarIndexRow
-              { tarIndexId = newPrimaryKey
-              , tarIndexKey = lit key
-              , tarIndexPath = path
-              , tarIndexOffset = off
-              }
-        , onConflict = DoNothing
-        , returning = Returning tarIndexId
-        }
-
-
-makeEntries :: [Tar.Entry] -> Tar.Entries ()
-makeEntries = Tar.unfoldEntries $ \case
-  [] -> Right Nothing
-  (a : as) -> Right $ Just (a, as)
 

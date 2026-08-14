@@ -12,7 +12,6 @@ import Options.Applicative
 data Command
   = MakeDb
   | BackfillPackages FilePath
-  | BackfillBlobstore FilePath
   deriving stock (Show, Eq)
 
 
@@ -34,14 +33,6 @@ backfillPackagesCmd =
     ]
 
 
-backfillBlobstoreCmd :: Parser Command
-backfillBlobstoreCmd =
-  fmap BackfillBlobstore $ strArgument $ mconcat
-    [ metavar "BLOBSTORE_DIR"
-    , help "Path to the hackage-v2 blobstore directory"
-    ]
-
-
 commandParser :: Parser Command
 commandParser =
   subparser $ mconcat
@@ -51,9 +42,6 @@ commandParser =
     , command "backfill-packages"
         $ info backfillPackagesCmd
         $ progDesc "Backfill package data into the database"
-    , command "backfill-blobstore"
-        $ info backfillBlobstoreCmd
-        $ progDesc "Backfill blobs into the blobstore"
     ]
 
 
@@ -86,6 +74,4 @@ main = do
       MakeDb -> setupDB conn
       BackfillPackages acidDir ->
         backfillPackageDB conn acidDir
-      BackfillBlobstore blobDir ->
-        backfillTarIndex conn blobDir
 

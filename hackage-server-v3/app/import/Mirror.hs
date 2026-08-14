@@ -34,7 +34,6 @@ import Import
 import Rel8 hiding (run)
 import Rel8 qualified as Rel8
 import System.FilePath
-import Tarballs (insertTarEntries)
 
 
 data RevState = RevState
@@ -114,18 +113,4 @@ backfillPackageDB conn dbDir = do
                 , returning = NoReturning
                 }
           pure $ pure $ lit True
-
-
-backfillTarIndex :: Connection -> FilePath -> IO ()
-backfillTarIndex conn blobPath = do
-  Right nogzs <-
-    flip run conn $ statement () $ Rel8.run $ select $ do
-      r <- each packageTarballRevisionsSchema
-      pure $ tarballBlobNoGz r
-  store <- Blob.open blobPath
-  for_ nogzs $ \blob -> do
-    Right bid <- pure $ Blob.readBlobId $ show $ getBlobId blob
-    bs <- BSL.readFile $ Blob.filepath store bid
-    let es = Tar.read bs
-    insertTarEntries blob es conn
 

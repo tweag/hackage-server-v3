@@ -30,47 +30,5 @@ syncServer = SyncApi
 
 syncBlob :: BlobId Tarball -> ServerM ()
 syncBlob bid = do
-  store <- asks serverBlobStore
-  bs <- liftIO $ BSL.readFile $ Blob.filepath store bid
-  let es = Tar.read bs
-  insertTarEntries bid es
-
-
-insertTarEntries
-  :: BlobId Tarball
-  -> Entries e
-  -> ServerM ()
-insertTarEntries bid es = do
-  case construct es of
-    Left _err -> throwError err500
-    Right m ->
-      runDB $ do
-        key <- doInsert1 $
-          Insert
-            { into = tarAlreadyIndexedSchema
-            , rows = pure $ TarAlreadyIndexedRow
-                { tarAlreadyIndexedId = newPrimaryKey
-                , tarAlreadyIndexedBlob = lit bid
-                }
-            , onConflict = Abort
-            , returning = Returning tarAlreadyIndexedId
-            }
-
-        doInsert_ $
-          Insert
-            { into = tarIndexSchema
-            , rows = do
-                (path, off) <- values $ do
-                  (k, v) <- M.toList m
-                  pure $ lit (T.pack k, v)
-                pure $ TarIndexRow
-                  { tarIndexId = newPrimaryKey
-                  , tarIndexKey = lit key
-                  , tarIndexPath = path
-                  , tarIndexOffset = off
-                  }
-            , onConflict = DoNothing
-            , returning = NoReturning
-            }
-
+  pure ()
 

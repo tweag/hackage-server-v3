@@ -96,7 +96,6 @@ executable hackage-server-v2-import
   other-modules:
       Import
       Mirror
-      Tarballs
       Paths_hackage_server_v3
   autogen-modules:
       Paths_hackage_server_v3
