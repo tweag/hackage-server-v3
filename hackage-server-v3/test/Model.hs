@@ -1,15 +1,18 @@
+{-# LANGUAGE BlockArguments         #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE OverloadedLabels       #-}
 {-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE PackageImports         #-}
 {-# LANGUAGE UndecidableInstances   #-}
-{-# LANGUAGE PackageImports    #-}
 
 module Model where
 
+import Control.Lens ((&), (.~), (%~))
 import "hackage-server-v3" Data.TarIndex
 import Codec.Archive.Tar qualified as Tar
 import Codec.Archive.Tar.Entry qualified as Tar
 import Control.Arrow ((&&&))
-import Control.Monad (void)
+import Control.Monad (void, guard)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (asks)
 import Data.Bifunctor (first)
@@ -28,6 +31,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Time (UTCTime)
 import Data.Traversable
+import Data.Generics.Labels ()
 import Distribution.Pretty qualified as Pretty
 import Distribution.Types.PackageId
 import Distribution.Types.PackageName
@@ -88,17 +92,31 @@ instance Arbitrary ModelHackage where
 
   shrink mh = filter validModelHackage $ mconcat
     [ do
+        guard $ length (mh_users mh) > 1
+        uid <- M.keys $ mh_users mh
+        let users' = M.delete uid $ mh_users mh
+        pure $ ModelHackage (deleteOwnedBy uid $ mh_packages mh) users'
+    , do
+        guard $ length (mh_users mh) == 1
         let users = mh_users mh
             userRefs = S.fromList $ fmap userToUserRef $ M.elems users
         packages <- sshrink userRefs $ mh_packages mh
         pure $ ModelHackage packages users
-    , do
-        users <- shrinkUsers $ mh_users mh
-        let userRefs = S.fromList $ fmap userToUserRef $ M.elems users
-        restrictedPackages <- restrictPackagesTo userRefs $ mh_packages mh
-        packages <- restrictedPackages : sshrink userRefs restrictedPackages
-        pure $ ModelHackage packages users
     ]
+
+deleteOwnedBy :: UserId -> Map PackageName ModelPackage -> Map PackageName ModelPackage
+deleteOwnedBy uid pkgs =
+  M.fromList $ do
+    (pname, pkg) <- M.toList pkgs
+    let pkg' =
+          pkg & #mp_versions .~ M.fromList do
+            (v, pkginfo) <- M.toList $ mp_versions pkg
+            let pkginfo' = pkginfo & #mpi_revisions %~ filter ((/= uid) . mur_id . mmr_user)
+            guard $ not $ null $ mpi_revisions pkginfo'
+            pure (v, pkginfo')
+    guard $ not $ null $ mp_versions pkg'
+    pure (pname, pkg')
+
 
 
 getUserId :: ModelUser -> UserId
@@ -108,6 +126,7 @@ getUserId = UserId . fromIntegral . abs . hash
 validModelHackage :: ModelHackage -> Bool
 validModelHackage mh = and
   [ not $ null $ mh_packages mh
+  , not $ null $ mh_users mh
   ]
 
 
@@ -164,43 +183,6 @@ instance SomewhatArbitrary (Set ModelUserRef) ModelPackage where
 
 validModelPackage :: ModelPackage -> Bool
 validModelPackage = not . null . mp_versions
-
-
-shrinkUsers :: Map UserId ModelUser -> [Map UserId ModelUser]
-shrinkUsers users =
-  filter validUsers $ do
-    uid <- M.keys users
-    pure $ M.delete uid users
-
-
-validUsers :: Map UserId ModelUser -> Bool
-validUsers = not . null
-
-
-restrictPackagesTo :: Set ModelUserRef -> Map PackageName ModelPackage -> [Map PackageName ModelPackage]
-restrictPackagesTo us = traverse $ restrictPackageTo us
-
-
-restrictPackageTo :: Set ModelUserRef -> ModelPackage -> [ModelPackage]
-restrictPackageTo us pkg =
-  filter validModelPackage $ do
-    versions <- traverse (restrictPackageInfoTo us) $ mp_versions pkg
-    pure $ pkg { mp_versions = versions }
-
-
-restrictPackageInfoTo :: Set ModelUserRef -> ModelPkgInfo -> [ModelPkgInfo]
-restrictPackageInfoTo us pkginfo =
-  filter validModelPkgInfo $ do
-    revisions <- traverse (restrictMetaRevTo us) $ mpi_revisions pkginfo
-    pure $ pkginfo { mpi_revisions = revisions }
-
-
-restrictMetaRevTo :: Set ModelUserRef -> ModelMetaRev -> [ModelMetaRev]
-restrictMetaRevTo us metarev
-  | S.member (mmr_user metarev) us = [metarev]
-  | otherwise = do
-      user <- S.toAscList us
-      pure $ metarev { mmr_user = user }
 
 
 -- | A model of a PkgInfo.
@@ -476,7 +458,7 @@ data ModelTarball = ModelTarball
 
 instance Arbitrary ModelTarball where
   arbitrary = fmap ModelTarball $ genSmallMap arbitrary
-  shrink = fmap (ModelTarball . M.fromList) . drop 1 . inits . M.toList . mt_filesystem
+  shrink = fmap (ModelTarball . M.fromList) . init . drop 1 . inits . M.toList . mt_filesystem
 
 newtype PathSeg = PathSeg { getPathSeg :: FilePath }
   deriving newtype (Eq, Ord, Show)
@@ -492,7 +474,7 @@ instance Arbitrary PathSeg where
       , ['0' .. '9']
       , ".-"
       ]
-  shrink = coerce . drop 1 . inits . getPathSeg
+  shrink = coerce . init . drop 1 . inits . getPathSeg
 
 instance Arbitrary BS8.ByteString where
   arbitrary = genByteString

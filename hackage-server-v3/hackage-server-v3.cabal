@@ -266,6 +266,7 @@ test-suite tests
       MD5Spec
       Model
       PackageDbSpec
+      ShrinkersSpec
       TemplatesSpec
       TrieSpec
       Paths_hackage_server_v3
