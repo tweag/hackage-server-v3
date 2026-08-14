@@ -43,10 +43,14 @@ instance DBEq PackageName
 instance DBOrd PackageName
 
 instance Arbitrary PackageName where
-  arbitrary
-    = fmap mkPackageName
-    $ suchThat (fmap getPrintableString arbitrary)
-    $ not . null
+  arbitrary = do
+    n <- chooseInt (1, 16)
+    fmap mkPackageName $ vectorOf n $ elements $ mconcat
+      [ ['a' .. 'z']
+      , ['A' .. 'Z']
+      , ['0' .. '9']
+      , ".-"
+      ]
 
 instance DBType Version where
   typeInformation =
