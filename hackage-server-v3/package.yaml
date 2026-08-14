@@ -66,6 +66,7 @@ ghc-options:
 - -Wincomplete-uni-patterns
 - -Wpartial-fields
 - -Wredundant-constraints
+- -Werror=x-dontuse
 
 default-extensions:
 - DerivingVia

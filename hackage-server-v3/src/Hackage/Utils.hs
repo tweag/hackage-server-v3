@@ -28,7 +28,7 @@ withConn ss = bracket (acquire ss >>= either (error . show) pure) release
 newtype DatabaseM a = DatabaseM
   { unDatabaseM :: ReaderT Connection (ExceptT SessionError IO) a
   }
-  deriving newtype (Functor, Applicative, Monad)
+  deriving newtype (Functor, Applicative, Monad, MonadIO)
 
 
 runDB :: DatabaseM a -> ServerM a

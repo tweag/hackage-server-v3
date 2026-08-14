@@ -364,7 +364,10 @@ data TarAlreadyIndexedRow f = TarAlreadyIndexedRow
 
 deriving stock instance Show (TarAlreadyIndexedRow Result)
 
-
+{-# WARNING in "x-dontuse"
+    tarAlreadyIndexedSchema
+    "It's an error to use this schema directly, since it gets loaded lazily. Instead route your logic through 'Hackage.TarIndex.indexingTarIndices'."
+    #-}
 tarAlreadyIndexedSchema :: TableSchema (TarAlreadyIndexedRow Name)
 tarAlreadyIndexedSchema = TableSchema
   { name = "already_indexed"
@@ -394,6 +397,10 @@ data TarIndexRow f = TarIndexRow
 
 deriving stock instance Show (TarIndexRow Result)
 
+{-# WARNING in "x-dontuse"
+    tarIndexSchema
+    "It's an error to use this schema directly, since it gets loaded lazily. Instead route your logic through 'Hackage.TarIndex.indexingTarIndices'."
+    #-}
 tarIndexSchema :: TableSchema (TarIndexRow Name)
 tarIndexSchema = TableSchema
   { name = "tarindex"

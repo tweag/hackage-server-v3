@@ -37,6 +37,7 @@ library
       Hackage.ServerM
       Hackage.SetupDB
       Hackage.SyncAPI.Sync
+      Hackage.TarIndex
       Hackage.Types.PrimaryKey
       Hackage.Utils
       Rel8.CreateTable
@@ -50,7 +51,7 @@ library
       DerivingVia
       DeriveAnyClass
       GeneralizedNewtypeDeriving
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -Werror=x-dontuse
   build-depends:
       Cabal-syntax
     , QuickCheck
@@ -105,7 +106,7 @@ executable hackage-server-v2-import
       DerivingVia
       DeriveAnyClass
       GeneralizedNewtypeDeriving
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -Werror=x-dontuse -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Cabal-syntax
     , QuickCheck
@@ -160,7 +161,7 @@ executable hackage-server-v3
       DerivingVia
       DeriveAnyClass
       GeneralizedNewtypeDeriving
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -Werror=x-dontuse -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Cabal-syntax
     , QuickCheck
@@ -214,7 +215,7 @@ test-suite conformance-tests
       DerivingVia
       DeriveAnyClass
       GeneralizedNewtypeDeriving
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -Werror=x-dontuse -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Cabal-syntax
     , QuickCheck
@@ -278,7 +279,7 @@ test-suite tests
       DerivingVia
       DeriveAnyClass
       GeneralizedNewtypeDeriving
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -Werror=x-dontuse -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Cabal-syntax
     , QuickCheck
