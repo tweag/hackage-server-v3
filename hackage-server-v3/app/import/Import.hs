@@ -190,23 +190,6 @@ mkMetadataRev qpkgid (revix) cabal (time, uid) = sql $
 newtype TarOffset = TarOffset { unTarOffset :: Int64 }
   deriving newtype (Eq, Ord, Show, Num)
 
-indexTarEntry :: BlobId Tarball -> TarOffset -> Tar.GenEntry BSL.ByteString Tar.TarPath c -> SqlM (Query (Expr TarIndexId))
-indexTarEntry bid o e = do
-  sql $ insert $
-    Insert
-      { into = tarIndexSchema
-      , rows = values @_ @[]
-          [ TarIndexRow
-              { tarIndexId = newPrimaryKey
-              , tarIndexBlob = lit bid
-              , tarIndexPath = lit $ T.pack $ Tar.entryPath e
-              , tarIndexOffset = lit $ unTarOffset o
-              }
-          ]
-      , onConflict = DoNothing
-      , returning = Returning tarIndexId
-      }
-
 
 mkTarballRev
   :: Query (Expr PkgInfoId)

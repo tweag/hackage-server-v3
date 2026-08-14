@@ -473,8 +473,10 @@ serveTarballContent mklink prefix blob ps = do
   -- Now get offsets for everything in the tarball that is under the requested
   -- path.
   mstuff <- runDB $ doSelect $ do
+    idxd <- each tarAlreadyIndexedSchema
+    where_ $ tarAlreadyIndexedBlob idxd ==. lit blob
     off <- each tarIndexSchema
-    where_ $ tarIndexBlob off ==. lit blob
+    where_ $ tarIndexKey off ==. tarAlreadyIndexedId idxd
     -- Look only for files whose path starts with @actualPath@. In principle
     -- this could incorrectly interpret the final path segment as a prefix
     -- glob, but that doesn't actuall occur due to the 303 redirect discussed
@@ -650,8 +652,10 @@ packageChangelog
 packageChangelog _ loc = do
   ((pname, version), blob, off) <- runDB $ doSelect1 $ do
     tar <- getLatestTarball loc
+    idxd <- each tarAlreadyIndexedSchema
+    where_ $ tarballBlobNoGz tar ==. tarAlreadyIndexedBlob idxd
     idx <- each tarIndexSchema
-    where_ $ tarballBlobNoGz tar ==. tarIndexBlob idx
+    where_ $ tarIndexKey idx ==. tarAlreadyIndexedId idxd
 
     pkg@(pname, version) <- locatorToPackageId loc
     let prefix = mconcat
@@ -670,7 +674,7 @@ packageChangelog _ loc = do
              ,     ".TXT", ".MD", ".MARKDOWN"
              ]
       pure $ prefix <> base <> ext
-    pure (pkg, tarIndexBlob idx, tarIndexOffset idx)
+    pure (pkg, tarAlreadyIndexedBlob idxd, tarIndexOffset idx)
   store <- asks serverBlobStore
   liftIO (loadTarEntry_ (Blob.filepath store blob) off) >>= \case
     Right (_, e) ->

@@ -29,20 +29,33 @@ insertTarEntries
   -> IO (Either (InsertTarEntriesError e) [TarIndexId])
 insertTarEntries bid es conn = runExceptT $ do
   m <- withExceptT TarDecodingError $ liftEither $ construct es
-  withExceptT DatabaseError $ flip runReaderT conn $ unDatabaseM $ doInsert $
-    Insert
-      { into = tarIndexSchema
-      , rows = do
-          (path, offset) <- values $ do
-            (k, v) <- M.toList m
-            pure $ lit (T.pack k, v)
-          pure $ TarIndexRow
-            { tarIndexId = newPrimaryKey
-            , tarIndexBlob = lit bid
-            , tarIndexPath = path
-            , tarIndexOffset = offset
+  withExceptT DatabaseError $ flip runReaderT conn $ unDatabaseM $ do
+    key <- doInsert1 $
+      Insert
+        { into = tarAlreadyIndexedSchema
+        , rows = pure $ TarAlreadyIndexedRow
+            { tarAlreadyIndexedId = newPrimaryKey
+            , tarAlreadyIndexedBlob = lit bid
             }
-      , onConflict = DoNothing
-      , returning = Returning tarIndexId
-      }
+        , onConflict = Abort
+        , returning = Returning tarAlreadyIndexedId
+        }
+
+    doInsert $
+      Insert
+        { into = tarIndexSchema
+        , rows = do
+            (path, off) <- values $ do
+              (k, v) <- M.toList m
+              pure $ lit (T.pack k, v)
+            pure $ TarIndexRow
+              { tarIndexId = newPrimaryKey
+              , tarIndexKey = lit key
+              , tarIndexPath = path
+              , tarIndexOffset = off
+              }
+        , onConflict = DoNothing
+        , returning = Returning tarIndexId
+        }
+
 

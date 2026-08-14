@@ -24,6 +24,7 @@ setupDB conn = do
   mk packageMaintainerTable
   mk tagTable
   mk packageTagTable
+  mk tarAlreadyIndexedTable
   mk tarIndexTable
   mk pkgDeprecationTable
   mk pkgDocsTable

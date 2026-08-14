@@ -353,11 +353,39 @@ packageTagTable = DbTable packageTagsSchema
   , FK ptPackageRevId metadataRevisionsSchema metadataId
   ]
 
+type TarAlreadyIndexedId = PrimaryKey TarIndexRow
+
+data TarAlreadyIndexedRow f = TarAlreadyIndexedRow
+  { tarAlreadyIndexedId :: Column f TarAlreadyIndexedId
+  , tarAlreadyIndexedBlob :: Column f (BlobId Tarball)
+  }
+  deriving stock (Generic)
+  deriving anyclass (Rel8able)
+
+deriving stock instance Show (TarAlreadyIndexedRow Result)
+
+
+tarAlreadyIndexedSchema :: TableSchema (TarAlreadyIndexedRow Name)
+tarAlreadyIndexedSchema = TableSchema
+  { name = "already_indexed"
+  , columns = TarAlreadyIndexedRow
+      { tarAlreadyIndexedId = "id"
+      , tarAlreadyIndexedBlob = "blob"
+      }
+  }
+
+
+tarAlreadyIndexedTable :: DbTable TarAlreadyIndexedRow
+tarAlreadyIndexedTable = DbTable tarAlreadyIndexedSchema
+  [ PK tarAlreadyIndexedId
+  , Unique tarAlreadyIndexedBlob
+  ]
+
 type TarIndexId = PrimaryKey TarIndexRow
 
 data TarIndexRow f = TarIndexRow
   { tarIndexId :: Column f TarIndexId
-  , tarIndexBlob :: Column f (BlobId Tarball)
+  , tarIndexKey :: Column f TarAlreadyIndexedId
   , tarIndexPath :: Column f Text
   , tarIndexOffset :: Column f Int64
   }
@@ -371,7 +399,7 @@ tarIndexSchema = TableSchema
   { name = "tarindex"
   , columns = TarIndexRow
       { tarIndexId = "id"
-      , tarIndexBlob = "blob"
+      , tarIndexKey = "indexid"
       , tarIndexPath = "path"
       , tarIndexOffset = "offset"
       }
@@ -382,7 +410,8 @@ tarIndexTable :: DbTable TarIndexRow
 tarIndexTable = DbTable tarIndexSchema
   [ PK tarIndexId
   , AutoInc tarIndexId
-  , Unique2 tarIndexBlob tarIndexPath
+  , FK tarIndexKey tarAlreadyIndexedSchema tarAlreadyIndexedId
+  , Unique2 tarIndexKey tarIndexPath
   , TextPatternOps tarIndexPath
   ]
 

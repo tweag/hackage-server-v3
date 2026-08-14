@@ -531,22 +531,34 @@ flattenFs dir fs = do
 loadTarIndices :: BlobId Tarball -> [Tar.Entry] -> ServerM [TarIndexId]
 loadTarIndices bid es = do
   let Right m = construct $ makeEntries es
-  runDB $ doInsert $ Insert
-      { into = tarIndexSchema
-      , rows = do
-          (path, off) <- values $ do
-            (k, v) <- M.toList m
-            pure $ lit (T.pack k, v)
-          pure $ TarIndexRow
-            { tarIndexId = newPrimaryKey
-            , tarIndexBlob = lit bid
-            , tarIndexPath = path
-            , tarIndexOffset = off
+  runDB $ do
+    key <- doInsert1 $
+      Insert
+        { into = tarAlreadyIndexedSchema
+        , rows = pure $ TarAlreadyIndexedRow
+            { tarAlreadyIndexedId = newPrimaryKey
+            , tarAlreadyIndexedBlob = lit bid
             }
-      , onConflict = DoNothing
-      , returning = Returning tarIndexId
-      }
+        , onConflict = Abort
+        , returning = Returning tarAlreadyIndexedId
+        }
 
+    doInsert $
+      Insert
+        { into = tarIndexSchema
+        , rows = do
+            (path, off) <- values $ do
+              (k, v) <- M.toList m
+              pure $ lit (T.pack k, v)
+            pure $ TarIndexRow
+              { tarIndexId = newPrimaryKey
+              , tarIndexKey = lit key
+              , tarIndexPath = path
+              , tarIndexOffset = off
+              }
+        , onConflict = DoNothing
+        , returning = Returning tarIndexId
+        }
 
 
 makeEntries :: [Tar.Entry] -> Tar.Entries ()
