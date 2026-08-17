@@ -52,7 +52,7 @@ spec = aroundAll withDb $ do
       "api_uploader gives back what you put in"
       NoBlobStore
       genExistingPackageLocator $
-    \(loc, mp) -> do
+    \(loc, _, mp) -> do
       uploader <- pkgdb_api_uploader packageDbServer loc
       -- TODO(sandy): Probable bug! This gets the 'last' revision, but
       -- 'pkgdb_api_uploadTime' uses the 'head' revision!
@@ -62,7 +62,7 @@ spec = aroundAll withDb $ do
       "api_uploadTime gives back what you put in"
       NoBlobStore
       genExistingPackageLocator $
-    \(loc, mp) -> do
+    \(loc, _, mp) -> do
       uploader <- pkgdb_api_uploadTime packageDbServer loc
       -- TODO(sandy): Probable bug! This gets the 'head' revision, but
       -- 'pkgdb_api_uploader' uses the 'last' revision!
@@ -72,7 +72,7 @@ spec = aroundAll withDb $ do
       "api_cabalFile gives back what you put in"
       NoBlobStore
       genExistingPackageLocator $
-    \(loc, mp) -> do
+    \(loc, _, mp) -> do
       cabal <- pkgdb_api_cabalFile packageDbServer loc $ packageLocName loc
       pure $ cabal `shouldBe`  mmr_cabal (last $ mpi_revisions mp)
 
@@ -91,7 +91,7 @@ spec = aroundAll withDb $ do
     serverPropGen "serves files"
         WithBlobStore
         genExistingPackageLocator $
-      \(loc, pkg) -> do
+      \(loc, _, pkg) -> do
         (path, contents) <- elements $ getPaths $ mt_filesystem $ mpi_source pkg
         pure $ do
           prefs <- pkgdb_api_tarballContent packageDbServer loc path
@@ -102,7 +102,7 @@ spec = aroundAll withDb $ do
     serverPropGen "serves all directories with an empty path"
         WithBlobStore
         genExistingPackageLocator $
-      \(loc, pkg) -> do
+      \(loc, pid, pkg) -> do
         let paths = fmap fst $ getPaths $ mt_filesystem $ mpi_source pkg
         pure $ do
           prefs
@@ -111,6 +111,7 @@ spec = aroundAll withDb $ do
             prefs `shouldBe`
               HThere
                 ( HHere Proxy
+                $ WithPackage pid
                 $ DirectoryListing
                 $ foldMap pathToTrie paths
                 )
@@ -118,7 +119,7 @@ spec = aroundAll withDb $ do
     serverPropGen "serves directories"
         WithBlobStore
         genExistingPackageLocator $
-      \(loc, pkg) -> do
+      \(loc, pid, pkg) -> do
         let paths = fmap fst $ getPaths $ mt_filesystem $ mpi_source pkg
         dir <- elements $ S.toList $ S.fromList $ fmap init paths
         pure $ do
@@ -132,6 +133,7 @@ spec = aroundAll withDb $ do
               prefs `shouldBe`
                 HThere
                   ( HHere Proxy
+                  $ WithPackage pid
                   $ DirectoryListing
                   $ foldMap pathToTrie
                   $ -- Transitive files are served having stripped off the

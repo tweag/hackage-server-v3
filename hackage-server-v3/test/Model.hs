@@ -308,12 +308,15 @@ genExistingPackage :: ModelHackage -> Gen (PackageName, ModelPackage)
 genExistingPackage = genExisting mh_packages
 
 
-genExistingPackageLocator :: ModelHackage -> Gen (PackageLocator, ModelPkgInfo)
+genExistingPackageLocator :: ModelHackage -> Gen (PackageLocator, PackageIdentifier, ModelPkgInfo)
 genExistingPackageLocator mh = oneof
-  [ fmap (first Specific) $ genExistingPackageId mh
+  [ do
+      (pid, mpi) <- genExistingPackageId mh
+      pure (Specific pid, pid, mpi)
   , do
       (pname, pkg) <- genExistingPackage mh
-      pure (Latest pname, snd $ M.findMax $ mp_versions pkg)
+      let (version, mpi) = M.findMax $ mp_versions pkg
+      pure (Latest pname, PackageIdentifier pname version, mpi)
   ]
 
 

@@ -131,7 +131,7 @@ data PackageDbApi mode = PackageDbApi
       :> CaptureAll "src" Text
       :> DynamicGet
            '[ '(PlainText, Text)
-            , '(HTML, DirectoryListing)
+            , '(HTML, WithPackage DirectoryListing)
             ]
   , pkgdb_api_docs :: mode
       :- UserDomain
@@ -141,7 +141,7 @@ data PackageDbApi mode = PackageDbApi
       :> CaptureAll "src" Text
       :> DynamicGet
            '[ '(PlainText, Text)
-            , '(HTML, DirectoryListing)
+            , '(HTML, WithPackage DirectoryListing)
             ]
   , pkgdb_api_docsTarball :: mode
       :- "package"

@@ -461,12 +461,13 @@ serveTarballContent
   :: ([Text] -> Link)
   -> Text
   -- ^ Path prefix
+  -> PackageIdentifier
   -> BlobId Tarball
   -> [Text]
   -> ServerM (OneOf '[ '(PlainText, Text)
-                     , '(HTML, DirectoryListing)
+                     , '(HTML, WithPackage DirectoryListing)
                      ])
-serveTarballContent mklink prefix blob ps = do
+serveTarballContent mklink prefix pkg blob ps = do
   -- Since all the paths in the package tarballs are prefixed by their pretty
   -- packageid, we must first resolve the locator.
   let actualPath = T.intercalate "/" $ prefix : ps
@@ -532,7 +533,7 @@ serveTarballContent mklink prefix blob ps = do
           -- Finally, if we've made it here, we have a real set of files
           -- underneath the requested path. We can serve this as an HTML
           -- directory listing.
-          pure $ HThere $ HHere Proxy $ DirectoryListing $ mconcat $ do
+          pure $ HThere $ HHere Proxy $ WithPackage pkg $ DirectoryListing $ mconcat $ do
             (_, pathp) <- mstuff
             -- The paths we found have the entire request path as a prefix.
             -- Since we only want relative paths at this point, we must strip
@@ -552,7 +553,7 @@ packageTarballContent
     :: PackageLocator
     -> [Text]
     -> ServerM (OneOf '[ '(PlainText, Text)
-                       , '(HTML, DirectoryListing)
+                       , '(HTML, WithPackage DirectoryListing)
                        ])
 packageTarballContent loc ps = do
   (pname, pid) <- runDB $ doSelect1 $ locatorToPackageId loc
@@ -564,6 +565,7 @@ packageTarballContent loc ps = do
   serveTarballContent
     (fieldLink pkgdb_api_tarballContent loc)
     (T.pack $ Pretty.prettyShow $ PackageIdentifier pname pid)
+    (PackageIdentifier pname pid)
     blob
     ps
 
@@ -608,7 +610,7 @@ packageDocsContent
     :: PackageLocator
     -> [Text]
     -> ServerM (OneOf '[ '(PlainText, Text)
-                       , '(HTML, DirectoryListing)
+                       , '(HTML, WithPackage DirectoryListing)
                        ])
 packageDocsContent loc ps = do
   (version, blob) <- runDB $ doSelect1 $ getLatestDocs loc
@@ -620,6 +622,7 @@ packageDocsContent loc ps = do
           $ PackageIdentifier (packageLocName loc) version
       , "-docs"
       ])
+    (PackageIdentifier (packageLocName loc) version)
     blob
     ps
 
