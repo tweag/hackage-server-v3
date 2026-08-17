@@ -1,4 +1,4 @@
-{% include "../header.html" with title = "{{package}}: dependencies" %}
+{% include "../header.html" with title = packagePretty package <> ": dependencies" %}
 
 <h1>Dependencies for
   <a href="{{package | toPackageUrl}}">{{package | packagePretty}}</a></h1>
