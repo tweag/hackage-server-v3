@@ -5,22 +5,30 @@ packages:
 - ./hackage-api
 
 extra-deps:
-  - rel8-1.7.0.0
+  # Support for <> and function application
+  - github: tweag/ede
+    commit: 70d34146d01a3766f2aef1a580e4224238ed6f90
+  # Currently unreleased v1.0.0.0
   - github: alpmestan/servant-ede
     commit: 8f9076963377c49c2e90a5c03aa1b4f3fbb2de93
-  - github: tweag/servant
-    commit: c6352177eb987960db00edc4cd90467dcb458f1c
+  # Currently unreleased bugfix, see
+  # https://github.com/haskell-servant/servant/pull/1905
+  - github: haskell-servant/servant
+    commit: 866e272feb42411aa208f21898c190f1c117780d
     subdir: servant
-  - github: tweag/hspec-wai
-    commit: ca36d3f068e729acb0dc278c4c0c259e21131289
+  # Official package is currently unmainted, see
+  # https://github.com/jfischoff/tmp-postgres/issues/286
+  - github: jfischoff/tmp-postgres
+    commit: 7f2467a6d6d5f6db7eed59919a6773fe006cf22b
+  # Changes for exporting acid-state and for the v3 syncing feature.
   - github: tweag/hackage-server
     commit: b9323fbe44f532e31bdbcc7cdbc1e7f8f3d77dae
   - Cabal-3.16.1.0
   - Cabal-syntax-3.16.1.0
-  - tar-0.7.1.0
+  - hspec-wai-0.12.1
+  - rel8-1.7.0.0
   - request-0.4.0.0
-  - github: jfischoff/tmp-postgres
-    commit: 7f2467a6d6d5f6db7eed59919a6773fe006cf22b
+  - tar-0.7.1.0
 
 allow-newer: true
 

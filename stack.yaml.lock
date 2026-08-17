@@ -5,12 +5,16 @@
 
 packages:
 - completed:
-    hackage: rel8-1.7.0.0@sha256:8007f7aa1173fee39c3dc54b45c3f22bcfaf0b1db8c09176c96b24dce232ac06,6346
+    name: ede
     pantry-tree:
-      sha256: 9ba293f338029e9825139d165463b0b3e768c689806f569687cb2281c858f1f8
-      size: 11523
+      sha256: 51f0fb56845663f47e7aa3da21e206373bc169e2066f483d0cf3310122cda25b
+      size: 6891
+    sha256: d0c3f08a2e37cb137e2bdfaea483fb906cdcdd45a6f5c4be1baa735ac3c2f25e
+    size: 39474
+    url: https://github.com/tweag/ede/archive/70d34146d01a3766f2aef1a580e4224238ed6f90.tar.gz
+    version: 0.3.3.0
   original:
-    hackage: rel8-1.7.0.0
+    url: https://github.com/tweag/ede/archive/70d34146d01a3766f2aef1a580e4224238ed6f90.tar.gz
 - completed:
     name: servant-ede
     pantry-tree:
@@ -27,25 +31,25 @@ packages:
     pantry-tree:
       sha256: 9755de5684c081fd8db8dabf80c529edf35799cd316e5ac4a6035a9e5bd337f4
       size: 3527
-    sha256: 348bf25ed3e74bd5c67b11d616ce32e1599be2375ad1dff06d8b16ffe5760b42
-    size: 555989
+    sha256: 144a5e9b5a5d4a8d281d7e405158f2224615f54ef2ceb81394af05e568aad21f
+    size: 556248
     subdir: servant
-    url: https://github.com/tweag/servant/archive/c6352177eb987960db00edc4cd90467dcb458f1c.tar.gz
+    url: https://github.com/haskell-servant/servant/archive/866e272feb42411aa208f21898c190f1c117780d.tar.gz
     version: 0.20.3.0
   original:
     subdir: servant
-    url: https://github.com/tweag/servant/archive/c6352177eb987960db00edc4cd90467dcb458f1c.tar.gz
+    url: https://github.com/haskell-servant/servant/archive/866e272feb42411aa208f21898c190f1c117780d.tar.gz
 - completed:
-    name: hspec-wai
+    name: tmp-postgres
     pantry-tree:
-      sha256: c1d95d1fd78418ed596985ffec3c94686d8241e30b0d07373d1b8b409b95faea
-      size: 1967
-    sha256: 667a4cc55970a8a50520c59f3919311f03a7f9af06f70ba46b693518e69b26dd
-    size: 13339
-    url: https://github.com/tweag/hspec-wai/archive/ca36d3f068e729acb0dc278c4c0c259e21131289.tar.gz
-    version: 0.12.0
+      sha256: 7113d11937f2180afe164dd20bb4967e0269c0a150b30b5e05929614b32c3729
+      size: 1616
+    sha256: df2750ce45f6c1c89faac6435c4180c535378f4ad726559ed319b85bc05091c2
+    size: 41308
+    url: https://github.com/jfischoff/tmp-postgres/archive/7f2467a6d6d5f6db7eed59919a6773fe006cf22b.tar.gz
+    version: 1.35.0.0
   original:
-    url: https://github.com/tweag/hspec-wai/archive/ca36d3f068e729acb0dc278c4c0c259e21131289.tar.gz
+    url: https://github.com/jfischoff/tmp-postgres/archive/7f2467a6d6d5f6db7eed59919a6773fe006cf22b.tar.gz
 - completed:
     name: hackage-server
     pantry-tree:
@@ -72,12 +76,19 @@ packages:
   original:
     hackage: Cabal-syntax-3.16.1.0
 - completed:
-    hackage: tar-0.7.1.0@sha256:6754dab008f513734cf78a8a2eb80b60f3952ce18fd874a88b42edcefc9030dd,4805
+    hackage: hspec-wai-0.12.1@sha256:d48bc37d6f7ec649abae52f8295ae1d0282f47f8bfa6206ba7193f449c0b4dce,2329
     pantry-tree:
-      sha256: 3e82a22ad190711cecd8c91524a2b024c5647194a09a319229ee9a48afa803dc
-      size: 2242
+      sha256: 576bc567f3e3efb244645fe6fd4c530a0033a8f757f5fc3f9966b39b8f1498a4
+      size: 809
   original:
-    hackage: tar-0.7.1.0
+    hackage: hspec-wai-0.12.1
+- completed:
+    hackage: rel8-1.7.0.0@sha256:8007f7aa1173fee39c3dc54b45c3f22bcfaf0b1db8c09176c96b24dce232ac06,6346
+    pantry-tree:
+      sha256: 9ba293f338029e9825139d165463b0b3e768c689806f569687cb2281c858f1f8
+      size: 11523
+  original:
+    hackage: rel8-1.7.0.0
 - completed:
     hackage: request-0.4.0.0@sha256:ed44dc5de6d07774188bf23316a34b582b0ed0cadaf47ce4c87a6fa155ad03a0,1472
     pantry-tree:
@@ -86,16 +97,12 @@ packages:
   original:
     hackage: request-0.4.0.0
 - completed:
-    name: tmp-postgres
+    hackage: tar-0.7.1.0@sha256:6754dab008f513734cf78a8a2eb80b60f3952ce18fd874a88b42edcefc9030dd,4805
     pantry-tree:
-      sha256: 7113d11937f2180afe164dd20bb4967e0269c0a150b30b5e05929614b32c3729
-      size: 1616
-    sha256: df2750ce45f6c1c89faac6435c4180c535378f4ad726559ed319b85bc05091c2
-    size: 41308
-    url: https://github.com/jfischoff/tmp-postgres/archive/7f2467a6d6d5f6db7eed59919a6773fe006cf22b.tar.gz
-    version: 1.35.0.0
+      sha256: 3e82a22ad190711cecd8c91524a2b024c5647194a09a319229ee9a48afa803dc
+      size: 2242
   original:
-    url: https://github.com/jfischoff/tmp-postgres/archive/7f2467a6d6d5f6db7eed59919a6773fe006cf22b.tar.gz
+    hackage: tar-0.7.1.0
 snapshots:
 - completed:
     sha256: 6406d8039dd538f18fc0d242f01c7066ee386d81ba3c8751b914ac1ae193ec5d
