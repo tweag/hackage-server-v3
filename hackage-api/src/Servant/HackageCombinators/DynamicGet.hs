@@ -99,16 +99,16 @@ instance LoadedTemplates => HasServer (DynamicGet ts) ctx where
                 mimeRender ct a
 
 
-instance TemplateFiles (DynamicGet '[]) where
-  templateFiles = mempty
+instance TemplateFiles c (DynamicGet '[]) where
+  reifyTemplates = mempty
 
-instance ( ContentTemplateFiles '[ct] a
-         , TemplateFiles (DynamicGet ts)
-         ) => TemplateFiles (DynamicGet ('(ct, a) ': ts))
+instance ( ContentTemplateFiles c '[ct] a
+         , TemplateFiles c (DynamicGet ts)
+         ) => TemplateFiles c (DynamicGet ('(ct, a) ': ts))
     where
-  templateFiles _ = mconcat
+  reifyTemplates _ = mconcat
     [ contentTemplatesFor (Proxy @'[ct]) (Proxy @a)
-    , templateFiles $ Proxy @(DynamicGet ts)
+    , reifyTemplates $ Proxy @(DynamicGet ts)
     ]
 
 instance HasLink (DynamicGet a) where

@@ -41,8 +41,6 @@ instance HasContextEntry context Manager => HasServer NotYetPorted context where
                 }
           $ ProxyDest "hackage.haskell.org" 443
 
-instance TemplateFiles NotYetPorted where
-  templateFiles = mempty
-
-
+instance TemplateFiles c NotYetPorted where
+  reifyTemplates = mempty
 

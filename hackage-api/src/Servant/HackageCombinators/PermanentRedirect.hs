@@ -32,6 +32,6 @@ instance HasLink PermanentRedirect where
   type MkLink PermanentRedirect r = r
   toLink toA _ = toA
 
-instance TemplateFiles PermanentRedirect where
-  templateFiles = mempty
+instance TemplateFiles c PermanentRedirect where
+  reifyTemplates = mempty
 

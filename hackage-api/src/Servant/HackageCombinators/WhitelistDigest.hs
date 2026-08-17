@@ -90,6 +90,6 @@ responseBodyDigest resp = do
     , Crypto.hashWith Crypto.SHA256 $ toStrict body
     )
 
-instance TemplateFiles (Get ct a) => TemplateFiles (WhitelistDigest ct a) where
-  templateFiles _ = templateFiles $ Proxy @(Get ct a)
+instance TemplateFiles c (Get ct a) => TemplateFiles c (WhitelistDigest ct a) where
+  reifyTemplates _ = reifyTemplates $ Proxy @(Get ct a)
 

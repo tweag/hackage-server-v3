@@ -60,7 +60,7 @@ serverMToWai
     :: forall api ctx
      . ( LoadedTemplates => HasServer api ctx
        , ServerContext ctx
-       , TemplateFiles api
+       , TemplateFiles Trivial api
        )
     => Proxy api
     -> Context ctx

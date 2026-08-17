@@ -10,7 +10,7 @@ extra-deps:
     commit: 70d34146d01a3766f2aef1a580e4224238ed6f90
   # Currently unreleased v1.0.0.0
   - github: alpmestan/servant-ede
-    commit: 8f9076963377c49c2e90a5c03aa1b4f3fbb2de93
+    commit: 173fecca9078bc2e81ff4d6244f08b15d70f81b5
   # Currently unreleased bugfix, see
   # https://github.com/haskell-servant/servant/pull/1905
   - github: haskell-servant/servant
