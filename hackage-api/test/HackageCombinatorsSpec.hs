@@ -34,7 +34,7 @@ data API mode = API
 
 unsafeIgnoreTemplates :: (LoadedTemplates => r) -> IO r
 unsafeIgnoreTemplates k = do
-  Right x <- unsafeLoadTemplates (Proxy @EmptyAPI) [] "." $ pure k
+  Right x <- unsafeLoadTemplates (Proxy @EmptyAPI) [] "." () $ pure k
   pure x
 
 

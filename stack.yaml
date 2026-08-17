@@ -7,7 +7,7 @@ packages:
 extra-deps:
   - rel8-1.7.0.0
   - github: alpmestan/servant-ede
-    commit: 8258b2057dbe42de3014c72b43127d6d5a14971d
+    commit: 8f9076963377c49c2e90a5c03aa1b4f3fbb2de93
   - github: tweag/servant
     commit: c6352177eb987960db00edc4cd90467dcb458f1c
     subdir: servant

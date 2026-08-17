@@ -68,7 +68,7 @@ serverMToWai
     -> ServerT api ServerM
     -> IO Application
 serverMToWai api ctx serverCtx server = either (fail . show) pure =<< do
-  unsafeLoadTemplates api filters "templates"
+  unsafeLoadTemplates api filters "templates" ()
     $ pure
     $ serveWithContext api ctx
     $ hoistServerWithContext
