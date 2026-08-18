@@ -11,6 +11,7 @@ import Data.Map qualified as M
 import Data.TarIndex
 import Data.Text qualified as T
 import Hackage.Schemas.Packages
+import Hackage.Schemas.Users
 import Hackage.ServerM
 import Hackage.SyncAPI.Type
 import Hackage.Types
@@ -24,11 +25,22 @@ import Servant.Tarball
 
 syncServer :: SyncApi (AsServerT ServerM)
 syncServer = SyncApi
-  { sync_api_index_blob = syncBlob
+  { sync_api_new_user = newUser
   }
 
 
-syncBlob :: BlobId Tarball -> ServerM ()
-syncBlob bid = do
-  pure ()
+-- TODO(sandy): Better return codes for failure
+newUser :: NewUserReq -> ServerM ()
+newUser nur = do
+  runDB $ doInsert_ $ Insert
+    { into = usersSchema
+    , rows = pure $
+        UsersRow
+          { userId = lit $ nur_userid nur
+          , userName = lit $ nur_username nur
+          , userStatus = lit Enabled
+          }
+    , onConflict = Abort
+    , returning = NoReturning
+    }
 
