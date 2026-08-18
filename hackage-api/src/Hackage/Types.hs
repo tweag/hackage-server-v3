@@ -1,9 +1,16 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Hackage.Types
   ( module Hackage.Types
   , PackageName
+  , PackageIdentifier(..)
+  , PackageId
   , Version
   ) where
 
+import Hackage.Objects (Schema(..))
+import Data.Profunctor (lmap)
+import Data.Schema qualified as S
 import Data.Bifunctor (bimap)
 import Data.Aeson (ToJSON, FromJSON)
 import Data.Coerce (coerce)
@@ -14,7 +21,7 @@ import Data.Int (Int64)
 import Data.Maybe (listToMaybe)
 import Data.Text (Text)
 import Data.Text qualified as T
-import Distribution.Package (PackageName)
+import Distribution.Package (PackageName, PackageIdentifier(..), PackageId)
 import Distribution.Types.Version (Version)
 import Distribution.Utils.MD5 (MD5, showMD5)
 import GHC.Fingerprint (Fingerprint(..))
@@ -104,6 +111,7 @@ newtype BlobId a = BlobId
   }
   deriving newtype (Eq, Ord, Show)
   deriving anyclass (DBEq, DBOrd)
+  deriving (ToJSON, FromJSON) via Schema (BlobId a)
 
 instance ToHttpApiData (BlobId a) where
   toUrlPiece = T.pack . showMD5 . getBlobId
@@ -125,4 +133,10 @@ instance DBType (BlobId a) where
       { encode = contramap (T.pack . showMD5 . getBlobId) $ encode ti
       , decode = parseDecoder (coerce . parseMD5 . T.unpack) $ decode ti
       }
+
+instance S.ToSchema (BlobId a) where
+  schema
+    = lmap (T.pack . showMD5 . getBlobId)
+    $ S.parsedText "BlobId"
+    $ coerce . parseMD5 . T.unpack
 

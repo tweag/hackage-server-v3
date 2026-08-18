@@ -63,6 +63,7 @@ module Data.Schema
     mkSchemaNameWith,
     jsonObject,
     jsonValue,
+    json,
     field,
     fieldWithDocModifier,
     optField,
@@ -310,6 +311,9 @@ schemaIn (SchemaP _ (SchemaIn i) _) = i
 
 schemaOut :: SchemaP ss v m a b -> a -> Maybe m
 schemaOut (SchemaP _ _ (SchemaOut o)) = o
+
+json :: (A.ToJSON a, A.FromJSON a) => SchemaP SwaggerDoc A.Value A.Value a a
+json = SchemaP (SchemaDoc mempty) (SchemaIn A.parseJSON) $ SchemaOut $ Just . A.toJSON
 
 -- | A schema for a one-field JSON object.
 field ::
