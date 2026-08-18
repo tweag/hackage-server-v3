@@ -16,6 +16,8 @@ import Data.Text qualified as T
 import Hackage.API.PackageDb
 import Hackage.API.Type
 import Hackage.ServerM
+import Hackage.SyncAPI.Sync
+import Hackage.SyncAPI.Type
 import Hasql.Connection
 import Hasql.Connection.Setting qualified as DB
 import Hasql.Connection.Setting.Connection qualified as DB
@@ -39,14 +41,14 @@ mainImpl opts = do
   app <-
     serverMToWai
       (Proxy @(
-        NamedRoutes PackageDbApi
+        NamedRoutes PackageDbApi :<|> NamedRoutes SyncApi
         ))
       (client
         :. UserDomain (optUserDomain opts)
         :. EmptyContext
       )
       (ServerCtx pool blobStore)
-      $ packageDbServer
+      $ packageDbServer :<|> syncServer
   run (optPort opts) app
 
 
