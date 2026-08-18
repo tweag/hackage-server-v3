@@ -31,6 +31,7 @@ library
       Hackage.API.MoreAPI
       Hackage.API.PackageDb
       Hackage.API.Query
+      Hackage.Import
       Hackage.Main
       Hackage.Schemas.Packages
       Hackage.Schemas.Users

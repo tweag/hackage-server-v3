@@ -19,14 +19,14 @@ import Data.Text qualified as T
 import Data.Time.Clock.POSIX
 import Distribution.Server.Features.Core.State (initialPackagesState, GetPackagesState(..), PackagesState(..))
 import Distribution.Server.Features.PreferredVersions.State (PreferredVersions(..), PreferredInfo(..), GetPreferredVersions(..), initialPreferredVersions)
-import Distribution.Server.Framework.BlobStorage qualified as Blob
 import Distribution.Server.Packages.PackageIndex (PackageIndex(..))
 import Distribution.Server.Users.State (GetUserDb(..))
 import Distribution.Server.Users.Types qualified as V2
 import Distribution.Server.Users.Users qualified as Users
 import Distribution.Types.PackageId
 import GHC.Generics (Generic, Generically(..))
-import Hackage.Schemas.Packages (PkgRevId, TarballRevisionRow(..), packageTarballRevisionsSchema, pkgInfoSchema, PkgInfoRow(..), packageNameSchema, PackageNameRow(..))
+import Hackage.Import
+import Hackage.Schemas.Packages (PkgRevId, pkgInfoSchema, PkgInfoRow(..), packageNameSchema, PackageNameRow(..))
 import Hackage.Types
 import Hackage.Utils (Connection)
 import Hasql.Session (statement, run)
@@ -66,9 +66,8 @@ newMetaRev pid rev e = do
        Tar.NormalFile x _ -> BS.toStrict x
        _ -> error "Found something in the Tar that isn't a file"
     )
-    ( posixSecondsToUTCTime $ fromIntegral $ Tar.entryTime e
-    , UserId $ fromIntegral $ Tar.ownerId $ Tar.entryOwnership e
-    )
+    (posixSecondsToUTCTime $ fromIntegral $ Tar.entryTime e)
+    (UserId $ fromIntegral $ Tar.ownerId $ Tar.entryOwnership e)
 
 
 backfillPackageDB :: Connection -> FilePath -> IO ()
