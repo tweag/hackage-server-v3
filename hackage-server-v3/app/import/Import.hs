@@ -197,7 +197,7 @@ mkTarballRev
   -> V2.PkgTarball
   -> (UTCTime, V2.UserId)
   -> SqlM (Query (Expr TarballRevId))
-mkTarballRev qpkgid (V2.TarballRevIx revix) (V2.PkgTarball (V2.BlobInfo gz len sha) nogz) (time, V2.UserId uid) =
+mkTarballRev qpkgid (V2.TarballRevIx revix) (V2.PkgTarball (V2.BlobInfo gz _ _) nogz) (time, V2.UserId uid) =
   sql $ insert $ Insert
     { into = packageTarballRevisionsSchema
     , rows = do
@@ -213,9 +213,6 @@ mkTarballRev qpkgid (V2.TarballRevIx revix) (V2.PkgTarball (V2.BlobInfo gz len s
                   = lit $ either error BlobId $ parseMD5 $ V2.blobMd5 gz
               , tarballBlobNoGz
                   = lit $ either error BlobId $ parseMD5 $ V2.blobMd5 nogz
-              , tarballGzLength = lit $ fromIntegral len
-              , -- TODO(sandy): fixme
-                tarballGzHash = lit $ T.pack $ show sha
               }
           ]
     , onConflict = DoNothing

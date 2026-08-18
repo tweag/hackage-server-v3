@@ -208,8 +208,6 @@ data TarballRevisionRow f = TarballRevisionRow
   , tarballUploader :: Column f UserId
   , tarballBlobGz   :: Column f (BlobId (Compressed Tarball))
   , tarballBlobNoGz :: Column f (BlobId Tarball)
-  , tarballGzLength :: Column f Int64
-  , tarballGzHash :: Column f SHA256Digest
   }
   deriving stock (Generic)
   deriving anyclass (Rel8able)
@@ -228,8 +226,6 @@ packageTarballRevisionsSchema = TableSchema
       , tarballUploader = "revised_by"
       , tarballBlobGz   = "blob_gz"
       , tarballBlobNoGz = "blob_nogz"
-      , tarballGzLength = "tarball_length"
-      , tarballGzHash = "tarball_hash"
       }
   }
 

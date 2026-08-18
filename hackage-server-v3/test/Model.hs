@@ -408,8 +408,6 @@ loadModelPkgInfos wantsBs versions = do
         , tarballBlobGz =
             -- Safe, except that we'll serve it with the wrong mimetype.
             lit $ unsafeCoerce blobid
-        , tarballGzLength = lit 0 -- Stupid default, but I don't think it's actually used?
-        , tarballGzHash = lit mempty -- Stupid default, but I don't think it's actually used?
         }
     , onConflict = Abort
     , returning = Returning tarballRevId
