@@ -2,30 +2,23 @@
 
 module Hackage.SyncAPI.Sync where
 
-import Codec.Archive.Tar qualified as Tar
-import Control.Monad.Except
-import Control.Monad.Reader
-import Data.BlobStorage qualified as Blob
-import Data.ByteString.Lazy qualified as BSL
-import Data.Map qualified as M
-import Data.TarIndex
-import Data.Text qualified as T
-import Hackage.Schemas.Packages
+import Control.Monad (void)
+import Hackage.Import
 import Hackage.Schemas.Users
 import Hackage.ServerM
 import Hackage.SyncAPI.Type
 import Hackage.Types
-import Hackage.Types.PrimaryKey
 import Hackage.Utils
+import Hasql.Session (statement, run)
 import Rel8 hiding (run)
-import Servant.Server
+import Rel8 qualified as Rel8
 import Servant.Server.Generic (AsServerT)
-import Servant.Tarball
 
 
 syncServer :: SyncApi (AsServerT ServerM)
 syncServer = SyncApi
   { sync_api_new_user = newUser
+  , sync_api_new_package = newPackage
   }
 
 
@@ -43,4 +36,33 @@ newUser nur = do
     , onConflict = Abort
     , returning = NoReturning
     }
+
+
+sqlMToDatabase
+    :: Serializable exprs (FromExprs exprs)
+    => SqlM (Query exprs)
+    -> DatabaseM [FromExprs exprs]
+sqlMToDatabase
+  = databaseM . run . statement () . Rel8.run . runSqlM
+
+
+-- TODO(sandy): Better return codes for failure
+newPackage :: PackageId -> NewPackageReq -> ServerM ()
+newPackage pid npr = do
+  void $ runDB $ sqlMToDatabase $ do
+    epkgid <- mkPkgIdentifier pid
+    _ <-
+      mkMetadataRev
+        epkgid
+        (MetadataRevIx 0)
+        (npr_cabalFile npr)
+        (npr_uploadTime npr)
+        (npr_uploader npr)
+    mkTarballRev
+      epkgid
+      0
+      (npr_blobGz npr)
+      (npr_blobNoGz npr)
+      (npr_uploadTime npr)
+      (npr_uploader npr)
 
