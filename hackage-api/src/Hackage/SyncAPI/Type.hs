@@ -3,9 +3,14 @@
 module Hackage.SyncAPI.Type where
 
 import Data.Aeson
+import Data.Coerce (coerce)
+import Data.Int (Int64)
+import Data.Profunctor (dimap)
+import Data.Schema qualified as S
 import GHC.Generics
-import Servant.API
+import Hackage.Objects (Schema(..))
 import Hackage.Types
+import Servant.API
 
 
 -- | An API for synchrozing realtime data events from hackage-server v2.
@@ -29,10 +34,16 @@ data NewUserReq = NewUserReq
   , nur_userid :: UserId
   }
   deriving stock (Eq, Ord, Show, Generic)
+  deriving (ToJSON, FromJSON) via Schema NewUserReq
 
-instance FromJSON NewUserReq where
-  parseJSON = withObject "NewUserReq" $ \obj ->
+
+instance S.ToSchema NewUserReq where
+  schema = S.object $
     NewUserReq
-      <$> obj .: "username"
-      <*> obj .: "id"
+      <$> nur_username S..=
+            S.field "username"
+              (dimap coerce coerce $ S.text "UserName")
+      <*> nur_userid S..=
+            S.field "id"
+              (dimap coerce coerce $ S.schema @Int64)
 
