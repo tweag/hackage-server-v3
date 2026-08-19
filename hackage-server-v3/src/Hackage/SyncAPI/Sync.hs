@@ -19,6 +19,8 @@ syncServer :: SyncApi (AsServerT ServerM)
 syncServer = SyncApi
   { sync_api_new_user = newUser
   , sync_api_new_package = newPackage
+  , sync_api_revise_meta = reviseMeta
+  , sync_api_revise_tarball = reviseTarball
   }
 
 
@@ -65,4 +67,31 @@ newPackage pid npr = do
       (npr_blobNoGz npr)
       (npr_uploadTime npr)
       (npr_uploader npr)
+
+
+-- TODO(sandy): Better return codes for failure
+reviseMeta :: PackageId -> MetadataRevIx -> ReviseMetaReq -> ServerM ()
+reviseMeta pid rev rmr =
+  void $ runDB $ sqlMToDatabase $ do
+    epkgid <- mkPkgIdentifier pid
+    mkMetadataRev
+      epkgid
+      rev
+      (rmr_cabalFile rmr)
+      (rmr_uploadTime rmr)
+      (rmr_uploader rmr)
+
+
+-- TODO(sandy): Better return codes for failure
+reviseTarball :: PackageId -> TarballRevIx -> ReviseTarballReq -> ServerM ()
+reviseTarball pid rev rtr =
+  void $ runDB $ sqlMToDatabase $ do
+    epkgid <- mkPkgIdentifier pid
+    mkTarballRev
+      epkgid
+      rev
+      (rtr_blobGz rtr)
+      (rtr_blobNoGz rtr)
+      (rtr_uploadTime rtr)
+      (rtr_uploader rtr)
 

@@ -34,6 +34,26 @@ data SyncApi mode = SyncApi
       :> Capture "package" PackageId
       :> ReqBody '[JSON] NewPackageReq
       :> Post '[JSON] ()
+  , sync_api_revise_meta :: mode
+      :- "api"
+      :> "sync"
+      :> "v1"
+      :> "packages"
+      :> Capture "package" PackageId
+      :> "revision"
+      :> Capture "revision" MetadataRevIx
+      :> ReqBody '[JSON] ReviseMetaReq
+      :> Post '[JSON] ()
+  , sync_api_revise_tarball :: mode
+      :- "api"
+      :> "sync"
+      :> "v1"
+      :> "packages"
+      :> Capture "package" PackageId
+      :> "tarball"
+      :> Capture "revision" TarballRevIx
+      :> ReqBody '[JSON] ReviseTarballReq
+      :> Post '[JSON] ()
   }
   deriving Generic
 
@@ -61,7 +81,7 @@ instance S.ToSchema NewUserReq where
 
 
 --------------------------------------------------------------------------------
--- POST /packages/:package
+-- POST /packages/:package/revision/:revision
 
 data NewPackageReq = NewPackageReq
   { npr_uploader :: UserId
@@ -86,5 +106,54 @@ instance S.ToSchema NewPackageReq where
       <*> npr_blobGz S..=
             S.field "blobGz" S.schema
       <*> npr_blobNoGz S..=
+            S.field "blobNoGz" S.schema
+
+
+--------------------------------------------------------------------------------
+-- POST /packages/:package/revision/:revision
+
+data ReviseMetaReq = ReviseMetaReq
+  { rmr_uploader :: UserId
+  , rmr_uploadTime :: UTCTime
+  , rmr_cabalFile :: StrictByteString
+  }
+  deriving stock (Eq, Ord, Show, Generic)
+  deriving (ToJSON, FromJSON) via Schema ReviseMetaReq
+
+instance S.ToSchema ReviseMetaReq where
+  schema = S.object $
+    ReviseMetaReq
+      <$> rmr_uploader S..=
+            S.field "uploader"
+              (dimap coerce coerce $ S.schema @Int64)
+      <*> rmr_uploadTime S..=
+            S.field "uploadTime" S.json
+      <*> rmr_cabalFile S..=
+            S.field "cabalFile" (dimap decodeUtf8 encodeUtf8 $ S.text "UserName")
+
+
+--------------------------------------------------------------------------------
+-- POST /packages/:package/revision/:revision
+
+data ReviseTarballReq = ReviseTarballReq
+  { rtr_uploader :: UserId
+  , rtr_uploadTime :: UTCTime
+  , rtr_blobGz :: BlobId (Compressed Tarball)
+  , rtr_blobNoGz :: BlobId Tarball
+  }
+  deriving stock (Eq, Ord, Show, Generic)
+  deriving (ToJSON, FromJSON) via Schema ReviseTarballReq
+
+instance S.ToSchema ReviseTarballReq where
+  schema = S.object $
+    ReviseTarballReq
+      <$> rtr_uploader S..=
+            S.field "uploader"
+              (dimap coerce coerce $ S.schema @Int64)
+      <*> rtr_uploadTime S..=
+            S.field "uploadTime" S.json
+      <*> rtr_blobGz S..=
+            S.field "blobGz" S.schema
+      <*> rtr_blobNoGz S..=
             S.field "blobNoGz" S.schema
 
