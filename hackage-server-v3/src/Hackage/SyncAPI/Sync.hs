@@ -55,12 +55,14 @@ newPackage pid npr = do
     epkgid <- mkPkgIdentifier pid
     _ <-
       mkMetadataRev
+        Abort
         epkgid
         (MetadataRevIx 0)
         (npr_cabalFile npr)
         (npr_uploadTime npr)
         (npr_uploader npr)
     mkTarballRev
+      Abort
       epkgid
       0
       (npr_blobGz npr)
@@ -75,6 +77,7 @@ reviseMeta pid rev rmr =
   void $ runDB $ sqlMToDatabase $ do
     epkgid <- mkPkgIdentifier pid
     mkMetadataRev
+      Abort
       epkgid
       rev
       (rmr_cabalFile rmr)
@@ -88,6 +91,7 @@ reviseTarball pid rev rtr =
   void $ runDB $ sqlMToDatabase $ do
     epkgid <- mkPkgIdentifier pid
     mkTarballRev
+      Abort
       epkgid
       rev
       (rtr_blobGz rtr)

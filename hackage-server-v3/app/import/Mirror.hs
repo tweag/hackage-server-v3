@@ -60,6 +60,7 @@ newMetaRev
 newMetaRev pid rev e = do
   pkgid <- mkPkgIdentifier pid
   mkMetadataRev
+    DoNothing
     pkgid
     rev
     (case Tar.entryContent e of

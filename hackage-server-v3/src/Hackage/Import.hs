@@ -151,13 +151,14 @@ mkPkgIdentifier = caching #versions $ \pkgid -> do
 
 -- | Insert a revision into the 'metadataRevisionsSchema' table
 mkMetadataRev
-    :: Query (Expr PkgInfoId)
+    :: OnConflict (MetadataRevisionRow Name)
+    -> Query (Expr PkgInfoId)
     -> MetadataRevIx
     -> ByteString
     -> UTCTime
     -> UserId
     -> SqlM (Query (Expr PkgRevId))
-mkMetadataRev qpkgid revix cabal time uid = sql $
+mkMetadataRev conflict qpkgid revix cabal time uid = sql $
   insert $ Insert
     { into = metadataRevisionsSchema
     , rows = do
@@ -172,7 +173,7 @@ mkMetadataRev qpkgid revix cabal time uid = sql $
               , metadataCabalFile = lit cabal
               }
           ]
-    , onConflict = DoNothing
+    , onConflict = conflict
     , returning = Returning metadataId
     }
 
@@ -182,7 +183,8 @@ newtype TarOffset = TarOffset { unTarOffset :: Int64 }
 
 
 mkTarballRev
-  :: Query (Expr PkgInfoId)
+  :: OnConflict (TarballRevisionRow Name)
+  -> Query (Expr PkgInfoId)
   -> TarballRevIx
   -> BlobId (Compressed Tarball)
   -> BlobId Tarball
@@ -190,6 +192,7 @@ mkTarballRev
   -> UserId
   -> SqlM (Query (Expr TarballRevId))
 mkTarballRev
+    conflict
     qpkgid
     revix
     gz
@@ -211,7 +214,7 @@ mkTarballRev
               , tarballBlobNoGz = lit nogz
               }
           ]
-    , onConflict = DoNothing
+    , onConflict = conflict
     , returning = Returning tarballRevId
     }
 
