@@ -1,7 +1,6 @@
 {% include "../header.html" with title = "Directory listing for " <> packagePretty package <> " source tarball" %}
 
-<h1>Dependencies for
-</h1>
+<h1>Dependencies for {{ packagePretty package }}</h1>
 
 
 <ul class="directory-list">
@@ -10,7 +9,7 @@
 
       {% when "push" %}
         <li>
-          <a href="{{ cmd.value | at(1) | cat(cmd.value | at(2) | singleton ) | intercalate("/") }}/">{{ cmd.value | at(2) }}</>
+          <a href="{{ cat (cmd.value | at(1)) (cmd.value | at(2) | singleton) | intercalate("/") }}/">{{ cmd.value | at(2) }}</>
           <ul class="directory-list">
 
       {% when "pop" %}
@@ -19,7 +18,7 @@
 
       {% when "item" %}
         <li>
-          <a href="{{ cmd.value | at(1) | cat(cmd.value | at(2) | singleton ) | intercalate("/") }}">{{ cmd.value | at(2) }}</a>
+          <a href="{{ cat (cmd.value | at(1)) (cmd.value | at(2) | singleton) | intercalate("/") }}">{{ cmd.value | at(2) }}</a>
         </li>
 
     {% endcase %}
