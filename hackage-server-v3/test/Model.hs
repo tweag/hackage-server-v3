@@ -2,13 +2,11 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE OverloadedLabels       #-}
 {-# LANGUAGE OverloadedStrings      #-}
-{-# LANGUAGE PackageImports         #-}
 {-# LANGUAGE UndecidableInstances   #-}
 
 module Model where
 
 import Control.Lens ((&), (.~), (%~))
-import "hackage-server-v3" Data.TarIndex
 import Codec.Archive.Tar qualified as Tar
 import Codec.Archive.Tar.Entry qualified as Tar
 import Control.Arrow ((&&&))

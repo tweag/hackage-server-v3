@@ -2,7 +2,6 @@
 
 module Hackage.TarIndex where
 
-import Data.Bifunctor (bimap)
 import Codec.Archive.Tar qualified as Tar
 import Control.Monad (unless)
 import Control.Monad.IO.Class

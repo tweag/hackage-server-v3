@@ -14,7 +14,6 @@ import Data.ByteString.Lazy (ByteString)
 import Data.Pool
 import Data.Proxy (Proxy(..))
 import Data.String (fromString)
-import Distribution.Package (PackageIdentifier(..))
 import Hackage.API.PackageDb
 import Hackage.API.Query (getLocator)
 import Hackage.API.Type

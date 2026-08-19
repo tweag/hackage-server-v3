@@ -42,7 +42,6 @@ import Distribution.Pretty qualified as Pretty
 import Distribution.Types.Dependency as Cabal
 import Distribution.Types.GenericPackageDescription qualified as PkgDescr
 import Distribution.Types.PackageDescription qualified as PkgDescr
-import Distribution.Types.PackageId (PackageIdentifier(..), PackageId)
 import Distribution.Types.VersionRange (anyVersion)
 import Distribution.Utils.ShortText (fromShortText)
 import Hackage.API.Query
