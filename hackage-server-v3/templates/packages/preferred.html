@@ -39,8 +39,7 @@ version ranges. Red are deprecated.
 <p class="versions">
 <ul class="comma-sep">
 {% for version in versions %}
-<!-- TODO(sandy): implement colors -->
-<li><a href="/package/{{package}}-{{version.key}}">{{version.key}}</a></li>
+<li><a href="/package/{{package}}-{{version.key}}" class="{{version.value}}">{{version.key}}</a></li>
 {% endfor %}
 </ul>
 </p>
