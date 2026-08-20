@@ -16,7 +16,6 @@ setupDB conn = do
         either throwIO pure =<< flip run conn (makeTable table)
 
   mk usersTable
-  mk userRolesTable
   mk packageNameTable
   mk pkgInfoTable
   mk metadataRevisionsTable
