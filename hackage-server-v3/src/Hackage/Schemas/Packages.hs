@@ -415,6 +415,5 @@ tarIndexTable = DbTable tarIndexSchema
   , AutoInc tarIndexId
   , FK tarIndexKey tarAlreadyIndexedSchema tarAlreadyIndexedId
   , Unique2 tarIndexKey tarIndexPath
-  , TextPatternOps tarIndexPath
   ]
 
