@@ -7,6 +7,7 @@ module Hackage.API.PackageDb
   ( packageDbServer
   ) where
 
+import Control.Applicative (empty, optional)
 import Codec.Archive.Tar qualified as Tar
 import Codec.Archive.Tar.Entry qualified as Tar
 import Control.Monad (unless, guard)
@@ -54,7 +55,8 @@ import Hackage.TarIndex
 import Hackage.Types
 import Hackage.Utils
 import Network.HTTP.Types.Header (hLocation)
-import Rel8 hiding (Lift, bool, filter)
+import Rel8 hiding (Lift, bool, filter, optional)
+import Rel8 qualified
 import Servant.API
 import Servant.EDE (HTML, HasTemplate(..), ToObject(..))
 import Servant.HackageCombinators.DynamicGet (OneOf(..))
@@ -328,7 +330,7 @@ packageTarball epname tarball = do
   mblob
     <- runDB
      $ doSelect1
-     $ optional
+     $ Rel8.optional
      $ fmap tarballBlobGz
      $ getLatestTarball
      $ Specific tarball
@@ -653,12 +655,11 @@ packageChangelog
   -> ServerM (WithPackage Changelog)
 packageChangelog _ loc = do
   store <- asks serverBlobStore
-  (pkg, blob, off) <- runDB $ do
+  mres <- runDB $ optional $ do
     (pname, version) <- doSelect1 $ locatorToPackageId loc
     let pkg = PackageIdentifier pname version
-    (blob, off) <-
-      -- TODO(sandy): fmap head :|
-      fmap head $ indexingTarIndices store
+    mres <-
+      indexingTarIndices store
         ( do
             tar <- getLatestTarball loc
             pure $ tarballBlobNoGz tar
@@ -680,16 +681,22 @@ packageChangelog _ loc = do
               pure $ prefix <> base <> ext
             pure (blob, tarIndexOffset idx)
         )
-    pure (pkg, blob, off)
-
-  liftIO (loadTarEntry_ (Blob.filepath store blob) off) >>= \case
-    Right (_, e) ->
-      pure
-        $ WithPackage pkg
-        $ Changelog
-        $ toStrict
-        $ decodeUtf8 e
-    Left _ -> throwError err500
+    case listToMaybe mres of
+      Just (blob, off) -> pure (pkg, blob, off)
+      Nothing -> empty
+  case mres of
+    Just (pkg, blob, off) -> do
+      liftIO (loadTarEntry_ (Blob.filepath store blob) off) >>= \case
+        Right (_, e) ->
+          pure
+            $ WithPackage pkg
+            $ Changelog
+            $ toStrict
+            $ decodeUtf8 e
+        Left _ -> throwError err500
+    Nothing -> do
+      -- NOTE: v2 returns a 200 with the text "Changelog not found" here.
+      throwError err404
 
 instance ToObject Changelog where
   toObject (Changelog c) =

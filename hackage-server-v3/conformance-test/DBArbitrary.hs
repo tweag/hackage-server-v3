@@ -258,7 +258,7 @@ spec =
         pure $ fieldLink pkgdb_api_docsTarball a
       it "changelog" $ verify $ do
         a <- genPackageLocator
-        pure $ fieldLink pkgdb_api_changelog (Just $ NegotiatedContent "json") a
+        pure $ fieldLink pkgdb_api_changelog (Just $ NegotiatedContent "txt") a
 
     describe "html endpoints" $ do
       it "revisions" $ verify $ do
