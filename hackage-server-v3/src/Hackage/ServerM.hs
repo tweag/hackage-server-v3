@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedLists       #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE QuantifiedConstraints #-}
+{-# OPTIONS_GHC -Wno-orphans       #-}
 
 module Hackage.ServerM where
 
@@ -14,6 +15,7 @@ import Data.Pool
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Lazy.Encoding (encodeUtf8)
+import Data.Time (UTCTime, formatTime, defaultTimeLocale)
 import Distribution.Pretty qualified as Pretty
 import Distribution.Types.PackageId (PackageIdentifier(..))
 import GHC.Exts (IsList(..))
@@ -85,9 +87,12 @@ filters =
   , "intercalate" @: \x y -> T.intercalate y x
   , "renderMarkdown" @: (renderMarkdown "" . encodeUtf8)
   , "renderMarkdownRel" @: (renderMarkdownRel "" . encodeUtf8)
+  , "timePretty" @: (T.pack . formatTime @UTCTime defaultTimeLocale "%a %b %d %T UTC %Y")
   , qlist1 "cat" (<>) (<>)
   ]
 
 toPackageUrl :: PackageIdentifier -> Text
 toPackageUrl pkg = T.pack $ "package/" <> Pretty.prettyShow pkg
+
+instance Unquote UTCTime
 
