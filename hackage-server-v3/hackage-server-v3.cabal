@@ -28,7 +28,6 @@ library
       Data.BlobStorage
       Data.Markdown
       Data.TarIndex
-      Hackage.API.MoreAPI
       Hackage.API.PackageDb
       Hackage.API.Query
       Hackage.Import
