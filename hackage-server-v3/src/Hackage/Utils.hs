@@ -7,6 +7,7 @@ module Hackage.Utils
   , SessionError
   ) where
 
+import Control.Applicative (Alternative(..))
 import Control.Exception (bracket)
 import Control.Monad.Except
 import Control.Monad.Reader
@@ -14,7 +15,7 @@ import Data.ByteString.Lazy.Char8 qualified as BSL8
 import Hackage.ServerM
 import Hasql.Connection
 import Hasql.Connection.Setting qualified as DB
-import Hasql.Session (SessionError, statement, run)
+import Hasql.Session (SessionError(..), CommandError(..), ResultError(..), statement, run)
 import Rel8 hiding (null, run, Enum)
 import Rel8 qualified as Rel8
 import Servant.Server
@@ -29,6 +30,14 @@ newtype DatabaseM a = DatabaseM
   { unDatabaseM :: ReaderT Connection (ExceptT SessionError IO) a
   }
   deriving newtype (Functor, Applicative, Monad, MonadIO)
+
+instance Alternative DatabaseM where
+  empty = DatabaseM $ ReaderT $ const $ ExceptT $ pure $ Left $ PipelineError $ ResultError $ UnexpectedResult "empty @DatabaseM"
+  (<|>) :: forall a. DatabaseM a -> DatabaseM a  -> DatabaseM a
+  DatabaseM x <|> DatabaseM y = DatabaseM $ ReaderT $ \r ->
+    ExceptT $ runExceptT (runReaderT x r) >>= \case
+      Left _ -> runExceptT $ runReaderT y r
+      Right a -> pure $ pure a
 
 
 runDB :: DatabaseM a -> ServerM a
