@@ -129,3 +129,4 @@ tests:
     - hspec-wai
     - random
     - request
+    - tagsoup
