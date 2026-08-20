@@ -21,7 +21,6 @@ setupDB conn = do
   mk pkgInfoTable
   mk metadataRevisionsTable
   mk packageTarballRevisionsTable
-  mk packageMaintainerTable
   mk tarAlreadyIndexedTable
   mk tarIndexTable
   mk pkgDeprecationTable

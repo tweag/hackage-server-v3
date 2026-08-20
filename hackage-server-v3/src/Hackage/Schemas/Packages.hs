@@ -237,50 +237,6 @@ packageTarballRevisionsTable = DbTable packageTarballRevisionsSchema
   , FK tarballPkgId pkgInfoSchema pkgInfoId
   ]
 
--- | Package maintainers
--- PRIMARY KEY (synthetic): pmId
--- The (package_name, user_id, role) triple should be unique to prevent
--- duplicate role assignments.
-data PackageRole = Maintainer
-  deriving stock (Show, Read, Eq, Ord, Generic, Enum, Bounded)
-  deriving (DBType) via ReadShow PackageRole
-  deriving anyclass (DBEq)
-
-type PackageMaintainerId = PrimaryKey PackageMaintainerRow
-
-data PackageMaintainerRow f = PackageMaintainerRow
-  { pmId :: Column f PackageMaintainerId
-  , pmPackageId :: Column f PkgInfoId
-  , pmUserId :: Column f UserId
-  , pmRole :: Column f PackageRole
-  , pmAssignedTime :: Column f UTCTime
-  }
-  deriving stock (Generic)
-  deriving anyclass (Rel8able)
-
-deriving stock instance Show (PackageMaintainerRow Result)
-
-packageMaintainersSchema :: TableSchema (PackageMaintainerRow Name)
-packageMaintainersSchema = TableSchema
-  { name = "package_maintainers"
-  , columns = PackageMaintainerRow
-      { pmId = "package_maintainer_id"
-      , pmPackageId = "package_id"
-      , pmUserId = "user_id"
-      , pmRole = "role"
-      , pmAssignedTime = "assigned_time"
-      }
-  }
-
-packageMaintainerTable :: DbTable PackageMaintainerRow
-packageMaintainerTable = DbTable packageMaintainersSchema
-  [ PK pmId
-  , AutoInc pmId
-  , FK pmPackageId pkgInfoSchema pkgInfoId
-  , FK pmUserId usersSchema userId
-  ]
-
-
 
 type TarAlreadyIndexedId = PrimaryKey TarIndexRow
 
