@@ -154,10 +154,12 @@ verify mklink = do
                     tagsv3 = simplifyTags $ parseTags bsv3
                 case unmatching tagsv2 tagsv3 of
                   ([], []) -> Nothing
-                  (utagsv2, utagsv3) -> Just $ unlines
-                    [ show utagsv2
-                    , show utagsv3
-                    ]
+                  (utagsv2, utagsv3) -> do
+                    let (x, y) = unmatching (reverse utagsv2) (reverse utagsv3)
+                    Just $ unlines
+                      [ show $ reverse x
+                      , show $ reverse y
+                      ]
         )
 
 
