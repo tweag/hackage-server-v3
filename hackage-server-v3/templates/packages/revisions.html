@@ -1,6 +1,6 @@
 {% include "../header.html" with title = "Metadata revisions for " <> packagePretty package %}
 
-<h2>Metadata revisions for {{package | toPackageUrl}}</h2>
+<h2>Metadata revisions for <a href="{{package | toPackageUrl}}">{{package | packagePretty}}</a></h2>
 
 <p>
   Package maintainers and Hackage trustees are allowed to edit certain bits of
