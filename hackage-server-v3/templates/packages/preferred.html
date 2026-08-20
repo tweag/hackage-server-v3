@@ -1,4 +1,4 @@
-{% include "../header.html" with title = package <> " preferred and deprecated versions" %}
+{% include "../header.html" with title = package <> ": preferred and deprecated versions" %}
 
 <h2>{{package}}: preferred and deprecated versions</h2>
 
@@ -22,10 +22,10 @@ version. All of this information is collected in the <a
   If all the available versions of a package are non-preferred or deprecated,
   cabal-install will treat this the same as if none of them are. This feature
   doesn't affect whether or not to install a package, only for selecting
-  versions after a given package has decided to be installed. <a
-  href="deprecatedPackageUri versions "" pkgname">Entire-package deprecation</a>
-is also available, but it's separate from preferred versions.
-</p>
+  versions after a given package has decided to be installed.
+  <a href="/package/{{package}}/deprecated">Entire-package
+    deprecation</a> is also available, but it's separate from preferred
+  versions. </p>
 
 <h4>Stored information</h4>
 
