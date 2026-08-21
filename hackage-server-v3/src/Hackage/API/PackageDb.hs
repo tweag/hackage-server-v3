@@ -232,9 +232,8 @@ packageDeprecation
     :: Maybe NegotiatedContent
     -> PackageName
     -> ServerM (WithPackageName Deprecation)
-packageDeprecation _ pname = do
-  -- TODO(sandy): share the db connection
-  isDepr <- runDB $ doSelect1 $ do
+packageDeprecation _ pname = runDB $ do
+  isDepr <- doSelect1 $ do
     pkg <- each packageNameSchema
     where_ $ packageName pkg ==. lit pname
     pure $ packageDeprecated pkg
@@ -242,7 +241,7 @@ packageDeprecation _ pname = do
     False ->
       pure $ WithPackageName pname $ Deprecation Nothing
     True -> do
-      deprs <- runDB $ doSelect $ do
+      deprs <- doSelect $ do
         pkg <- each packageNameSchema
         where_ $ packageName pkg ==. lit pname
         depr <- each pkgDeprecationSchema
@@ -419,9 +418,9 @@ packageRevisions
     :: Maybe NegotiatedContent
     -> PackageLocator
     -> ServerM (WithPackage Revisions)
-packageRevisions _ loc = do
-  (name, version) <- runDB $ doSelect1 $ locatorToPackageId loc
-  revs <- runDB $ doSelect $ do
+packageRevisions _ loc = runDB $ do
+  (name, version) <- doSelect1 $ locatorToPackageId loc
+  revs <- doSelect $ do
     rev <- getAllRevs loc
     u <- each usersSchema
     where_ $ userId u ==. metadataUploader rev
@@ -557,11 +556,12 @@ packageTarballContent
                        , '(HTML, WithPackage DirectoryListing)
                        ])
 packageTarballContent loc ps = do
-  (pname, pid) <- runDB $ doSelect1 $ locatorToPackageId loc
-
-  blob <- runDB $ doSelect1 $ do
-    tar <- getLatestTarball loc
-    pure $ tarballBlobNoGz tar
+  (pname, pid, blob) <- runDB $ do
+    (pname, pid) <- doSelect1 $ locatorToPackageId loc
+    blob <- doSelect1 $ do
+      tar <- getLatestTarball loc
+      pure $ tarballBlobNoGz tar
+    pure (pname, pid, blob)
 
   serveTarballContent
     (fieldLink pkgdb_api_tarballContent loc)
