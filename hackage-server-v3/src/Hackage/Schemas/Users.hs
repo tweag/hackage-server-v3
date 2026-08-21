@@ -21,10 +21,8 @@ module Hackage.Schemas.Users
   , usersTable
   ) where
 
-import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 import Hackage.Types
-import Hackage.Types.PrimaryKey
 
 import Rel8
   ( Rel8able
@@ -32,9 +30,6 @@ import Rel8
   , TableSchema(..)
   , Column
   , Name
-  , ReadShow(..)
-  , DBType
-  , DBEq
   , Query
   , Expr
   , each
